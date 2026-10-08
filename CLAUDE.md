@@ -26,8 +26,10 @@ src/
   engine/   pure rules: reducer, phases, rent, building, cards, auction, trade, debt, rng,
             legal actions, invariants, save, net worth
   data/     board, countries, cities, airports, companies, chance, events, players, balance (every number)
-  ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch, autosave),
-            display.ts + animation.ts (event player), strings.ts (every UI string), theme.css, hooks.ts
+  ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch),
+            session/ (GameSession: LocalSession runs the engine and autosaves; OnlineSession talks to
+            the server), display.ts + animation.ts (event player), strings.ts (every UI string),
+            theme.css, hooks.ts
   sim/      bots.ts, runner.ts, cli.ts (`npm run sim`)
 tests/
   engine/   Vitest unit tests for data and engine (+ sim smoke run)

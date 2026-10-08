@@ -44,6 +44,7 @@ import {
   saveNow,
   showToast,
   ui,
+  useAnimationSpeed,
   useApp,
   useGame,
   useUi,
@@ -356,6 +357,7 @@ export function GameScreen() {
   const s = useGame();
   const u = useUi();
   const display = useDisplay();
+  const animationSpeed = useAnimationSpeed();
   const stacked = useMediaQuery(STACKED_QUERY);
   const compactLog = useMediaQuery(COMPACT_QUERY);
   useKeyboard();
@@ -365,7 +367,7 @@ export function GameScreen() {
     <div
       className={`game-screen ${display.busy ? 'is-animating' : ''} ${stacked ? 'is-stacked' : ''}`}
       data-phase={s.flow.phase}
-      data-speed={s.meta.settings.animationSpeed}
+      data-speed={animationSpeed}
     >
       <TopBar s={s} />
       <Board s={s} stacked={stacked} compactLog={compactLog} />

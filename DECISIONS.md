@@ -273,3 +273,17 @@ the primary button.
 - The owner marker stays, so ownership is never shown by colour alone.
 - Tests check every palette tint: Ink 4.5:1, icons 3:1, the Mortgaged label 4.5:1, and that the
   tints differ from white and from each other.
+
+## Online play (owner brief, 2026-10-08)
+
+The owner asked for online multiplayer hosted on Vercel, alongside the unchanged one-device mode.
+For online mode only, this overrides "no backend, no networking" in spec sections 1 and 2. What was
+built is described in spec section 17.
+
+**D55. GameSession.** Screens never call the engine or the network directly. They read the game
+from the app store and send every action through the active `GameSession` (`src/ui/session/`).
+- `LocalSession` is the one-device game. It runs `reduce`, autosaves to localStorage and animates,
+  exactly as before.
+- `OnlineSession` sends actions to the server and shows the updates it pushes.
+- Both show updates through one shared path: `playBatch`, then the store. Animation speed is a
+  session method: the game setting locally, a per-device preference online.

@@ -1,27 +1,19 @@
-// The UI side of the game: holds the current GameState, sends actions to the pure engine,
-// autosaves after every action and keeps UI-only state (overlays, focus, feedback).
-// Components read it with useSyncExternalStore; nothing here is game logic.
+// The UI side of the game: holds the current GameState and UI-only state (overlays, focus,
+// feedback), and sends every action through the active game session (LocalSession on one device,
+// OnlineSession in a room). Components read it with useSyncExternalStore; nothing here is game logic.
 import { useSyncExternalStore } from 'react';
-import {
-  createGame,
-  parseSave,
-  reduce,
-  SAVE_KEY,
-  serializeGame,
-  type Action,
-  type EngineError,
-  type GameEvent,
-  type GameState,
-  type SaveProblem,
-  type Settings,
-} from '../engine';
+import type { Action, AnimationSpeed, EngineError, GameEvent, GameState, SaveProblem, Settings } from '../engine';
 import { installSkipHandlers, playBatch, resetAnimation } from './animation';
+import { LocalSession, readLocalSave } from './session/local';
+import type { GameSession, SessionHost, SessionMode } from './session/types';
 import type { RuleTopicId } from './strings';
 
 export type Screen = 'start' | 'setup' | 'game';
 
 export interface AppState {
   screen: Screen;
+  /** How the current game is played; null before a game starts. */
+  mode: SessionMode | null;
   game: GameState | null;
   /** Events of the last successful action, in order (for animation and feedback). */
   events: GameEvent[];
@@ -104,34 +96,19 @@ export function newSeed(): number {
   }
 }
 
-function storageGet(): string | null {
-  try {
-    return window.localStorage.getItem(SAVE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function storageSet(text: string): boolean {
-  try {
-    window.localStorage.setItem(SAVE_KEY, text);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // ---------------------------------------------------------------------------------------------
 // Stores
 
 export const app = new Store<AppState>({
   screen: 'start',
+  mode: null,
   game: null,
   events: [],
   eventSeq: 0,
   refusal: null,
   saveProblem: null,
-  hasSave: storageGet() !== null,
+  hasSave: readLocalSave() !== null,
 });
 
 export const ui = new Store<UiState>({
@@ -165,22 +142,53 @@ let refusalSeq = 0;
 let toastSeq = 0;
 
 // ---------------------------------------------------------------------------------------------
+// Session
+
+/** What the sessions use to show a game: both animate and display updates the same way. */
+const host: SessionHost = {
+  game: () => app.get().game,
+  show(prev, next, events, speed) {
+    playBatch(prev, next, events, speed);
+    app.set({ game: next, events, eventSeq: app.get().eventSeq + 1, refusal: null });
+  },
+  refuse: (reason, target) => refuse(reason, target),
+};
+
+let session: GameSession | null = null;
+
+export function getSession(): GameSession | null {
+  return session;
+}
+
+function setSession(next: GameSession): void {
+  if (session !== next) session?.close();
+  session = next;
+}
+
+/** True when this device may act for the player (always on one shared device). */
+export function canAct(player: number | null): boolean {
+  return session?.controls(player) ?? true;
+}
+
+/** The animation speed on this device (read reactively by the app root). */
+export function useAnimationSpeed(): AnimationSpeed {
+  const { game, mode } = useApp();
+  return mode !== null && game && session ? session.animationSpeed() : 'normal';
+}
+
+export function setAnimationSpeed(speed: AnimationSpeed): void {
+  session?.setAnimationSpeed(speed);
+}
+
+// ---------------------------------------------------------------------------------------------
 // Commands
 
-/** Sends an action to the engine. Returns the refusal, if any, so the caller can shake. */
+/** Sends an action through the session. Returns the refusal, if any, so the caller can shake. */
 export function dispatch(action: Action, target: string | null = null): EngineError | null {
-  const game = app.get().game;
-  if (!game) return null;
-  const result = reduce(game, action);
-  if (result.error) {
-    refusalSeq += 1;
-    app.set({ refusal: { reason: result.error.reason, seq: refusalSeq, target } });
-    return result.error;
-  }
-  storageSet(serializeGame(result.state));
-  playBatch(game, result.state, result.events, result.state.meta.settings.animationSpeed);
-  app.set({ game: result.state, events: result.events, eventSeq: app.get().eventSeq + 1, refusal: null, hasSave: true });
-  return null;
+  if (!session || !app.get().game) return null;
+  const error = session.dispatch(action, target);
+  if (!error && session.mode === 'local') app.set({ hasSave: true });
+  return error;
 }
 
 /** Shows a refusal reason without calling the engine (for UI-side checks such as an empty bid). */
@@ -195,32 +203,48 @@ export function clearRefusal(): void {
 
 export function startNewGame(settings: Partial<Settings>): void {
   const roundLimit = Number.isInteger(ROUNDS_PARAM) && ROUNDS_PARAM > 0 ? ROUNDS_PARAM : settings.roundLimit;
-  const game = createGame({ ...settings, roundLimit }, newSeed());
-  storageSet(serializeGame(game));
+  const started = LocalSession.start(host, { ...settings, roundLimit }, newSeed());
+  setSession(started.session);
   resetUi();
-  app.set({ screen: 'game', game, events: [], eventSeq: app.get().eventSeq + 1, refusal: null, saveProblem: null, hasSave: true });
+  app.set({
+    screen: 'game',
+    mode: 'local',
+    game: started.game,
+    events: [],
+    eventSeq: app.get().eventSeq + 1,
+    refusal: null,
+    saveProblem: null,
+    hasSave: true,
+  });
 }
 
 /** Continue: restores the exact phase and pending decision, or reports a bad save. */
 export function continueGame(): void {
-  const parsed = parseSave(storageGet());
+  const { session: local, parsed } = LocalSession.resume(host);
   if (!parsed.ok) {
     app.set({ saveProblem: parsed.problem });
     return;
   }
+  setSession(local);
   resetUi();
-  app.set({ screen: 'game', game: parsed.state, events: [], eventSeq: app.get().eventSeq + 1, refusal: null, saveProblem: null });
+  app.set({
+    screen: 'game',
+    mode: 'local',
+    game: parsed.state,
+    events: [],
+    eventSeq: app.get().eventSeq + 1,
+    refusal: null,
+    saveProblem: null,
+  });
 }
 
 export function saveNow(): boolean {
-  const game = app.get().game;
-  if (!game) return false;
-  return storageSet(serializeGame(game));
+  return session?.save() ?? false;
 }
 
 export function goTo(screen: Screen): void {
   resetUi();
-  app.set({ screen, saveProblem: null, hasSave: storageGet() !== null });
+  app.set({ screen, saveProblem: null, hasSave: readLocalSave() !== null });
 }
 
 export function dismissSaveProblem(): void {

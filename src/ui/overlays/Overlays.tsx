@@ -22,7 +22,7 @@ import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
-import { askConfirm, closeConfirm, closeSheet, dispatch, goTo, ui, useUi } from '../store';
+import { askConfirm, closeConfirm, closeSheet, dispatch, goTo, setAnimationSpeed, ui, useAnimationSpeed, useUi } from '../store';
 import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { countryOfSpace, playerName, spaceName } from '../view';
 import { openRules } from '../store';
@@ -615,6 +615,7 @@ export function Results({ s }: { s: GameState }) {
 export function SettingsFields({ s }: { s: GameState }) {
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const prefs = usePrefs();
+  const animationSpeed = useAnimationSpeed();
   return (
     <div className="settings-fields">
       <p className="menu-heading">{T.settings.title}</p>
@@ -635,13 +636,8 @@ export function SettingsFields({ s }: { s: GameState }) {
         <legend className="field-label">{T.settings.animation}</legend>
         <div className="segmented" role="radiogroup" aria-label={T.settings.animation}>
           {(['normal', 'fast', 'off'] as const).map((speed) => (
-            <label key={speed} className={`segment ${s.meta.settings.animationSpeed === speed ? 'is-on' : ''}`}>
-              <input
-                type="radio"
-                name="speed"
-                checked={s.meta.settings.animationSpeed === speed}
-                onChange={() => dispatch({ type: 'setAnimationSpeed', speed })}
-              />
+            <label key={speed} className={`segment ${animationSpeed === speed ? 'is-on' : ''}`}>
+              <input type="radio" name="speed" checked={animationSpeed === speed} onChange={() => setAnimationSpeed(speed)} />
               <span>{T.setup.speed[speed]}</span>
             </label>
           ))}

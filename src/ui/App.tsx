@@ -4,14 +4,15 @@ import { StartScreen } from './screens/StartScreen';
 import { RuleGuide } from './overlays/RuleGuide';
 import { RotateHint } from './components/RotateHint';
 import { usePrefs } from './prefs';
-import { useApp, useUi } from './store';
+import { useAnimationSpeed, useApp, useUi } from './store';
 
 export function App() {
   const { screen, game } = useApp();
+  const animationSpeed = useAnimationSpeed();
   const { rules } = useUi();
   const { motionAnyway } = usePrefs();
   // The speed setting applies to everything on screen, including overlays outside the board.
-  const speed = screen === 'game' && game ? game.meta.settings.animationSpeed : 'normal';
+  const speed = screen === 'game' && game ? animationSpeed : 'normal';
   return (
     <div className="app" data-speed={speed} data-motion={motionAnyway ? 'full' : undefined}>
       {screen === 'start' && <StartScreen />}
