@@ -98,8 +98,10 @@ describe('settings', () => {
   });
 
   test('invalid options fall back to the defaults', () => {
-    const n = normalizeSettings({ playerCount: 9, startingMoney: 123, roundLimit: 7 });
+    const n = normalizeSettings({ playerCount: 9, startingMoney: 123, roundLimit: 700 });
     expect(n).toMatchObject({ playerCount: 2, startingMoney: 4000, roundLimit: 50, mode: 'quick' });
+    // Short round limits are accepted for tests (setup offers 30, 50 and 100).
+    expect(normalizeSettings({ roundLimit: 5 }).roundLimit).toBe(5);
   });
 
   test('Free Stay off: no tokens, never offered, Free Stay cards pay $100', () => {

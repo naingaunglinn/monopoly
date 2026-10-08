@@ -45,7 +45,12 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
     playerNames,
     startingMoney: SETUP.startingMoney.includes(merged.startingMoney) ? merged.startingMoney : SETUP.defaultStartingMoney,
     mode: merged.mode === 'normal' ? 'normal' : 'quick',
-    roundLimit: SETUP.roundLimits.includes(merged.roundLimit) ? merged.roundLimit : SETUP.defaultRoundLimit,
+    roundLimit:
+      Number.isInteger(merged.roundLimit) &&
+      merged.roundLimit >= SETUP.minRoundLimit &&
+      merged.roundLimit <= SETUP.maxRoundLimit
+        ? merged.roundLimit
+        : SETUP.defaultRoundLimit,
     freeStay: merged.freeStay !== false,
     vacation: merged.vacation !== false,
     auction: merged.auction !== false,

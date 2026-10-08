@@ -1,11 +1,23 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import type { ErrorCode, ErrorParams } from '../engine/types';
+import type { SpecialType } from '../data/board';
+import type { DeckId, ModifierType } from '../data/cardTypes';
+import type {
+  ErrorCode,
+  ErrorParams,
+  GameEvent,
+  MoneyReason,
+  RecapItem,
+  RentCalc,
+  Settings,
+} from '../engine/types';
+import type { TokenKind } from '../data/players';
 
 export const GAME_TITLE = 'Global Monopoly';
 export const TAGLINE = 'Build your global empire';
 
 const MINUS = '−';
+const TIMES = '×';
 
 /** $1,250 */
 export function money(amount: number): string {
@@ -18,6 +30,441 @@ export function signedMoney(amount: number): string {
   if (amount === 0) return '$0';
   return `${amount > 0 ? '+' : MINUS}$${Math.abs(Math.round(amount)).toLocaleString('en-US')}`;
 }
+
+export function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Labels
+
+export const T = {
+  start: {
+    newGame: 'New game',
+    continue: 'Continue',
+    rules: 'Rules',
+    noSave: 'No saved game yet',
+    saveProblemTitle: 'This saved game can’t be continued',
+    saveProblem: {
+      corrupt: 'The saved game is damaged and can’t be loaded.',
+      older: 'The saved game comes from an older version of the game and can’t be loaded.',
+      newer: 'The saved game comes from a newer version of the game and can’t be loaded.',
+    },
+    startFresh: 'Start a new game',
+    back: 'Back',
+    rotate: 'Turn your device sideways to play.',
+    rotateDetail: 'The board is built for landscape screens.',
+  },
+  setup: {
+    title: 'New game',
+    players: 'Players',
+    names: 'Player names',
+    nameLabel: (seat: number) => `Name of player ${seat}`,
+    startingMoney: 'Starting money',
+    mode: 'Game mode',
+    quick: 'Quick',
+    normal: 'Normal',
+    quickHint: 'Ends after the round limit or at the first bankruptcy. Highest net worth wins.',
+    normalHint: 'Play until one player is left.',
+    roundLimit: 'Round limit',
+    rounds: (n: number) => `${n} rounds`,
+    rules: 'House rules',
+    freeStay: 'Free Stay',
+    vacation: 'Vacation',
+    auction: 'Auction',
+    chance: 'Chance',
+    event: 'Event',
+    randomFirst: 'Random first player',
+    passDevice: 'Pass-device screen',
+    animation: 'Animation speed',
+    on: 'On',
+    off: 'Off',
+    speed: { normal: 'Normal', fast: 'Fast', off: 'Off' } as Record<Settings['animationSpeed'], string>,
+    start: 'Start game',
+    back: 'Back',
+    seatColor: (color: string, token: string) => `${color} ${token}`,
+  },
+  top: {
+    round: (n: number) => `Round ${n}`,
+    roundOf: (n: number, limit: number) => `Round ${n} of ${limit}`,
+    turn: (n: number) => `Turn ${n}`,
+    rules: 'Rules',
+    menu: 'Menu',
+    settings: 'Settings',
+    save: 'Save',
+    newGame: 'New game',
+    saved: 'Game saved',
+    saveFailed: 'Saving failed: this browser blocks storage.',
+    modifiersLabel: 'Active events',
+    until: (name: string) => `Until ${name}’s next turn`,
+  },
+  settings: {
+    title: 'Settings',
+    passDevice: 'Pass-device screen',
+    passDeviceHint: 'Show a handover screen at the start of each turn.',
+    animation: 'Animation speed',
+    close: 'Close',
+  },
+  confirm: {
+    newGameTitle: 'Start a new game?',
+    newGameText: 'The current game will be lost.',
+    newGameYes: 'Start a new game',
+    cancel: 'Cancel',
+    bankruptTitle: 'Declare bankruptcy?',
+    bankruptText: (name: string, to: string) => `${name} leaves the game. Everything left goes to ${to}.`,
+    bankruptYes: 'Declare bankruptcy',
+    tradeTitle: 'Accept this trade?',
+    tradeText: 'The trade happens at once and cannot be undone.',
+    tradeYes: 'Accept trade',
+  },
+  play: {
+    rollDice: 'Roll dice',
+    rollForDoubles: 'Roll for doubles',
+    move: (n: number) => `Move ${n} spaces`,
+    doubles: 'Doubles: roll again',
+    thirdDouble: 'Third double: go to Jail',
+    extraRoll: 'Roll again',
+    trade: 'Trade',
+    myProperties: 'My properties',
+    build: 'Build here',
+    endTurn: 'End turn',
+    buy: 'Buy',
+    pass: 'Pass',
+    pay: (amount: number) => `Pay ${money(amount)}`,
+    ok: 'OK',
+    continue: 'Continue',
+    done: 'Done',
+    ready: 'I’m ready',
+    since: 'Since your last turn:',
+    nothingSince: 'Nothing happened to you since your last turn.',
+    yourTurn: (name: string) => `${name}, your turn`,
+    decides: (name: string) => `${name} decides`,
+    total: (n: number) => `Total ${n}`,
+    die: (n: number) => `Die showing ${n}`,
+    bid: (amount: number) => `Bid ${money(amount)}`,
+    fold: 'Fold',
+    waitingFor: (name: string) => `Waiting for ${name}`,
+  },
+  players: {
+    title: 'Players',
+    cities: (n: number) => plural(n, 'city', 'cities'),
+    airports: (n: number) => plural(n, 'airport', 'airports'),
+    companies: (n: number) => plural(n, 'company', 'companies'),
+    freeStay: (n: number) => `${n} Free Stay`,
+    inJail: 'In Jail',
+    onVacation: 'On vacation',
+    bankrupt: 'Bankrupt',
+    current: 'Current player',
+    jailCard: 'Get Out of Jail card',
+    voucher: 'Free House card',
+    open: (name: string) => `Open ${name}’s properties`,
+  },
+  log: {
+    title: 'Log',
+    showMore: 'Show more',
+    showLess: 'Show less',
+    empty: 'The game has just started.',
+  },
+  focus: {
+    owner: 'Owner',
+    unowned: 'For sale',
+    price: 'Price',
+    houseCost: 'House cost',
+    hotelCost: 'Hotel cost',
+    rent: 'Rent',
+    multiplier: 'Multiplier',
+    mortgage: 'Mortgage value',
+    mortgaged: 'Mortgaged',
+    notMortgaged: 'Not mortgaged',
+    status: 'Status',
+    level: 'Buildings',
+    country: 'Country',
+    complete: 'Country complete',
+    countryProgress: (owned: number, total: number) => `${owned} of ${total} owned`,
+    countryOwners: 'No single owner yet',
+    noBuilding: 'No building',
+    completeEmpty: 'Country complete, no building',
+    houses: (n: number) => plural(n, 'house', 'houses'),
+    hotel: 'Hotel',
+    airportsOwned: (n: number) => plural(n, 'airport', 'airports'),
+    companyFormula: (multiplier: number) => `Dice total ${TIMES} ${money(multiplier)}`,
+    companyBetween: (a: string, b: string) => `Between ${a} and ${b}`,
+    pinned: 'Pinned',
+    unpin: 'Unpin',
+    noAirportSet: 'Airports belong to no country set.',
+    landHere: 'If you land here',
+  },
+  tile: {
+    rent: (amount: number) => money(amount),
+    mortgaged: 'Mortgaged',
+    dice: (multiplier: number) => `Dice ${TIMES}${multiplier}`,
+    canBuild: 'You can build here now',
+    owner: (name: string) => `Owned by ${name}`,
+    level: (level: number) => (level === 5 ? 'Hotel' : plural(level, 'house', 'houses')),
+  },
+  panels: {
+    help: 'Help',
+    whose: (name: string) => `${name}’s decision`,
+    buy: {
+      title: (name: string) => `Buy ${name}?`,
+      price: 'Price',
+      cashAfter: 'Cash after buying',
+      passHint: 'If you pass, everyone can bid for it.',
+      passHintNoAuction: 'If you pass, it stays for sale.',
+    },
+    auction: {
+      title: (name: string) => `Auction: ${name}`,
+      highBid: 'High bid',
+      noBids: 'No bids yet',
+      by: (name: string) => `by ${name}`,
+      turn: (name: string) => `${name}, raise or fold`,
+      custom: 'Your bid',
+      bidCustom: 'Bid',
+      minimum: (amount: number) => `At least ${money(amount)}`,
+      folded: 'Folded',
+      active: 'Still bidding',
+      yourCash: (amount: number) => `Your cash: ${money(amount)}`,
+    },
+    rent: {
+      title: (name: string) => `Rent for ${name}`,
+      taxTitle: (name: string) => name,
+      owner: 'Owner',
+      amount: 'Amount',
+      toBank: 'Paid to the bank',
+      freeStay: (left: number) => `Use Free Stay (${left} left)`,
+      freeStayHint: 'A Free Stay token skips the rent on another player’s city.',
+    },
+    company: {
+      title: (name: string) => name,
+      intro: (owner: string) => `Owned by ${owner}. Roll two dice: rent is the total times the multiplier.`,
+      roll: 'Roll',
+    },
+    build: {
+      title: (name: string) => `Build on ${name}`,
+      current: 'Now',
+      house: (cost: number) => `Build house · ${money(cost)}`,
+      houseFree: 'Build house · free with Free House card',
+      hotel: (cost: number) => `Build hotel · ${money(cost)}`,
+      done: 'Done',
+      maxed: 'This city has a hotel. Nothing more can be built.',
+      landingRule: 'You can build only on the city you have just landed on, during this move.',
+      rentNow: 'Rent now',
+      rentNext: 'Rent after building',
+    },
+    card: {
+      chance: 'Chance',
+      event: 'Event',
+      boarding: 'Boarding pass',
+      news: 'World news',
+      kept: 'Keep this card until you use it.',
+    },
+    jail: {
+      title: (name: string) => `${name} is in Jail`,
+      attempts: (used: number, max: number) => `Doubles attempts used: ${used} of ${max}`,
+      lastAttempt: 'If this roll fails you must pay $300 and move.',
+      pay: (amount: number) => `Pay ${money(amount)}`,
+      useCard: 'Use Get Out of Jail card',
+      roll: 'Roll for doubles',
+    },
+    vacation: {
+      title: 'Vacation',
+      landed: (name: string) => `${name} is on vacation. Their next turn will be skipped.`,
+      skipTitle: (name: string) => `${name} is on vacation`,
+      skip: 'This turn is skipped. Rent still comes in as usual.',
+    },
+    debt: {
+      title: (name: string) => `${name} owes money`,
+      amount: 'Amount owed',
+      creditor: 'To',
+      bank: 'The bank',
+      cash: 'Cash',
+      shortfall: 'Still short',
+      covered: 'Covered: you can pay now.',
+      options: 'Raise money by selling buildings, mortgaging or trading.',
+      canSell: (n: number) => `${plural(n, 'building', 'buildings')} can be sold`,
+      canMortgage: (n: number) => `${plural(n, 'property', 'properties')} can be mortgaged`,
+      manage: 'Sell or mortgage',
+      trade: 'Trade',
+      bankrupt: 'Declare bankruptcy',
+      reason: {
+        rent: (name: string) => `Rent for ${name}`,
+        tax: (name: string) => name,
+        card: (title: string) => `Card: ${title}`,
+        jailFine: 'Jail fine',
+      },
+    },
+    bankruptcy: {
+      title: (name: string) => `${name} is bankrupt`,
+      toPlayer: (name: string) => `Their buildings were sold to the bank. Their cash and properties go to ${name}; mortgaged properties stay mortgaged.`,
+      toBank: 'Their buildings were sold to the bank. Their properties are for sale again.',
+      out: 'They are out of the game.',
+    },
+  },
+  trade: {
+    title: 'Trade',
+    partner: 'Trade with',
+    pickPartner: 'Pick a player',
+    youGive: 'You give',
+    youGet: 'You get',
+    cash: 'Cash',
+    jailCards: 'Get Out of Jail cards',
+    none: 'Nothing to offer',
+    blocked: (country: string) => `Sell the buildings in ${country} first`,
+    send: 'Send offer',
+    cancel: 'Cancel',
+    handTo: (name: string) => `Hand the device to ${name}`,
+    offerFrom: (name: string) => `${name} offers you a trade`,
+    theyGive: (name: string) => `${name} gives`,
+    youGiveBack: 'You give',
+    accept: 'Accept',
+    reject: 'Reject',
+    nothing: 'Nothing',
+    mortgagedNote: 'Mortgaged properties stay mortgaged.',
+    notTradeable: 'Free Stay tokens and Free House cards cannot be traded.',
+  },
+  properties: {
+    title: (name: string) => `${name}’s properties`,
+    none: 'No properties yet.',
+    airports: 'Airports',
+    companies: 'Companies',
+    sellHouse: (refund: number) => `Sell house · ${signedMoney(refund)}`,
+    sellHotel: (refund: number) => `Sell hotel · ${signedMoney(refund)}`,
+    mortgage: (amount: number) => `Mortgage · ${signedMoney(amount)}`,
+    unmortgage: (cost: number) => `Unmortgage · ${signedMoney(-cost)}`,
+    viewOnly: 'Only the owner can manage these, on their own turn.',
+    close: 'Close',
+    held: 'Held cards',
+  },
+  pass: {
+    title: 'Pass the device',
+    to: (name: string) => `to ${name}`,
+    hint: 'Everything in this game is public. This screen is just a handover.',
+  },
+  winner: {
+    wins: (name: string) => `${name} wins`,
+    shared: (names: string) => `Shared win: ${names}`,
+    netWorth: 'Net worth',
+    reason: {
+      roundLimit: 'The round limit is complete.',
+      bankruptcy: 'The first bankruptcy ends a Quick game.',
+      lastPlayer: 'The last player left wins.',
+    },
+    viewResults: 'View results',
+    newGame: 'New game',
+  },
+  results: {
+    title: 'Results',
+    rank: 'Rank',
+    player: 'Player',
+    cash: 'Cash',
+    property: 'Cities',
+    buildings: 'Buildings',
+    airports: 'Airports',
+    companies: 'Companies',
+    netWorth: 'Net worth',
+    bankrupt: 'Bankrupt',
+    winner: 'Winner',
+    newGame: 'New game',
+    close: 'Back to board',
+  },
+  rules: {
+    title: 'Rule guide',
+    search: 'Search the rules',
+    noMatch: 'No topic matches your search.',
+    close: 'Close',
+    topics: 'Topics',
+    offInGame: (what: string) => `${what} is switched off in this game.`,
+    tableLevel: 'Building level',
+    tableRent: 'Rent',
+    tableAirports: 'Airports owned',
+    tableCompany: 'Company',
+    tablePrice: 'Price',
+    tableMultiplier: 'Multiplier',
+    baseRent: 'Base rent',
+    incompleteRow: 'Country not complete',
+    cityRentIntro: 'Rent as a multiple of the city’s base rent:',
+  },
+  debug: {
+    title: 'Debug',
+    nextDice: 'Next dice',
+    set: 'Set',
+    movePlayer: 'Move player',
+    cash: 'Cash',
+    owner: 'Owner',
+    level: 'Level',
+    forceCard: 'Force next card',
+    space: 'Space',
+    nobody: 'Nobody',
+  },
+  error: {
+    title: 'Not allowed',
+  },
+};
+
+// ---------------------------------------------------------------------------------------------
+// Board names
+
+export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
+  start: 'World Start',
+  chance: 'Chance',
+  event: 'Event',
+  tax: 'Tax',
+  incomeTax: 'Income Tax',
+  luxuryTax: 'Luxury Tax',
+  jail: 'Jail',
+  goToJail: 'Go To Jail',
+  vacation: 'Vacation',
+  freeParking: 'Free Parking',
+  rest: 'Rest',
+};
+
+/** What happens on each special space (Focus Card). */
+export const SPECIAL_TEXT: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
+  start: 'Collect $500 each time you pass or land here moving forward.',
+  chance: 'Draw the top Chance card and do what it says.',
+  event: 'Draw the top Event card: world news that can affect everyone.',
+  tax: 'Pay the tax to the bank.',
+  incomeTax: 'Pay $300 to the bank.',
+  luxuryTax: 'Pay $500 to the bank.',
+  jail: 'Just visiting: nothing happens. Players sent to Jail wait here.',
+  goToJail: 'Go straight to Jail. You collect nothing for passing World Start.',
+  vacation: 'Your next turn is skipped. You still collect rent.',
+  freeParking: 'Nothing happens.',
+  rest: 'Nothing happens: this card deck is switched off.',
+};
+
+export const TOKEN_NAMES: Readonly<Record<TokenKind, string>> = {
+  globe: 'Globe',
+  plane: 'Plane',
+  compass: 'Compass',
+  crown: 'Crown',
+  rocket: 'Rocket',
+  star: 'Star',
+};
+
+export const DECK_NAMES: Readonly<Record<DeckId, string>> = { chance: 'Chance', event: 'Event' };
+
+const MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
+  cityRent: 'City rent',
+  airportRent: 'Airport rent',
+  companyRent: 'Company rent',
+  buildCost: 'Build cost',
+};
+
+/** "City rent +25%" */
+export function modifierLabel(type: ModifierType, factor: number): string {
+  const pct = Math.round((factor - 1) * 100);
+  return `${MODIFIER_NAMES[type]} ${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
+}
+
+export function levelText(level: number): string {
+  if (level === 0) return T.focus.noBuilding;
+  if (level === 5) return T.focus.hotel;
+  return T.focus.houses(level);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Errors
 
 function p(params: ErrorParams, key: string): string {
   const v = params[key];
@@ -52,7 +499,7 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   bidTooLow: (x) => `Your bid must be at least ${m(x, 'min')}.`,
   bidTooHigh: (x) => `You can't bid more than your cash (${m(x, 'cash')}).`,
   invalidAmount: () => 'Enter a whole number of dollars.',
-  freeStayUnavailable: () => 'Free Stay can be used only on another player\'s city, and you need a token.',
+  freeStayUnavailable: () => "Free Stay can be used only on another player's city, and you need a token.",
   debtNotCovered: (x) => `You still need ${m(x, 'shortfall')} more to pay.`,
   tradeInvalidPlayer: () => 'Pick another player who is still in the game.',
   tradeEmpty: () => 'Add at least one item to the trade.',
@@ -67,3 +514,484 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
 export function errorText(code: ErrorCode, params: ErrorParams): string {
   return ERROR_TEXT[code](params);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Sentences built from game data. The caller supplies names.
+
+export interface NameLookup {
+  player(id: number): string;
+  space(index: number): string;
+  cardTitle(id: string): string;
+}
+
+/** "Tokyo, 2 houses: $43 × 7 = $301", with "× 1.25 = $376" added when an Event modifier applies. */
+export function rentCalcText(calc: RentCalc, amount: number, spaceName: string): string {
+  const total = (subtotal: number, factor: number | null) =>
+    factor === null ? money(subtotal) : `${money(subtotal)} ${TIMES} ${factor} = ${money(amount)}`;
+  switch (calc.kind) {
+    case 'cityBase':
+      return `${spaceName}, base rent: ${total(calc.baseRent, calc.factor)}`;
+    case 'cityComplete': {
+      const what = calc.level === 0 ? 'country complete' : levelText(calc.level).toLowerCase();
+      return `${spaceName}, ${what}: ${money(calc.baseRent)} ${TIMES} ${calc.multiplier} = ${total(calc.baseRent * calc.multiplier, calc.factor)}`;
+    }
+    case 'airport':
+      return `${spaceName}, ${T.focus.airportsOwned(calc.owned)} owned: ${total(calc.ladderRent, calc.factor)}`;
+    case 'company':
+      return `Dice ${calc.dice[0]} + ${calc.dice[1]} = ${calc.total}: ${calc.total} ${TIMES} ${money(calc.multiplier)} = ${total(calc.total * calc.multiplier, calc.factor)}`;
+    case 'tax':
+      return calc.tax === 'income' ? 'Income Tax: pay $300 to the bank' : 'Luxury Tax: pay $500 to the bank';
+  }
+}
+
+const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
+  start: 'World Start',
+  buy: 'purchase',
+  auction: 'auction',
+  rent: 'rent',
+  tax: 'tax',
+  card: 'card',
+  freeStayCash: 'Free Stay',
+  build: 'building',
+  sell: 'sold building',
+  mortgage: 'mortgage',
+  unmortgage: 'unmortgage',
+  jailFine: 'Jail fine',
+  trade: 'trade',
+  bankruptcy: 'bankruptcy',
+  debug: 'debug',
+};
+
+/** One recap entry: "+$172 rent from Player 3". */
+export function recapItemText(item: RecapItem, names: NameLookup): string {
+  const amount = signedMoney(item.delta);
+  if (item.reason === 'rent' && item.counterparty !== null) {
+    return item.delta > 0
+      ? `${amount} rent from ${names.player(item.counterparty)}`
+      : `${amount} rent to ${names.player(item.counterparty)}`;
+  }
+  if (item.reason === 'card' && item.cardId) return `${amount} ${names.cardTitle(item.cardId)}`;
+  if (item.reason === 'trade' && item.counterparty !== null) return `${amount} trade with ${names.player(item.counterparty)}`;
+  if (item.reason === 'auction' && item.space !== null) return `${amount} won ${names.space(item.space)} at auction`;
+  if (item.reason === 'bankruptcy' && item.counterparty !== null) {
+    return `${amount} from ${names.player(item.counterparty)}’s bankruptcy`;
+  }
+  return `${amount} ${REASON_TEXT[item.reason]}`;
+}
+
+/** Summarises a recap list into one line, merging rent from the same player. */
+export function recapLine(items: RecapItem[], names: NameLookup): string {
+  if (items.length === 0) return T.play.nothingSince;
+  const merged: RecapItem[] = [];
+  for (const item of items) {
+    const same = merged.find(
+      (x) => x.reason === item.reason && x.counterparty === item.counterparty && x.cardId === item.cardId && x.reason === 'rent',
+    );
+    if (same) same.delta += item.delta;
+    else merged.push({ ...item });
+  }
+  const parts = merged.slice(0, 3).map((x) => recapItemText(x, names));
+  const more = merged.length > 3 ? ` and ${merged.length - 3} more` : '';
+  return `${T.play.since} ${parts.join(', ')}${more}.`;
+}
+
+/** One plain sentence per logged event, or null for events that are not shown in the log. */
+export function logText(e: GameEvent, n: NameLookup): string | null {
+  const who = (id: number) => n.player(id);
+  switch (e.type) {
+    case 'gameStarted':
+      return `${who(e.firstPlayer)} goes first.`;
+    case 'roundStarted':
+      return `Round ${e.round} begins.`;
+    case 'turnStarted':
+      return `${who(e.player)}’s turn.`;
+    case 'turnSkipped':
+      return `${who(e.player)} is on vacation; turn skipped.`;
+    case 'turnEnded':
+      return null;
+    case 'diceRolled':
+      if (e.purpose === 'company') return `${who(e.player)} rolled ${e.dice[0]} + ${e.dice[1]} for company rent.`;
+      if (e.purpose === 'jail') {
+        return `${who(e.player)} rolled ${e.dice[0]} + ${e.dice[1]} for doubles${e.doubles ? ' and got them' : ''}.`;
+      }
+      return `${who(e.player)} rolled ${e.dice[0]} + ${e.dice[1]} = ${e.dice[0] + e.dice[1]}${e.doubles ? ', doubles' : ''}.`;
+    case 'moved':
+      return e.by === 'card'
+        ? `${who(e.player)} moved ${e.direction === 1 ? 'forward' : 'back'} to ${n.space(e.to)}.`
+        : `${who(e.player)} moved to ${n.space(e.to)}.`;
+    case 'teleported':
+      if (e.reason === 'debug') return `Debug: ${who(e.player)} placed on ${n.space(e.to)}.`;
+      return null;
+    case 'passedStart':
+      return `${who(e.player)} passed World Start: ${signedMoney(e.amount)}.`;
+    case 'landed':
+    case 'money':
+    case 'settingChanged':
+      return null;
+    case 'bought':
+      return `${who(e.player)} bought ${n.space(e.space)} for ${money(e.price)}.`;
+    case 'declined':
+      return `${who(e.player)} passed on ${n.space(e.space)}.`;
+    case 'auctionStarted':
+      return `Auction for ${n.space(e.space)} begins.`;
+    case 'bid':
+      return `${who(e.player)} bid ${money(e.amount)}.`;
+    case 'folded':
+      return e.auto ? `${who(e.player)} cannot beat the bid and folds.` : `${who(e.player)} folded.`;
+    case 'auctionWon':
+      return `${who(e.player)} won ${n.space(e.space)} for ${money(e.price)}.`;
+    case 'auctionUnsold':
+      return `Nobody bid: ${n.space(e.space)} stays for sale.`;
+    case 'rentPaid':
+      return `${who(e.from)} paid ${who(e.to)} ${money(e.amount)} rent for ${n.space(e.space)}.`;
+    case 'freeStayUsed':
+      return `${who(e.player)} used a Free Stay at ${n.space(e.space)} and saved ${money(e.saved)}.`;
+    case 'noRent':
+      return `${n.space(e.space)} is mortgaged: no rent.`;
+    case 'feePaid': {
+      const what = e.reason === 'incomeTax' ? 'Income Tax' : e.reason === 'luxuryTax' ? 'Luxury Tax' : 'the Jail fine';
+      return `${who(e.player)} paid ${what}: ${signedMoney(-e.amount)}.`;
+    }
+    case 'cardDrawn':
+      return `${who(e.player)} drew ${DECK_NAMES[e.deck]}: ${n.cardTitle(e.cardId)}.`;
+    case 'deckShuffled':
+      return `The ${DECK_NAMES[e.deck]} deck was reshuffled.`;
+    case 'cardCash':
+      return `${who(e.player)}: ${signedMoney(e.amount)} (${n.cardTitle(e.cardId)}).`;
+    case 'cardTransfer':
+      return `${who(e.from)} paid ${who(e.to)} ${money(e.amount)} (${n.cardTitle(e.cardId)}).`;
+    case 'cardNoEffect':
+      return `${n.cardTitle(e.cardId)}: no effect this time.`;
+    case 'freeStayGained':
+      return `${who(e.player)} now holds ${e.tokens} Free Stay.`;
+    case 'cardKept':
+      return `${who(e.player)} keeps ${n.cardTitle(e.cardId)}.`;
+    case 'rollAgainGranted':
+      return `${who(e.player)} gets an extra roll.`;
+    case 'modifierStarted':
+      return `${modifierLabel(e.modifier.type, e.modifier.factor)} until ${who(e.modifier.drawnBy)}’s next turn.`;
+    case 'modifierEnded':
+      return `${modifierLabel(e.modifier.type, e.modifier.factor)} has ended.`;
+    case 'built':
+      return `${who(e.player)} built ${e.level === 5 ? 'a hotel' : 'a house'} on ${n.space(e.space)}${e.voucher ? ' with a Free House card' : ` for ${money(e.cost)}`}.`;
+    case 'buildingSold':
+      return `${who(e.player)} sold a building on ${n.space(e.space)}: ${signedMoney(e.refund)}.`;
+    case 'mortgaged':
+      return `${who(e.player)} mortgaged ${n.space(e.space)}: ${signedMoney(e.amount)}.`;
+    case 'unmortgaged':
+      return `${who(e.player)} unmortgaged ${n.space(e.space)}: ${signedMoney(-e.cost)}.`;
+    case 'jailed':
+      return e.reason === 'doubles'
+        ? `${who(e.player)} rolled a third double and went to Jail.`
+        : `${who(e.player)} went to Jail.`;
+    case 'jailRollFailed':
+      return `${who(e.player)} stays in Jail (attempt ${e.attempts}).`;
+    case 'leftJail':
+      return e.how === 'card'
+        ? `${who(e.player)} used a Get Out of Jail card.`
+        : e.how === 'fine'
+          ? `${who(e.player)} paid to leave Jail.`
+          : e.how === 'forcedFine'
+            ? `${who(e.player)} paid the fine and leaves Jail.`
+            : `${who(e.player)} rolled doubles and leaves Jail.`;
+    case 'vacationStarted':
+      return `${who(e.player)} is on vacation; their next turn is skipped.`;
+    case 'debtStarted':
+      return `${who(e.debtor)} owes ${money(e.amount)} and is ${money(e.shortfall)} short.`;
+    case 'debtPaid':
+      return null;
+    case 'bankrupt':
+      return e.creditor === null
+        ? `${who(e.player)} is bankrupt; the bank takes everything.`
+        : `${who(e.player)} is bankrupt; ${who(e.creditor)} takes everything.`;
+    case 'tradeProposed':
+      return `${who(e.from)} offered ${who(e.to)} a trade.`;
+    case 'tradeAccepted':
+      return `${who(e.offer.to)} accepted ${who(e.offer.from)}’s trade.`;
+    case 'tradeRejected':
+      return `${who(e.to)} rejected ${who(e.from)}’s trade.`;
+    case 'gameOver':
+      return e.winners.length > 1
+        ? `Game over: shared win for ${e.winners.map(who).join(' and ')}.`
+        : `Game over: ${who(e.winners[0] ?? 0)} wins.`;
+    case 'debugApplied':
+      return `Debug: ${e.op}.`;
+  }
+}
+
+/** The player a log line is about (for its colour dot). */
+export function logPlayer(e: GameEvent): number | null {
+  switch (e.type) {
+    case 'rentPaid':
+    case 'cardTransfer':
+      return e.from;
+    case 'tradeProposed':
+    case 'tradeRejected':
+      return e.from;
+    case 'tradeAccepted':
+      return e.offer.to;
+    case 'debtStarted':
+    case 'debtPaid':
+      return e.debtor;
+    case 'gameStarted':
+      return e.firstPlayer;
+    case 'modifierStarted':
+    case 'modifierEnded':
+      return e.modifier.drawnBy;
+    default:
+      return 'player' in e && typeof e.player === 'number' ? e.player : null;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Rule guide (spec section 16). Topic text is used as written, one short point per line.
+
+export type RuleTopicId =
+  | 'quickStart'
+  | 'yourTurn'
+  | 'worldStart'
+  | 'buying'
+  | 'citiesRent'
+  | 'countries'
+  | 'houses'
+  | 'selling'
+  | 'airports'
+  | 'companies'
+  | 'cards'
+  | 'freeStay'
+  | 'jail'
+  | 'vacation'
+  | 'taxes'
+  | 'mortgages'
+  | 'trading'
+  | 'debt'
+  | 'winning'
+  | 'controls';
+
+export interface RuleTopic {
+  id: RuleTopicId;
+  title: string;
+  lines: string[];
+  ordered?: boolean;
+  /** A table generated from the game data, shown after the lines. */
+  table?: 'cityRent' | 'airportRent' | 'companies';
+  /** Settings that can switch this topic off for a game. */
+  switches?: Array<'freeStay' | 'vacation' | 'auction' | 'chance' | 'event'>;
+}
+
+export const SWITCH_NAMES = {
+  freeStay: 'Free Stay',
+  vacation: 'Vacation',
+  auction: 'Auction',
+  chance: 'Chance',
+  event: 'Event',
+} as const;
+
+export const RULE_TOPICS: readonly RuleTopic[] = [
+  {
+    id: 'quickStart',
+    title: 'Quick start',
+    lines: [
+      'Roll the dice and move clockwise.',
+      'Land on a property nobody owns: buy it, or let everyone bid for it.',
+      'Land on someone else’s property: pay rent.',
+      'Own every city of a country and its rent doubles. Then you can build houses, but only on the city you land on.',
+      'Pass World Start and collect $500.',
+      'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
+      'The yellow button always shows your next step.',
+    ],
+  },
+  {
+    id: 'yourTurn',
+    title: 'Your turn',
+    ordered: true,
+    lines: [
+      'Tap I’m ready, then Roll dice.',
+      'Your token moves. Do what the space says.',
+      'Before or after rolling you can trade, mortgage, or sell buildings.',
+      'Rolled doubles? Roll again. Three doubles in one turn sends you to Jail.',
+      'Press End turn and pass the device.',
+    ],
+  },
+  {
+    id: 'worldStart',
+    title: 'World Start',
+    lines: [
+      'Collect $500 each time you pass it or land on it.',
+      'You collect nothing when a card moves you backward or when you go to Jail.',
+    ],
+  },
+  {
+    id: 'buying',
+    title: 'Buying and auctions',
+    switches: ['auction'],
+    lines: [
+      'Land on an unowned city, airport or company and you may buy it at its price.',
+      'If you pass, it is auctioned. Everyone can bid, including you. Bids start at $1.',
+      'In an auction, players take turns to raise or fold. The last bidder left wins and pays the bank.',
+    ],
+  },
+  {
+    id: 'citiesRent',
+    title: 'Cities and rent',
+    lines: [
+      'Land on another player’s city and you pay its rent. The tile shows the rent you would pay right now.',
+      'A mortgaged city charges no rent.',
+      'You can use a Free Stay token instead of paying.',
+    ],
+  },
+  {
+    id: 'countries',
+    title: 'Countries',
+    table: 'cityRent',
+    lines: [
+      'A country is complete when one player owns all of its cities.',
+      'In a complete country, rent on empty cities doubles and building becomes possible.',
+    ],
+  },
+  {
+    id: 'houses',
+    title: 'Houses and hotels',
+    lines: [
+      'You need the whole country, with none of its cities mortgaged.',
+      'You can build only on the city you have just landed on, and only during that move.',
+      'Build evenly: no city may be more than one house ahead of the others in its country.',
+      'You may build several houses in one landing if the even rule and your cash allow it.',
+      'After 4 houses you can build a hotel. A hotel costs twice the house cost.',
+    ],
+  },
+  {
+    id: 'selling',
+    title: 'Selling buildings',
+    lines: [
+      'Sell on your own turn or when you owe money. You get half the cost back.',
+      'Sell evenly, tallest city first. Selling a hotel leaves 4 houses.',
+    ],
+  },
+  {
+    id: 'airports',
+    title: 'Airports',
+    table: 'airportRent',
+    lines: ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
+  },
+  {
+    id: 'companies',
+    title: 'Companies',
+    table: 'companies',
+    lines: ['Land on another player’s company, roll two dice and pay the total times the company’s multiplier.'],
+  },
+  {
+    id: 'cards',
+    title: 'Chance and Event cards',
+    switches: ['chance', 'event'],
+    lines: [
+      'Land on Chance or Event to draw a card, then do what it says.',
+      'Chance mostly affects you: money, movement, Jail and bonus cards.',
+      'Events are world news. They can affect everyone, and some change rents or building costs for one round. Active events show at the top of the screen.',
+      'Free House: your next house is free, still only on a city you land on.',
+      'Get Out of Jail: keep it until you need it. You can trade it.',
+    ],
+  },
+  {
+    id: 'freeStay',
+    title: 'Free Stay',
+    switches: ['freeStay'],
+    lines: [
+      'You start with 3 tokens. Use one to skip the rent on another player’s city.',
+      'It does not work on airports, companies, taxes or cards.',
+      'You never hold more than 3.',
+    ],
+  },
+  {
+    id: 'jail',
+    title: 'Jail',
+    lines: [
+      'You go to Jail from the Go To Jail space, from a card, or by rolling three doubles in one turn.',
+      'To leave: pay $300, use a Get Out of Jail card, or roll doubles.',
+      'Rolling doubles moves you out by that roll, with no extra roll.',
+      'After three failed rolls you must pay $300 and move.',
+      'In Jail you still collect rent, trade and bid.',
+      'Landing on the Jail space during a normal move is just visiting.',
+    ],
+  },
+  {
+    id: 'vacation',
+    title: 'Vacation',
+    switches: ['vacation'],
+    lines: ['Land on Vacation and your next turn is skipped, once.', 'You still own everything and still collect rent.'],
+  },
+  {
+    id: 'taxes',
+    title: 'Taxes and Free Parking',
+    lines: ['Income Tax: pay $300. Luxury Tax: pay $500.', 'Free Parking: nothing happens.'],
+  },
+  {
+    id: 'mortgages',
+    title: 'Mortgages',
+    lines: [
+      'Short of cash? Mortgage a property to the bank for half its price. You keep it, but it earns no rent.',
+      'For a city, sell all buildings in that country first.',
+      'To unmortgage, pay the mortgage value plus 10%.',
+      'You cannot build in a country while one of its cities is mortgaged.',
+    ],
+  },
+  {
+    id: 'trading',
+    title: 'Trading',
+    lines: [
+      'On your turn, offer a trade to one player: properties, Get Out of Jail cards and cash, in any mix.',
+      'The other player accepts or rejects. Nobody can be forced.',
+      'Cities in a country with buildings cannot be traded until the buildings are sold.',
+      'A mortgaged property stays mortgaged after a trade.',
+    ],
+  },
+  {
+    id: 'debt',
+    title: 'Debt and bankruptcy',
+    lines: [
+      'If you cannot pay, raise money: sell buildings, mortgage properties or make a trade.',
+      'If that is still not enough, you are bankrupt and out of the game.',
+      'Owing a player: they receive everything you have left. Owing the bank: your properties become free to buy again.',
+    ],
+  },
+  {
+    id: 'winning',
+    title: 'Winning',
+    lines: [
+      'Quick game: it ends after the round limit, or when the first player goes bankrupt. The highest net worth wins.',
+      'Normal game: the last player left wins.',
+      'Net worth is cash, plus properties at their price (mortgaged ones at half), plus buildings at cost.',
+    ],
+  },
+  {
+    id: 'controls',
+    title: 'Controls',
+    lines: [
+      'Space or Enter presses the yellow button. B buys, P passes, T trades, R opens this guide.',
+      'Hover over or tap a tile to see its details. Click a player to see what they own.',
+      'Any click skips an animation. Animation speed is in Settings.',
+    ],
+  },
+];
+
+/** Two-line explanations behind the small help buttons (spec 14, Comfort). */
+export const QUICK_HELP: Readonly<Record<'freeStay' | 'companies' | 'airports' | 'building', { lines: [string, string]; topic: RuleTopicId }>> = {
+  freeStay: {
+    lines: ['Use a Free Stay token to skip rent on another player’s city.', 'Not for airports, companies, taxes or cards. You hold at most 3.'],
+    topic: 'freeStay',
+  },
+  companies: {
+    lines: ['Landing on someone’s company: roll two dice.', 'You pay the total times the company’s multiplier.'],
+    topic: 'companies',
+  },
+  airports: {
+    lines: ['Airport rent depends on how many airports the owner holds.', 'From $40 for one up to $1,250 for all ten.'],
+    topic: 'airports',
+  },
+  building: {
+    lines: ['Own the whole country, then build on the city you just landed on.', 'Build evenly; after 4 houses comes a hotel.'],
+    topic: 'houses',
+  },
+};
+
+export const RULE_LINK = 'Open the rule guide';

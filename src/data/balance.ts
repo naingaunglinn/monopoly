@@ -73,6 +73,9 @@ export const SETUP = {
   defaultStartingMoney: 4000,
   roundLimits: [30, 50, 100] as readonly number[],
   defaultRoundLimit: 50,
+  /** Other round limits the engine accepts (the ?rounds=N test hook); setup offers only the list above. */
+  minRoundLimit: 1,
+  maxRoundLimit: 100,
   maxNameLength: 16,
 } as const;
 

@@ -108,3 +108,40 @@ window (Debt phase, turn about to pass). The simulation found this case (Normal,
 
 **D26. Capped Normal games count 2,000 rounds** in the median. The results do not change any price
 or rule; they are in `reports/sim-report.json` and the final report.
+
+## Playable UI (M3)
+
+**D27. One fixed primary button.** The yellow button sits in a fixed slot under the play area.
+Decision panels cover the play area and the log above it and hold only their secondary actions
+(Pass, Use Free Stay, raises, Pay $300, Build, Debt actions). The primary is Done on the build
+panel (Space or Enter never spends money by accident), Roll for doubles in Jail, a +$10 raise in an
+auction, and OK or Continue on notices.
+
+**D28. Notices first.** The Vacation and Bankruptcy panels (OK or Continue) show before anything
+else, including the next player's pass-device screen.
+
+**D29. Trade handover.** After Send offer, a handover screen asks the partner to take the device; the
+partner then sees the offer with Accept (confirmed) or Reject.
+
+**D30. Winner and results.** The winner panel sits inside the ocean and does not cover the ring;
+View results opens the Results screen over the board.
+
+**D31. Refused buttons** stay focusable (`aria-disabled`), give the reason in a tooltip (inline for
+Buy, Pay, Build and Pay $300), and pressing one shows the reason.
+
+**D32. Tiles are one tab stop** with arrow-key navigation (roving tabindex). Focusing a tile points
+the Focus Card at it; Space or Enter still presses the primary button.
+
+**D33. Test hooks.** `window.__GM__.getState()` is a read-only hook for end-to-end tests (it cannot
+change the game). `?rounds=N` sets the Quick round limit of new games, which the end-to-end run uses
+for its 5-round game; the setup screen still offers 30, 50 and 100.
+
+**D34. Short tile names** for the two longest airports on one-line tiles ("UK Airport", "US
+Airport"); the Focus Card shows full names.
+
+**D35. Offline assets.** Only the latin woff2 files of the three Barlow families are bundled and
+registered with the FontFace API at startup; the build inlines fonts and flags, so the app makes no
+request after the first load.
+
+**D36. Continue** is enabled whenever a save exists; a corrupt or older save shows a clear message
+with Start a new game, and never crashes.
