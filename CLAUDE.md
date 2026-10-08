@@ -59,5 +59,9 @@ docs/       SPEC.md (source of truth)
   show the engine's reason. Animations replay engine events in `ui/animation.ts`; game state is final
   before they play, and any input finishes them.
 - Signal yellow is for the primary button only. Small text uses the AA text shades in `theme.css`.
+- Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
+  both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
+- The save has a `schemaVersion` (now 2). A change to the state's shape bumps it and adds a migration
+  in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
 - After UI changes run `npm run test:e2e`: the screenshot spec audits every capture (text under 10px,
   page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080.

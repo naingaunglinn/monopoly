@@ -1,21 +1,26 @@
 // Scrolling log, newest at the bottom: one plain sentence per event, a colour dot per player and
-// signed money. New lines are announced through an aria-live region.
+// signed money. New lines are announced through an aria-live region. While the board plays the
+// last action, its lines wait until the animation ends, so the log never tells the outcome early.
 import { useEffect, useMemo, useRef } from 'react';
 import type { GameState } from '../../engine';
+import { useDisplay } from '../display';
 import { ui, useUi } from '../store';
 import { logPlayer, logText, T } from '../strings';
 import { names } from '../view';
 
 export function Log({ s, compact }: { s: GameState; compact: boolean }) {
   const { logExpanded } = useUi();
+  const { busy, logUntil } = useDisplay();
+  const until = busy && logUntil !== null ? logUntil : Infinity;
   const list = useRef<HTMLOListElement>(null);
   const lookup = useMemo(() => names(s), [s]);
   const lines = useMemo(
     () =>
       s.meta.log
+        .filter((entry) => entry.seq <= until)
         .map((entry) => ({ entry, text: logText(entry.event, lookup), player: logPlayer(entry.event) }))
         .filter((l): l is { entry: typeof l.entry; text: string; player: number | null } => l.text !== null),
-    [s.meta.log, lookup],
+    [s.meta.log, lookup, until],
   );
   const shown = compact && !logExpanded ? lines.slice(-3) : lines;
   const last = lines[lines.length - 1];

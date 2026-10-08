@@ -1,8 +1,11 @@
 // One board tile. Compact by design: the Focus Card shows the details at full size.
+// An owned property takes a tint of its owner's colour behind the text, so white tiles are the
+// ones still for sale (D54). The owner marker stays: ownership is never colour alone.
 import { Hammer } from 'lucide-react';
 import { memo, type KeyboardEvent } from 'react';
 import { gridPosition } from '../../data/board';
 import type { GameState } from '../../engine';
+import { ownedTileColor, PATH_TINT, tint } from '../contrast';
 import { useDisplay } from '../display';
 import { ui } from '../store';
 import { T } from '../strings';
@@ -28,11 +31,16 @@ interface TileProps {
   onNavigate: (from: number, delta: number) => void;
 }
 
+function isPropertySpace(type: string): boolean {
+  return type === 'city' || type === 'airport' || type === 'company';
+}
+
 function describe(s: GameState, index: number): string {
   const v = tileView(s, index);
   const parts = [v.name];
   if (v.country && v.space.type === 'city') parts.push(v.country.name);
   if (v.owner) parts.push(T.tile.owner(v.owner.name));
+  else if (isPropertySpace(v.space.type)) parts.push(T.tile.forSale);
   if (v.value) parts.push(v.value);
   if (v.level > 0) parts.push(T.tile.level(v.level));
   if (v.canBuildNow) parts.push(T.tile.canBuild);
@@ -47,7 +55,8 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
   const rest = isRestSpace(s, index);
   const Icon = spaceIcon(v.space, rest);
   const isCity = v.space.type === 'city';
-  const isProperty = isCity || v.space.type === 'airport' || v.space.type === 'company';
+  const isProperty = isPropertySpace(v.space.type);
+  const moverColor = display.mover !== null ? s.players[display.mover]?.color : undefined;
   const band = isCity && v.country ? v.country.color : undefined;
   const pip = display.pip?.space === index ? display.pip : null;
   const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
@@ -91,7 +100,15 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
       type="button"
       className={classes}
       data-space={index}
-      style={{ gridColumn: pos.col + 1, gridRow: pos.row + 1, ['--band' as string]: band, ['--ring' as string]: ring ?? undefined }}
+      style={{
+        gridColumn: pos.col + 1,
+        gridRow: pos.row + 1,
+        ['--band' as string]: band,
+        ['--ring' as string]: ring ?? undefined,
+        ['--owned' as string]: v.owner ? ownedTileColor(v.owner.color, v.mortgaged) : undefined,
+        ['--mover' as string]: moverColor,
+        ['--path' as string]: moverColor ? tint(moverColor, PATH_TINT) : undefined,
+      }}
       tabIndex={focusable ? 0 : -1}
       aria-label={describe(s, index)}
       onMouseEnter={() => ui.set({ hover: index })}

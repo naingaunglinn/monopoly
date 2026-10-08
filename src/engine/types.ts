@@ -30,6 +30,8 @@ export type Dice = [number, number];
 export interface Settings {
   playerCount: number;
   playerNames: string[];
+  /** One colour per seat (always 6, all different), from PLAYER_COLORS. */
+  playerColors: string[];
   startingMoney: number;
   mode: GameMode;
   /** Quick mode only. */

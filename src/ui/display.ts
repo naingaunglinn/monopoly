@@ -24,6 +24,10 @@ export interface DisplayState {
   rolling: boolean;
   /** Path tiles that light briefly as a token passes. */
   lit: number[];
+  /** The player whose token is moving (path light and landing glow use their colour). */
+  mover: number | null;
+  /** One hop of a moving token: a new id per space; `last` adds the landing squash. */
+  hop: { player: number; id: number; ms: number; last: boolean } | null;
   /** Landing glow. */
   glow: number | null;
   /** World Start flash. */
@@ -40,6 +44,8 @@ export interface DisplayState {
   pulse: { player: number; id: number } | null;
   /** Winner confetti burst. */
   confetti: number | null;
+  /** While events play, the log stops at this entry so it does not tell the outcome early. */
+  logUntil: number | null;
 }
 
 export const IDLE: DisplayState = {
@@ -50,6 +56,8 @@ export const IDLE: DisplayState = {
   dice: null,
   rolling: false,
   lit: [],
+  mover: null,
+  hop: null,
   glow: null,
   flash: null,
   stamp: null,
@@ -58,6 +66,7 @@ export const IDLE: DisplayState = {
   pip: null,
   pulse: null,
   confetti: null,
+  logUntil: null,
 };
 
 type Listener = () => void;

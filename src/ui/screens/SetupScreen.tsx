@@ -1,13 +1,17 @@
-// Setup: one screen, not a wizard. The defaults start a game in two clicks.
+// Setup: one screen, not a wizard. The defaults start a game in two clicks. Each player's token
+// opens a colour palette (D53).
 import { ArrowLeft, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SETUP } from '../../data/balance';
 import { SEATS } from '../../data/players';
 import { DEFAULT_SETTINGS, type Settings } from '../../engine';
+import { REDUCED_MOTION_QUERY } from '../animation';
 import { Button } from '../components/Button';
-import { TokenChip } from '../components/glyphs';
+import { ColorPicker } from '../components/ColorPicker';
+import { useMediaQuery } from '../hooks';
+import { setPrefs, usePrefs } from '../prefs';
 import { goTo, startNewGame } from '../store';
-import { defaultPlayerName, money, T, TOKEN_NAMES } from '../strings';
+import { colorName, defaultPlayerName, money, T, TOKEN_NAMES } from '../strings';
 
 function Segmented<V extends string | number>({
   label,
@@ -64,10 +68,27 @@ export function SetupScreen() {
   const startRef = useRef<HTMLButtonElement>(null);
   // Start game has focus (Enter starts), without scrolling the form.
   useEffect(() => startRef.current?.focus({ preventScroll: true }), []);
-  const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS, playerNames: [...DEFAULT_SETTINGS.playerNames] });
+  const [settings, setSettings] = useState<Settings>({
+    ...DEFAULT_SETTINGS,
+    playerNames: [...DEFAULT_SETTINGS.playerNames],
+    playerColors: [...DEFAULT_SETTINGS.playerColors],
+  });
+  const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const prefs = usePrefs();
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((s) => ({ ...s, [key]: value }));
   const setName = (seat: number, name: string) =>
     setSettings((s) => ({ ...s, playerNames: s.playerNames.map((n, i) => (i === seat ? name : n)) }));
+  // Taking another seat's colour gives that seat yours, so colours stay different.
+  const setColor = (seat: number, color: string) =>
+    setSettings((s) => {
+      const colors = [...s.playerColors];
+      const other = colors.indexOf(color);
+      if (other >= 0 && other !== seat) colors[other] = colors[seat] as string;
+      colors[seat] = color;
+      return { ...s, playerColors: colors };
+    });
+  const shownName = (seat: number) => settings.playerNames[seat]?.trim() || defaultPlayerName(seat);
+  const seats = SEATS.slice(0, settings.playerCount);
 
   return (
     <main className="setup-screen">
@@ -94,21 +115,35 @@ export function SetupScreen() {
             <fieldset className="field">
               <legend className="field-label">{T.setup.names}</legend>
               <ol className="name-list">
-                {SEATS.slice(0, settings.playerCount).map((seat, i) => (
-                  <li key={seat.seat} className="name-row">
-                    <TokenChip token={seat.token} color={seat.color} size={26} />
-                    <input
-                      className="text-input"
-                      aria-label={T.setup.nameLabel(seat.seat)}
-                      value={settings.playerNames[i] ?? ''}
-                      maxLength={SETUP.maxNameLength}
-                      placeholder={defaultPlayerName(i)}
-                      onChange={(e) => setName(i, e.target.value)}
-                    />
-                    <span className="seat-meta">{T.setup.seatColor(seat.colorName, TOKEN_NAMES[seat.token])}</span>
-                  </li>
-                ))}
+                {seats.map((seat, i) => {
+                  const color = settings.playerColors[i] as string;
+                  const holders = Object.fromEntries(
+                    seats.flatMap((_, j) => (j === i ? [] : [[settings.playerColors[j] as string, shownName(j)]])),
+                  );
+                  return (
+                    <li key={seat.seat} className="name-row">
+                      <ColorPicker
+                        seat={i}
+                        name={shownName(i)}
+                        token={seat.token}
+                        color={color}
+                        holders={holders}
+                        onPick={(c) => setColor(i, c)}
+                      />
+                      <input
+                        className="text-input"
+                        aria-label={T.setup.nameLabel(seat.seat)}
+                        value={settings.playerNames[i] ?? ''}
+                        maxLength={SETUP.maxNameLength}
+                        placeholder={defaultPlayerName(i)}
+                        onChange={(e) => setName(i, e.target.value)}
+                      />
+                      <span className="seat-meta">{T.setup.seatColor(colorName(color), TOKEN_NAMES[seat.token])}</span>
+                    </li>
+                  );
+                })}
               </ol>
+              <p className="field-hint name-hint">{T.setup.colorHint}</p>
             </fieldset>
           </section>
           <section className="setup-col" aria-label={T.setup.mode}>
@@ -147,13 +182,34 @@ export function SetupScreen() {
               onChange={(v) => set('animationSpeed', v)}
               render={(v) => T.setup.speed[v]}
             />
+            {reducedMotion && (
+              <div className="motion-anyway">
+                <Toggle
+                  id="opt-motion"
+                  label={T.setup.motionAnyway}
+                  checked={prefs.motionAnyway}
+                  onChange={(v) => setPrefs({ motionAnyway: v })}
+                />
+                <p className="field-hint">{T.setup.motionHint}</p>
+              </div>
+            )}
           </section>
           <section className="setup-col" aria-label={T.setup.rules}>
             <fieldset className="field">
               <legend className="field-label">{T.setup.rules}</legend>
               <div className="toggle-list">
-                <Toggle id="opt-freestay" label={T.setup.freeStay} checked={settings.freeStay} onChange={(v) => set('freeStay', v)} />
-                <Toggle id="opt-vacation" label={T.setup.vacation} checked={settings.vacation} onChange={(v) => set('vacation', v)} />
+                <Toggle
+                  id="opt-freestay"
+                  label={T.setup.freeStay}
+                  checked={settings.freeStay}
+                  onChange={(v) => set('freeStay', v)}
+                />
+                <Toggle
+                  id="opt-vacation"
+                  label={T.setup.vacation}
+                  checked={settings.vacation}
+                  onChange={(v) => set('vacation', v)}
+                />
                 <Toggle id="opt-auction" label={T.setup.auction} checked={settings.auction} onChange={(v) => set('auction', v)} />
                 <Toggle id="opt-chance" label={T.setup.chance} checked={settings.chance} onChange={(v) => set('chance', v)} />
                 <Toggle id="opt-event" label={T.setup.event} checked={settings.event} onChange={(v) => set('event', v)} />
@@ -163,7 +219,12 @@ export function SetupScreen() {
                   checked={settings.randomFirstPlayer}
                   onChange={(v) => set('randomFirstPlayer', v)}
                 />
-                <Toggle id="opt-pass" label={T.setup.passDevice} checked={settings.passDevice} onChange={(v) => set('passDevice', v)} />
+                <Toggle
+                  id="opt-pass"
+                  label={T.setup.passDevice}
+                  checked={settings.passDevice}
+                  onChange={(v) => set('passDevice', v)}
+                />
               </div>
             </fieldset>
           </section>

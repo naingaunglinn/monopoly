@@ -1,7 +1,7 @@
 // Creating a new game (spec 5.1 and section 8).
 import { BALANCE, BOARD_SIZE, SETUP } from '../data/balance';
 import { isProperty } from '../data/board';
-import { SEATS } from '../data/players';
+import { PLAYER_COLORS, SEATS } from '../data/players';
 import { defaultPlayerName } from '../ui/strings';
 import { buildDecks } from './cards';
 import { type Ctx, emit } from './core';
@@ -9,11 +9,13 @@ import { beginTurn } from './phases';
 import { normalizeSeed, randomInt } from './rng';
 import type { GameState, Player, Settings } from './types';
 
-export const SCHEMA_VERSION = 1;
+/** Version 2 added settings.playerColors; version 1 saves are migrated on load (save.ts). */
+export const SCHEMA_VERSION = 2;
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = {
   playerCount: SETUP.defaultPlayerCount,
   playerNames: SEATS.map((_, i) => defaultPlayerName(i)),
+  playerColors: SEATS.map((seat) => seat.color),
   startingMoney: SETUP.defaultStartingMoney,
   mode: 'quick',
   roundLimit: SETUP.defaultRoundLimit,
@@ -27,6 +29,28 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   animationSpeed: 'normal',
 };
 
+/**
+ * Six different palette colours. Valid choices are kept (the earlier seat wins a duplicate); any
+ * other seat gets its own seat colour if it is free, else the first free palette colour.
+ */
+function normalizeColors(input: unknown): string[] {
+  const wanted = Array.isArray(input) ? input : [];
+  const chosen = SEATS.map((_, i) => {
+    const c = wanted[i];
+    return typeof c === 'string' && PLAYER_COLORS.includes(c) ? c : null;
+  });
+  chosen.forEach((c, i) => {
+    if (c !== null && chosen.indexOf(c) !== i) chosen[i] = null;
+  });
+  const used = new Set(chosen.filter((c): c is string => c !== null));
+  return chosen.map((c, i) => {
+    if (c !== null) return c;
+    const seatColor = (SEATS[i] as (typeof SEATS)[number]).color;
+    const fill = used.has(seatColor) ? (PLAYER_COLORS.find((p) => !used.has(p)) as string) : seatColor;
+    used.add(fill);
+    return fill;
+  });
+}
 
 /** Fills gaps and clamps every option to the values the setup screen offers. */
 export function normalizeSettings(input: Partial<Settings> = {}): Settings {
@@ -41,6 +65,7 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
   return {
     playerCount,
     playerNames,
+    playerColors: normalizeColors(input.playerColors),
     startingMoney: SETUP.startingMoney.includes(merged.startingMoney) ? merged.startingMoney : SETUP.defaultStartingMoney,
     mode: merged.mode === 'normal' ? 'normal' : 'quick',
     roundLimit:
@@ -67,7 +92,7 @@ function newPlayer(seat: number, settings: Settings): Player {
   return {
     id: seat,
     name: settings.playerNames[seat] ?? defaultPlayerName(seat),
-    color: seatData.color,
+    color: settings.playerColors[seat] ?? seatData.color,
     token: seatData.token,
     cash: settings.startingMoney,
     position: 0,

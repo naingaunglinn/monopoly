@@ -1,5 +1,5 @@
-// WCAG contrast helpers: text on a country band is white on dark bands and Ink on light ones,
-// whichever passes AA (spec section 10).
+// Colour helpers. WCAG contrast: text on a country band is white on dark bands and Ink on light ones,
+// whichever passes AA (spec section 10). Tints: owned tiles and the path light (D51, D54).
 export const INK = '#14202B';
 export const WHITE = '#FFFFFF';
 
@@ -22,4 +22,22 @@ export function contrastRatio(a: string, b: string): number {
 /** White or Ink, whichever contrasts more with the background. */
 export function readableInk(background: string): string {
   return contrastRatio(background, WHITE) >= contrastRatio(background, INK) ? WHITE : INK;
+}
+
+/** Mixes `amount` (0 to 1) of a colour with white, like CSS color-mix(in srgb, …, white). */
+export function tint(hex: string, amount: number): string {
+  const h = hex.replace('#', '');
+  const mixed = [0, 2, 4].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * amount + 255 * (1 - amount)));
+  return `#${mixed.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+/** An owned tile takes this much of its owner's colour (D54); white tiles are for sale. */
+export const OWNED_TINT = 0.4;
+/** A mortgaged tile is paler, so its amber Mortgaged label still passes AA. */
+export const MORTGAGED_TINT = 0.14;
+/** The light on tiles a token passes, in the moving player's colour. */
+export const PATH_TINT = 0.5;
+
+export function ownedTileColor(owner: string, mortgaged: boolean): string {
+  return tint(owner, mortgaged ? MORTGAGED_TINT : OWNED_TINT);
 }

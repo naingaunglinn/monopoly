@@ -16,9 +16,12 @@ import {
   type TradeOffer,
 } from '../../engine';
 import { countryHasBuildings } from '../../engine/core';
+import { REDUCED_MOTION_QUERY } from '../animation';
 import { Button } from '../components/Button';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
+import { useMediaQuery } from '../hooks';
+import { setPrefs, usePrefs } from '../prefs';
 import { askConfirm, closeConfirm, closeSheet, dispatch, goTo, ui, useUi } from '../store';
 import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { countryOfSpace, playerName, spaceName } from '../view';
@@ -610,6 +613,8 @@ export function Results({ s }: { s: GameState }) {
 
 /** Settings live in the top-bar menu as a popover; they never cover the board. */
 export function SettingsFields({ s }: { s: GameState }) {
+  const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
+  const prefs = usePrefs();
   return (
     <div className="settings-fields">
       <p className="menu-heading">{T.settings.title}</p>
@@ -642,6 +647,21 @@ export function SettingsFields({ s }: { s: GameState }) {
           ))}
         </div>
       </fieldset>
+      {reducedMotion && (
+        <label className="toggle" htmlFor="set-motion">
+          <input
+            id="set-motion"
+            type="checkbox"
+            role="switch"
+            checked={prefs.motionAnyway}
+            onChange={(e) => setPrefs({ motionAnyway: e.target.checked })}
+          />
+          <span className="toggle-track" aria-hidden="true">
+            <span className="toggle-thumb" />
+          </span>
+          <span className="toggle-label">{T.settings.motionAnyway}</span>
+        </label>
+      )}
     </div>
   );
 }

@@ -42,12 +42,21 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
       '.tb-player-name',
       '.winner-title',
       '.pass-name',
+      '.color-pop-title',
+      '.swatch-name',
     ];
     for (const el of document.querySelectorAll<HTMLElement>(clipSelectors.join(','))) {
       if (!visible(el)) continue;
       // Any horizontal overflow shows as an ellipsis or a cut letter, so the width check is strict.
       if (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight + 2) {
         problems.push(`clipped text in .${el.className.split(' ')[0]}: "${el.textContent?.trim().slice(0, 40)}"`);
+      }
+    }
+    // Popovers stay inside the window.
+    for (const el of document.querySelectorAll('.color-pop')) {
+      const r = el.getBoundingClientRect();
+      if (r.left < 0 || r.top < 0 || r.right > window.innerWidth || r.bottom > window.innerHeight) {
+        problems.push('the colour palette leaves the window');
       }
     }
     const state = (window as unknown as { __GM__?: { getState: () => any } }).__GM__?.getState();

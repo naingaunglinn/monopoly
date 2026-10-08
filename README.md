@@ -32,11 +32,13 @@ limit for testing. Screenshots from `npm run test:e2e` land in `reports/screensh
 
 ## How to play
 
-1. Press **New game**, set the players (or keep the defaults) and press **Start game**.
+1. Press **New game**, set the players (or keep the defaults) and press **Start game**. Press a
+   player's token to choose their colour.
 2. Pass the device to the player named on screen. They press **I'm ready**.
 3. The yellow button always shows the next step: **Roll dice**, **Buy**, **Pay**, **OK** or
    **End turn**. Space or Enter presses it.
 4. Land on an unowned city, airport or company to buy it. If you pass, everyone can bid for it.
+   White tiles are still for sale; an owned tile takes its owner's colour.
 5. Land on someone else's property and pay rent. On cities you can spend a Free Stay token instead.
 6. Own every city of a country and its rent doubles. You can then build houses and a hotel, but only
    on the city you have just landed on.
@@ -46,5 +48,8 @@ limit for testing. Screenshots from `npm run test:e2e` land in `reports/screensh
 
 Press **Rules** (or R) at any time for the full rule guide. Shortcuts: B buys, P passes, T opens
 trade, Esc closes optional panels. Hover or tap a tile to see its details; click a player card to see
-what they own. Any click or key skips an animation; animation speed and the pass-device screen are in
-the menu. The game saves itself after every action; **Continue** on the start screen resumes it.
+what they own. Any click or key skips an animation (the button reads **Skip** while one plays);
+animation speed and the pass-device screen are in the menu. If your device is set to reduce motion
+(on Windows: Animation effects off), tokens jump instead of moving: turn on **Show movement anyway**
+in setup or in the menu to see them move. The game saves itself after every action; **Continue** on
+the start screen resumes it.

@@ -1,9 +1,10 @@
 // The game screen: a slim top bar and the board ring filling the rest, every control inside the
 // ring (spec section 11). Under 1024 px or in portrait the HUD moves below the board.
-import { ArrowLeftRight, BookOpen, Hammer, Layers, Menu as MenuIcon, Plus, Save } from 'lucide-react';
+import { ArrowLeftRight, BookOpen, FastForward, Hammer, Layers, Menu as MenuIcon, Plus, Save } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOARD } from '../../data/board';
 import { freeActor, validateAction, type GameState, type Player } from '../../engine';
+import { finishNow } from '../animation';
 import { Button, useShake } from '../components/Button';
 import { DicePanel } from '../components/Dice';
 import { CoinFlight, Confetti } from '../components/Effects';
@@ -136,7 +137,20 @@ function TopBar({ s }: { s: GameState }) {
 function PrimaryButton({ s }: { s: GameState }) {
   const spec = primarySpec(s);
   const shaking = useShake('primary');
+  const { busy } = useDisplay();
   if (!spec) return <div className="primary-slot" />;
+  // While the board plays the last action the button offers to skip it, so an eager press is not
+  // mistaken for the next step (any press or key skips; D51). It becomes the next step after.
+  if (busy) {
+    return (
+      <div className="primary-slot">
+        <button type="button" id="primary" className="btn btn-big btn-skip" aria-keyshortcuts="Space Enter" onClick={() => finishNow()}>
+          <FastForward size={18} aria-hidden="true" />
+          <span className="btn-label">{T.play.skip}</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="primary-slot">
       <button

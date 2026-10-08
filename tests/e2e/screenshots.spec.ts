@@ -33,6 +33,14 @@ for (const size of SIZES) {
       await shot(page, size, '01-start');
       await page.locator('#start-new').click();
       await shot(page, size, '02-setup');
+      // The colour palette (D53), with two players and with six (the last row opens it upwards).
+      await page.locator('#color-0').click();
+      await shot(page, size, '02-setup-colors');
+      await page.keyboard.press('Escape');
+      await page.getByRole('radiogroup', { name: 'Players' }).getByRole('radio', { name: '6', exact: true }).check();
+      await page.locator('#color-5').click();
+      await shot(page, size, '02-setup-six-colors');
+      await page.keyboard.press('Escape');
 
       const states = panelStates();
       for (const [name, state] of Object.entries(states)) {

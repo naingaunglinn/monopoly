@@ -1,8 +1,17 @@
 // Animation and robustness runs (spec section 15): a key press skips an animation without acting,
-// full games at Normal and Fast speed, with reduced motion, with the network disabled after load,
-// and at 1024 × 768. Any console error fails a run.
-import { expect, test } from '@playwright/test';
+// the Normal pace (D51), full games at Normal and Fast speed, with reduced motion and its Show
+// movement anyway switch (D52), with the network disabled after load, and at 1024 × 768. Any
+// console error fails a run.
+import { expect, test, type Page } from '@playwright/test';
 import { gameState, playToWinner, startGame, trackErrors } from './helpers';
+
+/** The CSS animation on the hopping token (read in one go: the hop element is new every space). */
+async function hopAnimation(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const el = document.querySelector('.token-hop.is-hopping, .token-hop.is-landing');
+    return el ? getComputedStyle(el).animationName : null;
+  });
+}
 
 test('a key press during an animation finishes it at once and does nothing else', async ({ page }) => {
   const log = trackErrors(page);
@@ -22,6 +31,52 @@ test('a key press during an animation finishes it at once and does nothing else'
     await page.locator('#primary').click();
     expect(await gameState(page)).toEqual(next);
   }
+  expect(log.errors).toEqual([]);
+});
+
+test('Normal speed: a roll plays long enough to follow, hop by hop, and the button offers Skip', async ({ page }) => {
+  const log = trackErrors(page);
+  await startGame(page, { query: '?seed=42&rounds=5', speed: 'Normal' });
+  await page.locator('#pass-ready').click();
+  await page.locator('#primary').click(); // Roll dice
+  await expect(page.locator('#primary')).toHaveText('Skip');
+  // The token hops from space to space.
+  await expect.poll(() => hopAnimation(page)).toMatch(/^hop/);
+  // A second after the roll it is still playing (dice 1.1 s, then the move and the landing).
+  await page.waitForTimeout(1000);
+  await expect(page.locator('.game-screen.is-animating')).toHaveCount(1);
+  // It ends by itself; then the button shows the next step.
+  await page.locator('.game-screen.is-animating').waitFor({ state: 'detached', timeout: 10_000 });
+  await expect(page.locator('#primary')).not.toHaveText('Skip');
+  expect(log.errors).toEqual([]);
+});
+
+test('reduced motion: Show movement anyway brings the movement back and is remembered', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const log = trackErrors(page);
+  await page.goto('/?seed=11&rounds=5');
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+  await page.locator('#start-new').click();
+  await expect(page.locator('#opt-motion')).not.toBeChecked();
+  await page.locator('label[for="opt-motion"]').click();
+  await expect(page.locator('#opt-motion')).toBeChecked();
+  await expect(page.locator('.app')).toHaveAttribute('data-motion', 'full');
+  await page.locator('#setup-start').click();
+  await page.locator('#pass-ready').click();
+  await page.locator('#primary').click(); // Roll dice
+  await expect(page.locator('.game-screen.is-animating')).toHaveCount(1);
+  // The CSS keeps the animation too (not cut by the reduced-motion rules).
+  await expect.poll(() => hopAnimation(page)).toMatch(/^hop/);
+  await page.keyboard.press('Space');
+  await expect(page.locator('.game-screen.is-animating')).toHaveCount(0);
+  // The menu has the same switch; the choice is kept on this device.
+  await page.locator('#tb-menu').click();
+  await expect(page.locator('#set-motion')).toBeChecked();
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await page.locator('#start-new').click();
+  await expect(page.locator('#opt-motion')).toBeChecked();
   expect(log.errors).toEqual([]);
 });
 

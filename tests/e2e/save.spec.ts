@@ -1,5 +1,6 @@
 // Save and resume (spec sections 9 and 15): reload and Continue in the middle of a decision gives
 // the identical state and the same panel; a corrupt or older save shows a clear message.
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { gameState, startGame, trackErrors } from './helpers';
 
@@ -65,5 +66,34 @@ test('a corrupt or older save shows a clear message and offers a new game', asyn
     await dialog.getByRole('button', { name: 'Start a new game' }).click();
     await expect(page.locator('.setup-card')).toBeVisible();
   }
+  expect(log.errors).toEqual([]);
+});
+
+test('a save from the previous version (before colour choice) continues where it was', async ({ page }) => {
+  const log = trackErrors(page);
+  // Written by the version 1 build: four players in an auction, Egypt built, an airport mortgaged.
+  const v1 = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
+  await page.goto('/');
+  await page.evaluate(
+    ([key, value]) => {
+      window.localStorage.clear();
+      window.localStorage.setItem(key as string, value as string);
+    },
+    [SAVE_KEY, v1],
+  );
+  await page.reload();
+  await page.locator('#start-continue').click();
+  await expect(page.locator('[data-panel="auction"]')).toBeVisible();
+  const s = await gameState(page);
+  expect(s.meta.schemaVersion).toBe(2);
+  expect(s.players.map((p: { name: string }) => p.name)).toEqual(['Mia', 'Leo', 'Aung', 'Sofia']);
+  expect(s.meta.settings.playerColors.slice(0, 4)).toEqual(s.players.map((p: { color: string }) => p.color));
+  // Leo's Egypt tiles wear Leo's colour.
+  const cairo = await page.locator('.board .tile[data-space="12"]').evaluate((el) => getComputedStyle(el, '::before').content);
+  expect(cairo).not.toBe('none');
+  // The next autosave writes version 2.
+  await page.locator('#bid-fold').click();
+  const saved = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) as string), SAVE_KEY);
+  expect(saved.meta.schemaVersion).toBe(2);
   expect(log.errors).toEqual([]);
 });

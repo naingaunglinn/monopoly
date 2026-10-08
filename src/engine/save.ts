@@ -1,11 +1,12 @@
 // Save and resume (spec section 9). The save is the game state as JSON with a schemaVersion.
-// A corrupt or older save is reported, never thrown.
+// A corrupt, older or newer save is reported, never thrown. Version 1 saves (before players
+// chose their colours) are migrated to version 2 on load.
 import { BOARD_SIZE, SETUP } from '../data/balance';
 import { isProperty } from '../data/board';
 import { isKnownCard } from './cards';
 import { checkInvariants } from './invariants';
 import { SCHEMA_VERSION, normalizeSettings } from './state';
-import { PHASES, type GameState } from './types';
+import { PHASES, type GameState, type Settings } from './types';
 
 export const SAVE_KEY = 'global-monopoly/save/v1';
 
@@ -107,7 +108,28 @@ function shapeIsValid(raw: Record<string, unknown>): boolean {
   const settings = meta.settings as unknown as GameState['meta']['settings'];
   const normalized = normalizeSettings(settings);
   if (JSON.stringify(normalized) !== JSON.stringify(settings) || normalized.playerCount !== players.length) return false;
-  return true;
+  // Each player has the colour chosen for their seat.
+  return players.every((p, i) => (p as Record<string, unknown>).color === normalized.playerColors[i]);
+}
+
+/** Oldest save version that can still be loaded. */
+const OLDEST_LOADABLE = 1;
+
+/**
+ * Version 1 to 2: the settings gain playerColors, taken from the players' own colours (in a
+ * version 1 game these are the seat colours). Returns null when the version 1 settings are not
+ * exactly what that version wrote.
+ */
+function migrateV1(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const { meta, players } = raw;
+  if (!isObj(meta) || !isObj(meta.settings) || !Array.isArray(players)) return null;
+  const v1 = meta.settings;
+  const expected: Record<string, unknown> = { ...normalizeSettings(v1 as Partial<Settings>) };
+  delete expected.playerColors;
+  if (JSON.stringify(expected) !== JSON.stringify(v1)) return null;
+  const playerColors = players.map((p) => (isObj(p) ? p.color : null)) as string[];
+  const settings = normalizeSettings({ ...(v1 as Partial<Settings>), playerColors });
+  return { ...raw, meta: { ...meta, schemaVersion: 2, settings } };
 }
 
 export function parseSave(text: string | null | undefined): ParseResult {
@@ -121,11 +143,12 @@ export function parseSave(text: string | null | undefined): ParseResult {
   if (!isObj(raw) || !isObj(raw.meta)) return { ok: false, problem: 'corrupt' };
   const version = raw.meta.schemaVersion;
   if (!isInt(version)) return { ok: false, problem: 'older' };
-  if (version < SCHEMA_VERSION) return { ok: false, problem: 'older' };
+  if (version < OLDEST_LOADABLE) return { ok: false, problem: 'older' };
   if (version > SCHEMA_VERSION) return { ok: false, problem: 'newer' };
   try {
-    if (!shapeIsValid(raw)) return { ok: false, problem: 'corrupt' };
-    const state = raw as unknown as GameState;
+    const current = version === 1 ? migrateV1(raw) : raw;
+    if (!current || !shapeIsValid(current)) return { ok: false, problem: 'corrupt' };
+    const state = current as unknown as GameState;
     if (checkInvariants(state).length > 0) return { ok: false, problem: 'corrupt' };
     return { ok: true, state };
   } catch {

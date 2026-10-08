@@ -88,6 +88,13 @@ export const T = {
     start: 'Start game',
     back: 'Back',
     seatColor: (color: string, token: string) => `${color} ${token}`,
+    colorHint: 'Press a token to choose its colour.',
+    colorButton: (name: string, color: string) => `${name}: ${color}. Choose a colour`,
+    colorTitle: (name: string) => `Colour for ${name}`,
+    colorOption: (color: string, holder: string | null) => (holder ? `${color}, now ${holder}’s` : color),
+    colorSwap: 'Picking a colour another player has swaps your colours.',
+    motionAnyway: 'Show movement anyway',
+    motionHint: 'This device asks for less motion, so tokens jump instead of moving.',
   },
   top: {
     round: (n: number) => `Round ${n}`,
@@ -108,6 +115,7 @@ export const T = {
     passDevice: 'Pass-device screen',
     passDeviceHint: 'Show a handover screen at the start of each turn.',
     animation: 'Animation speed',
+    motionAnyway: 'Show movement anyway',
     close: 'Close',
   },
   confirm: {
@@ -149,6 +157,8 @@ export const T = {
     bid: (amount: number) => `Bid ${money(amount)}`,
     fold: 'Fold',
     waitingFor: (name: string) => `Waiting for ${name}`,
+    /** The primary button while an animation plays: pressing it (or any key) finishes it. */
+    skip: 'Skip',
   },
   players: {
     title: 'Players',
@@ -207,6 +217,7 @@ export const T = {
     canBuild: 'You can build here now',
     bought: 'Bought',
     owner: (name: string) => `Owned by ${name}`,
+    forSale: 'For sale',
     level: (level: number) => (level === 5 ? 'Hotel' : plural(level, 'house', 'houses')),
   },
   panels: {
@@ -452,6 +463,22 @@ export const TOKEN_NAMES: Readonly<Record<TokenKind, string>> = {
   rocket: 'Rocket',
   star: 'Star',
 };
+
+/** Names of the colours a player can choose (data/players.ts PLAYER_COLORS). */
+const COLOR_NAMES: Readonly<Record<string, string>> = {
+  '#E5484D': 'Red',
+  '#3E63DD': 'Blue',
+  '#30A46C': 'Green',
+  '#F76B15': 'Orange',
+  '#8E4EC6': 'Purple',
+  '#0E9C9C': 'Teal',
+  '#D6409F': 'Pink',
+  '#8D5A3B': 'Brown',
+};
+
+export function colorName(color: string): string {
+  return COLOR_NAMES[color] ?? color;
+}
 
 export const DECK_NAMES: Readonly<Record<DeckId, string>> = { chance: 'Chance', event: 'Event' };
 
@@ -838,6 +865,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
     switches: ['auction'],
     lines: [
       'Land on an unowned city, airport or company and you may buy it at its price.',
+      'White tiles are still for sale. A tile you own takes your colour.',
       'If you pass, it is auctioned. Everyone can bid, including you. Bids start at $1.',
       'In an auction, players take turns to raise or fold. The last bidder left wins and pays the bank.',
     ],

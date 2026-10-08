@@ -1,10 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
+import { PLAYER_COLORS, SEATS } from '../../src/data/players';
 import {
+  checkInvariants,
   createGame,
   legalActions,
   normalizeSettings,
   parseSave,
   reduce,
+  SCHEMA_VERSION,
   serializeGame,
   type Action,
   type GameState,
@@ -74,7 +78,7 @@ describe('save and resume', () => {
     const noVersion = { ...raw, meta: { ...raw.meta } };
     delete noVersion.meta.schemaVersion;
     expect(parseSave(JSON.stringify(noVersion))).toEqual({ ok: false, problem: 'older' });
-    expect(parseSave(JSON.stringify({ ...raw, meta: { ...raw.meta, schemaVersion: 2 } }))).toEqual({
+    expect(parseSave(JSON.stringify({ ...raw, meta: { ...raw.meta, schemaVersion: SCHEMA_VERSION + 1 } }))).toEqual({
       ok: false,
       problem: 'newer',
     });
@@ -85,7 +89,56 @@ describe('save and resume', () => {
     const badPhase = JSON.parse(good);
     badPhase.flow.phase = 'Lobby';
     expect(parseSave(JSON.stringify(badPhase))).toEqual({ ok: false, problem: 'corrupt' });
+    const badColor = JSON.parse(good);
+    badColor.players[0].color = '#000000';
+    expect(parseSave(JSON.stringify(badColor))).toEqual({ ok: false, problem: 'corrupt' });
     expect(parseSave(good).ok).toBe(true);
+  });
+
+  // tests/fixtures/save-v1.json was written by the version 1 build: four players, mid-auction,
+  // with an Event modifier, houses and a mortgage.
+  const v1Text = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
+
+  test('a version 1 save (before colour choice) loads as version 2 with the seat colours', () => {
+    const v1 = JSON.parse(v1Text);
+    expect(v1.meta.schemaVersion).toBe(1);
+    expect(v1.meta.settings.playerColors).toBeUndefined();
+    const parsed = parseSave(v1Text);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const s = parsed.state;
+    expect(s.meta.schemaVersion).toBe(2);
+    expect(s.meta.settings.playerColors).toEqual(SEATS.map((seat) => seat.color));
+    expect(Object.keys(s.meta.settings)).toEqual(Object.keys(normalizeSettings()));
+    expect(checkInvariants(s)).toEqual([]);
+    // Nothing else changed: same players, board, decks, turn and pending auction.
+    const { settings, schemaVersion: _version, ...meta } = s.meta;
+    const { settings: v1Settings, schemaVersion: _v1Version, ...v1Meta } = v1.meta;
+    expect({ ...settings, playerColors: undefined }).toEqual({ ...v1Settings, playerColors: undefined });
+    expect(meta).toEqual(v1Meta);
+    expect({ ...s, meta: null }).toEqual({ ...v1, meta: null });
+    expect(s.flow.phase).toBe('Auction');
+    // It plays on, and saves as version 2.
+    const bid = reduce(s, { type: 'bid', amount: 70 });
+    expect(bid.error).toBeNull();
+    const again = parseSave(serializeGame(bid.state));
+    expect(again.ok && again.state.meta.schemaVersion).toBe(2);
+  });
+
+  test('a version 1 save with altered settings or colours is reported as damaged', () => {
+    const v1 = JSON.parse(v1Text);
+    expect(parseSave(JSON.stringify({ ...v1, meta: { ...v1.meta, settings: { ...v1.meta.settings, playerCount: 5 } } }))).toEqual({
+      ok: false,
+      problem: 'corrupt',
+    });
+    const withColors = { ...v1.meta.settings, playerColors: PLAYER_COLORS.slice(0, 6) };
+    expect(parseSave(JSON.stringify({ ...v1, meta: { ...v1.meta, settings: withColors } }))).toEqual({
+      ok: false,
+      problem: 'corrupt',
+    });
+    const v1Bad = JSON.parse(v1Text);
+    v1Bad.players[2].color = 'green';
+    expect(parseSave(JSON.stringify(v1Bad))).toEqual({ ok: false, problem: 'corrupt' });
   });
 });
 
@@ -94,6 +147,43 @@ describe('settings', () => {
     const s = createGame({ playerCount: 3, startingMoney: 5000, playerNames: ['Mia', '  ', 'Leo'] }, 1);
     expect(s.players.map((p) => p.cash)).toEqual([5000, 5000, 5000]);
     expect(s.players.map((p) => p.name)).toEqual(['Mia', 'Player 2', 'Leo']);
+    expect(s.players.map((p) => p.token)).toEqual(['globe', 'plane', 'compass']);
+  });
+
+  test('players choose their colours; every seat keeps a different palette colour', () => {
+    const [red, blue, green, orange, purple, teal, pink, brown] = PLAYER_COLORS as string[];
+    const s = createGame({ playerCount: 3, playerColors: [pink as string, red as string, brown as string] }, 1);
+    expect(s.players.map((p) => p.color)).toEqual([pink, red, brown]);
+    expect(s.meta.settings.playerColors).toEqual([pink, red, brown, orange, purple, teal]);
+    // Defaults are the seat colours.
+    expect(normalizeSettings().playerColors).toEqual([red, blue, green, orange, purple, teal]);
+    // A duplicate or unknown colour falls back: the seat colour if free, else the first free one.
+    expect(normalizeSettings({ playerColors: [blue as string, blue as string, '#123456'] }).playerColors).toEqual([
+      blue,
+      red,
+      green,
+      orange,
+      purple,
+      teal,
+    ]);
+    // A later seat's choice is kept even when an earlier seat had no choice.
+    expect(normalizeSettings({ playerColors: [null as never, red as string] }).playerColors).toEqual([
+      blue,
+      red,
+      green,
+      orange,
+      purple,
+      teal,
+    ]);
+    for (let i = 0; i < 200; i++) {
+      const pick = Array.from({ length: 6 }, (_, j) => PLAYER_COLORS[(i * 7 + j * (i % 5)) % PLAYER_COLORS.length] as string);
+      const colors = normalizeSettings({ playerColors: pick }).playerColors;
+      expect(colors).toHaveLength(6);
+      expect(new Set(colors).size).toBe(6);
+      expect(colors.every((c) => PLAYER_COLORS.includes(c))).toBe(true);
+      expect(normalizeSettings({ playerColors: colors }).playerColors).toEqual(colors);
+    }
+    // Tokens stay with the seat.
     expect(s.players.map((p) => p.token)).toEqual(['globe', 'plane', 'compass']);
   });
 

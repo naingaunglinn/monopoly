@@ -215,3 +215,61 @@ The setup screen keeps three columns down to 1024px so it fits one screen.
 
 **D50. Default player names** ("Player 1" to "Player 6") come from `ui/strings.ts`, like every
 other string; the engine imports them, as it already does for error reasons.
+
+## Owner requests after M5 (2026-10-08)
+
+The owner tested the game and asked for three changes. They override the spec where noted.
+
+**D51. Slower, more visible animation (overrides the section 13 durations).** The spec's Normal
+table played too fast to follow. The new Normal durations:
+
+| Moment | Spec | Now |
+| --- | --- | --- |
+| Dice roll | 700 ms | 1100 ms; faces change quickly, then slower until they settle; the total pops in |
+| Token move | 150 ms a step (90 ms for 10 or more) | 260 ms a space, with a hop per space and a squash on landing; long moves shorten each step so the whole move stays near 4.2 s (at least 70 ms a step) |
+| Path light | Info tint | The moving player's colour, behind the tile text |
+| Passing World Start | 600 ms | 900 ms flash; the +$500 floats up as the token passes Start, not after the move |
+| Landing | 300 ms | 450 ms glow in the mover's colour |
+| Money change | 700 ms | 900 ms; the float stays readable for most of it |
+| Buying | 500 ms | 900 ms (the stamp lands in 450 ms and stays); the owner tint fades in over 600 ms |
+| Rent | 800 ms | 1100 ms |
+| House, hotel | 500, 700 ms | 700, 900 ms |
+| Chance card, Event banner | 600, 300 ms | 800, 450 ms |
+| Go to Jail | 500 ms | 800 ms |
+| Panels and fades, turn pulse | 200, 640 ms | 250, 800 ms |
+
+Fast still halves every value, so Fast is close to the old Normal, and Off is instant. Any click or
+key still finishes an animation at once. While an animation plays, the primary button reads Skip in
+a quiet style instead of showing the next step. An eager press of a yellow "Buy" used to skip the
+move without the player noticing. The log holds back the lines of the action being played until it
+ends, so it never tells the outcome before the dice settle.
+
+**D52. Show movement anyway (keeps the reduced-motion rule, adds a choice).** With
+prefers-reduced-motion, which Windows sets when "Animation effects" is off, nothing moved. Tokens
+jumped, which matches the owner's report. When the device asks for reduced motion, the setup screen
+and the in-game menu show a "Show movement anyway" switch. It is off by default, so the spec rule
+still holds until a player opts in. It is a per-device preference in localStorage
+(`global-monopoly/prefs/v1`), not part of a game or a save.
+
+**D53. Players choose their colour (overrides "assigned automatically" in section 8).** On the setup
+screen, each player's token opens a palette that shows the token in all eight colours: the six seat
+colours from section 10, plus Pink #D6409F and Brown #8D5A3B. Each added colour gives the white glyph
+at least 3:1, and its owned-tile tint is distinct. Yellow and gold stay out because they belong to
+the primary button.
+- Picking a colour another player has swaps the two, so colours are always different.
+- Defaults are the seat colours, so two clicks still start a game. Tokens stay with the seat.
+- The choice is stored as `settings.playerColors`: six different palette colours. A duplicate or
+  unknown colour falls back to the seat colour, or else the first free one.
+- The save schema is now version 2. Version 1 saves are migrated on load: the settings gain
+  `playerColors` from the players' own colours, after checking that the version 1 settings are
+  exactly what that version wrote. A real version 1 save is kept as a test fixture.
+
+**D54. Owned tiles take the owner's colour (overrides "paper tiles" in section 10).**
+- An owned property gets a 40% tint of its owner's colour behind its text. Mortgaged properties get
+  a 14% tint, so the amber Mortgaged label still passes AA.
+- Unowned properties stay white, so white means for sale. Their accessible name says "For sale".
+- The tint sits on its own layer and fades in with opacity, so animation stays transform and opacity
+  only. Icons on tinted tiles use Ink.
+- The owner marker stays, so ownership is never shown by colour alone.
+- Tests check every palette tint: Ink 4.5:1, icons 3:1, the Mortgaged label 4.5:1, and that the
+  tints differ from white and from each other.

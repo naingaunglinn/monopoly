@@ -1,6 +1,7 @@
 // Tokens stand in the token lane beside their tile, along the inner edge of the ring, so they
 // never cover tile text. Several tokens on one space fan out and overlap by at most half.
 // The current player's token is larger and on top. Lane and token sizes come from CSS.
+// A moving token hops once per space and squashes as it lands (D51).
 import { Lock, TreePalm } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { gridPosition } from '../../data/board';
@@ -25,6 +26,9 @@ export function laneSlot(index: number, w: number, h: number, laneW: number, lan
   if (pos.side === 'right') return { x: right, y: ((pos.row - 0.5) / 22) * h };
   return { x: left, y: ((pos.row - 0.5) / 22) * h };
 }
+
+/** Tokens that make room on a shared space slide this long (ms). */
+const FAN_MS = 200;
 
 interface Box {
   w: number;
@@ -89,6 +93,9 @@ export function TokenLayer({ s }: { s: GameState }) {
           const ms = display.moveMs?.[p.id] ?? 0;
           const status = p.inJail ? 'in-jail' : p.skipNextTurn ? 'on-vacation' : '';
           const pulsing = display.pulse?.player === p.id;
+          const hop = display.hop?.player === p.id ? display.hop : null;
+          // The mover glides with its hop; tokens that only shift within a fan slide briefly.
+          const glide = ms > 0 ? ms : FAN_MS;
           return (
             <div
               key={p.id}
@@ -96,13 +103,19 @@ export function TokenLayer({ s }: { s: GameState }) {
               data-player={p.id}
               style={{
                 transform: `translate3d(${x}px, ${y}px, 0)`,
-                transition: ms > 0 && display.busy ? `transform ${ms}ms cubic-bezier(.3,.7,.4,1)` : undefined,
+                transition: display.busy ? `transform ${glide}ms cubic-bezier(.45,.05,.55,.95)` : undefined,
                 zIndex: isCurrent ? 20 : 10 + i,
               }}
               title={`${p.name} (${TOKEN_NAMES[p.token]})${p.inJail ? `, ${T.players.inJail}` : ''}`}
             >
-              <span key={pulsing ? display.pulse?.id : 'still'} className={`token-body ${pulsing ? 'pulse-once' : ''}`}>
-                <TokenChip token={p.token} color={p.color} size={size} />
+              <span
+                key={hop ? hop.id : 'still'}
+                className={`token-hop ${hop ? (hop.last ? 'is-landing' : 'is-hopping') : ''}`}
+                style={hop ? { animationDuration: `${hop.ms}ms` } : undefined}
+              >
+                <span key={pulsing ? display.pulse?.id : 'still'} className={`token-body ${pulsing ? 'pulse-once' : ''}`}>
+                  <TokenChip token={p.token} color={p.color} size={size} />
+                </span>
               </span>
               {status && (
                 <span className={`token-badge badge-${status}`}>
