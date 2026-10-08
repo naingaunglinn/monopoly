@@ -1,6 +1,20 @@
 // The decision panels (spec section 12). They open by themselves after landing, sit over the play
 // area and the log, and show the information plus their secondary actions. The primary action is
 // always the yellow button in the action bar.
+import {
+  Ban,
+  Coins,
+  Gavel,
+  Hammer,
+  LockKeyhole,
+  Newspaper,
+  Receipt,
+  Tag,
+  Ticket,
+  TreePalm,
+  TriangleAlert,
+  Trophy,
+} from 'lucide-react';
 import { useState } from 'react';
 import { BALANCE } from '../../data/balance';
 import { CITY_BY_SPACE, COMPANY_BY_SPACE, propertyPrice } from '../../data/board';
@@ -18,10 +32,10 @@ import {
   type Player,
 } from '../../engine';
 import { Button } from '../components/Button';
-import { DeedBody } from '../components/FocusCard';
+import { DeedSummary } from '../components/FocusCard';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
-import { CARD_ICONS } from '../components/icons';
+import { CARD_ICONS, COMPANY_ICONS } from '../components/icons';
 import { askConfirm, dispatch, openSheet, refuse } from '../store';
 import { levelText, money, rentCalcText, signedMoney, T } from '../strings';
 import { countryOfSpace, decider, playerName, spaceName } from '../view';
@@ -45,6 +59,7 @@ function BuyPanel({ s, space }: { s: GameState; space: number }) {
   return (
     <Panel
       id="buy"
+      icon={Tag}
       title={T.panels.buy.title(spaceName(s, space))}
       whose={me}
       help="buying"
@@ -55,7 +70,7 @@ function BuyPanel({ s, space }: { s: GameState; space: number }) {
       <div className="panel-split">
         <div className="mini-deed">
           <SpaceTitle s={s} index={space} />
-          <DeedBody s={s} index={space} />
+          <DeedSummary s={s} index={space} />
         </div>
         <dl className="facts">
           <div className="fact">
@@ -91,6 +106,7 @@ function AuctionPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="auction"
+      icon={Gavel}
       title={T.panels.auction.title(spaceName(s, a.space))}
       whose={bidder}
       help="buying"
@@ -178,6 +194,7 @@ function RentPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="rent"
+      icon={isTax ? Receipt : Coins}
       title={isTax ? T.panels.rent.taxTitle(name) : isCompany ? T.panels.company.title(name) : T.panels.rent.title(name)}
       whose={payer}
       help={isTax ? 'taxes' : isCompany ? 'companies' : rent.calc.kind === 'airport' ? 'airports' : 'citiesRent'}
@@ -223,6 +240,7 @@ function CompanyPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="company"
+      icon={company ? COMPANY_ICONS[company.icon] : Coins}
       title={T.panels.company.title(spaceName(s, space))}
       whose={decider(s)}
       help="companies"
@@ -259,6 +277,7 @@ function BuildPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="build"
+      icon={Hammer}
       title={T.panels.build.title(city.name)}
       whose={me}
       help="houses"
@@ -276,7 +295,7 @@ function BuildPanel({ s }: { s: GameState }) {
         <div className="fact">
           <dt>{T.panels.build.current}</dt>
           <dd className="level-line">
-            <BuildingPips level={level} size={12} />
+            <BuildingPips level={level} />
             {levelText(level)}
           </dd>
         </div>
@@ -305,6 +324,7 @@ function CardPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="card"
+      icon={isChance ? Ticket : Newspaper}
       title={isChance ? T.panels.card.chance : T.panels.card.event}
       whose={decider(s)}
       help="cards"
@@ -314,21 +334,25 @@ function CardPanel({ s }: { s: GameState }) {
       {isChance ? (
         <div className={`boarding-pass tone-${card.tone}`}>
           <div className="bp-main">
-            <span className="bp-label">{T.panels.card.boarding}</span>
+            <span className="bp-label">
+              <Ticket aria-hidden="true" />
+              {T.panels.card.boarding}
+            </span>
             <h3 className="bp-title">{card.title}</h3>
             <p className="bp-text">{card.text}</p>
           </div>
           <div className="bp-stub" aria-hidden="true">
-            <Icon size={28} />
+            <Icon />
+            <span className="bp-stub-label">{T.panels.card.chance}</span>
           </div>
         </div>
       ) : (
         <div className={`news-banner tone-${card.tone}`}>
-          <span className="news-label">{T.panels.card.news}</span>
-          <h3 className="news-title">
-            <Icon size={22} aria-hidden="true" />
-            {card.title}
-          </h3>
+          <div className="news-top">
+            <span className="news-label">{T.panels.card.news}</span>
+            <Icon className="news-icon" aria-hidden="true" />
+          </div>
+          <h3 className="news-title">{card.title}</h3>
           <p className="news-text">{card.text}</p>
         </div>
       )}
@@ -342,6 +366,7 @@ function JailPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="jail"
+      icon={LockKeyhole}
       title={T.panels.jail.title(me.name)}
       whose={me}
       help="jail"
@@ -368,7 +393,7 @@ function JailPanel({ s }: { s: GameState }) {
 function VacationSkipPanel({ s }: { s: GameState }) {
   const me = s.players[s.turn.currentPlayerIndex] as Player;
   return (
-    <Panel id="vacation-skip" title={T.panels.vacation.skipTitle(me.name)} whose={me} help="vacation" tone="neutral">
+    <Panel id="vacation-skip" icon={TreePalm} title={T.panels.vacation.skipTitle(me.name)} whose={me} help="vacation" tone="neutral">
       <p>{T.panels.vacation.skip}</p>
     </Panel>
   );
@@ -378,13 +403,13 @@ function NoticePanel({ s, notice }: { s: GameState; notice: Notice }) {
   const p = s.players[notice.player] as Player;
   if (notice.kind === 'vacation') {
     return (
-      <Panel id="vacation" title={T.panels.vacation.title} whose={p} help="vacation" tone="neutral">
+      <Panel id="vacation" icon={TreePalm} title={T.panels.vacation.title} whose={p} help="vacation" tone="neutral">
         <p className="fact-strong">{T.panels.vacation.landed(p.name)}</p>
       </Panel>
     );
   }
   return (
-    <Panel id="bankruptcy" title={T.panels.bankruptcy.title(p.name)} help="debt" tone="bad">
+    <Panel id="bankruptcy" icon={Ban} title={T.panels.bankruptcy.title(p.name)} help="debt" tone="bad">
       <p>{notice.creditor !== null ? T.panels.bankruptcy.toPlayer(playerName(s, notice.creditor)) : T.panels.bankruptcy.toBank}</p>
       <p className="fact-strong">{T.panels.bankruptcy.out}</p>
     </Panel>
@@ -412,6 +437,7 @@ function DebtPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="debt"
+      icon={TriangleAlert}
       title={T.panels.debt.title(debtor.name)}
       whose={debtor}
       help="debt"
@@ -464,6 +490,9 @@ export function WinnerPanel({ s }: { s: GameState }) {
   const title = winners.length > 1 ? T.winner.shared(winners.map((w) => w.name).join(' and ')) : T.winner.wins(first.name);
   return (
     <section className="panel winner-panel" aria-labelledby="winner-title" data-panel="winner">
+      <span className="sign sign-lg winner-sign" aria-hidden="true">
+        <Trophy />
+      </span>
       <div className="winner-tokens">
         {winners.map((w) => (
           <TokenChip key={w.id} token={w.token} color={w.color} size={64} />

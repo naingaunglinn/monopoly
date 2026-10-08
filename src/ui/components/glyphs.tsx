@@ -50,20 +50,20 @@ export function TokenChip({
 }: {
   token: TokenKind;
   color: string;
-  size?: number;
+  /** px, or any CSS length such as a custom property. */
+  size?: number | string;
   title?: string;
   className?: string;
 }) {
+  const dim = typeof size === 'number' ? `${size}px` : size;
   return (
     <svg
-      className={className}
-      width={size}
-      height={size}
+      className={`token-chip ${className ?? ''}`}
+      style={{ color, width: dim, height: dim }}
       viewBox="0 0 24 24"
       role={title ? 'img' : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
-      style={{ color }}
       focusable="false"
     >
       <circle cx="12" cy="12" r="11.6" fill="#14202B" />
@@ -78,44 +78,37 @@ export function tokenLabel(token: TokenKind): string {
   return TOKEN_NAMES[token];
 }
 
-export function HousePip({ size = 9 }: { size?: number }) {
+export function HousePip({ className }: { className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 10 10" aria-hidden="true" focusable="false" className="pip pip-house">
+    <svg viewBox="0 0 10 10" aria-hidden="true" focusable="false" className={`pip pip-house ${className ?? ''}`}>
       <path d="M5 .8l4.2 3.6V9.2H.8V4.4z" fill="#1E9E5A" stroke="#14202B" strokeWidth=".8" strokeLinejoin="round" />
     </svg>
   );
 }
 
-export function HotelPip({ size = 11 }: { size?: number }) {
+export function HotelPip({ className }: { className?: string }) {
   return (
-    <svg
-      width={size * 1.5}
-      height={size}
-      viewBox="0 0 15 10"
-      aria-hidden="true"
-      focusable="false"
-      className="pip pip-hotel"
-    >
+    <svg viewBox="0 0 15 10" aria-hidden="true" focusable="false" className={`pip pip-hotel ${className ?? ''}`}>
       <path d="M1 3.4L7.5.7 14 3.4v5.8H1z" fill="#D6362B" stroke="#14202B" strokeWidth=".8" strokeLinejoin="round" />
       <path d="M4 5.2h1.6v1.6H4zM6.7 5.2h1.6v1.6H6.7zM9.4 5.2H11v1.6H9.4z" fill="#fff" />
     </svg>
   );
 }
 
-/** 1 to 4 house pips or one hotel pip. */
-export function BuildingPips({ level, size = 9 }: { level: number; size?: number }) {
+/** 1 to 4 house pips or one hotel pip. The newest one can play its build animation. */
+export function BuildingPips({ level, animate = null }: { level: number; animate?: 'house' | 'hotel' | null }) {
   if (level <= 0) return null;
   if (level >= 5) {
     return (
       <span className="pips" aria-hidden="true">
-        <HotelPip size={size + 1} />
+        <HotelPip className={animate === 'hotel' ? 'pip-merge' : ''} />
       </span>
     );
   }
   return (
     <span className="pips" aria-hidden="true">
       {Array.from({ length: level }, (_, i) => (
-        <HousePip key={i} size={size} />
+        <HousePip key={i} className={animate === 'house' && i === level - 1 ? 'pip-new' : ''} />
       ))}
     </span>
   );

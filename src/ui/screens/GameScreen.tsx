@@ -1,11 +1,12 @@
 // The game screen: a slim top bar and the board ring filling the rest, every control inside the
-// ring (spec section 11).
-import { ArrowLeftRight, BookOpen, Hammer, Layers, Menu as MenuIcon, Plus, Save, Settings } from 'lucide-react';
+// ring (spec section 11). Under 1024 px or in portrait the HUD moves below the board.
+import { ArrowLeftRight, BookOpen, Hammer, Layers, Menu as MenuIcon, Plus, Save } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOARD } from '../../data/board';
-import { validateAction, type GameState, type Player } from '../../engine';
+import { freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { Button, useShake } from '../components/Button';
 import { DicePanel } from '../components/Dice';
+import { CoinFlight, Confetti } from '../components/Effects';
 import { FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
 import { Log } from '../components/Log';
@@ -14,13 +15,14 @@ import { PlayersColumn } from '../components/PlayersColumn';
 import { Tile } from '../components/Tile';
 import { TokenLayer } from '../components/TokenLayer';
 import { shownCash, shownDice, shownPosition, useDisplay } from '../display';
+import { COMPACT_QUERY, STACKED_QUERY, useMediaQuery } from '../hooks';
 import {
   ConfirmDialog,
   PassDevice,
   PropertyList,
   QuickHelpPopover,
   Results,
-  SettingsDialog,
+  SettingsFields,
   Toast,
   TradeBuilder,
   TradeResponse,
@@ -47,10 +49,6 @@ import {
 } from '../store';
 import { GAME_TITLE, modifierLabel, money, recapLine, T } from '../strings';
 import { legalTypes, names, playerName, primarySpec } from '../view';
-import { freeActor } from '../../engine';
-
-export const LANE_W = 64;
-export const LANE_H = 28;
 
 function TopBar({ s }: { s: GameState }) {
   const { menuOpen } = useUi();
@@ -69,7 +67,9 @@ function TopBar({ s }: { s: GameState }) {
   return (
     <header className="topbar">
       <span className="tb-title">{GAME_TITLE}</span>
-      <span className="tb-stat">{quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}</span>
+      <span className="tb-stat">
+        {quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}
+      </span>
       <span className="tb-stat">{T.top.turn(s.turn.turnNumber)}</span>
       {s.flow.phase !== 'GameOver' && (
         <span className="tb-player" style={{ ['--player' as string]: current.color }}>
@@ -87,13 +87,20 @@ function TopBar({ s }: { s: GameState }) {
         ))}
       </ul>
       <span className="tb-spacer" />
-      <Button id="tb-rules" variant="ghost" label={T.top.rules} keyHint="R" icon={<BookOpen size={16} aria-hidden="true" />} onClick={() => openRules()} />
+      <Button
+        id="tb-rules"
+        variant="ghost"
+        label={T.top.rules}
+        keyHint="R"
+        icon={<BookOpen size={16} aria-hidden="true" />}
+        onClick={() => openRules()}
+      />
       <div className="menu-wrap" ref={menuRef}>
         <button
           type="button"
           id="tb-menu"
           className="btn btn-ghost"
-          aria-haspopup="menu"
+          aria-haspopup="true"
           aria-expanded={menuOpen}
           onClick={() => ui.set({ menuOpen: !menuOpen })}
         >
@@ -101,14 +108,11 @@ function TopBar({ s }: { s: GameState }) {
           <span className="btn-label">{T.top.menu}</span>
         </button>
         {menuOpen && (
-          <div className="menu" role="menu">
-            <button type="button" role="menuitem" className="menu-item" onClick={() => openSheet({ kind: 'settings' })}>
-              <Settings size={16} aria-hidden="true" />
-              {T.top.settings}
-            </button>
+          <div className="menu" role="dialog" aria-label={T.top.menu}>
+            <SettingsFields s={s} />
+            <div className="menu-sep" />
             <button
               type="button"
-              role="menuitem"
               className="menu-item"
               onClick={() => {
                 ui.set({ menuOpen: false });
@@ -118,7 +122,7 @@ function TopBar({ s }: { s: GameState }) {
               <Save size={16} aria-hidden="true" />
               {T.top.save}
             </button>
-            <button type="button" role="menuitem" className="menu-item" onClick={() => askConfirm({ kind: 'newGame' })}>
+            <button type="button" className="menu-item" onClick={() => askConfirm({ kind: 'newGame' })}>
               <Plus size={16} aria-hidden="true" />
               {T.top.newGame}
             </button>
@@ -140,6 +144,7 @@ function PrimaryButton({ s }: { s: GameState }) {
         id="primary"
         className={`btn btn-primary btn-big ${shaking ? 'shake' : ''}`}
         aria-disabled={spec.reason ? true : undefined}
+        aria-describedby={spec.reason ? 'primary-reason' : undefined}
         title={spec.reason ?? undefined}
         aria-keyshortcuts="Space Enter"
         onClick={(e) => {
@@ -150,7 +155,11 @@ function PrimaryButton({ s }: { s: GameState }) {
       >
         <span className="btn-label">{spec.label}</span>
       </button>
-      {spec.reason && <span className="btn-reason primary-reason">{spec.reason}</span>}
+      {spec.reason && (
+        <span id="primary-reason" className="primary-reason">
+          {spec.reason}
+        </span>
+      )}
     </div>
   );
 }
@@ -194,30 +203,30 @@ function ActionBar({ s }: { s: GameState }) {
   );
 }
 
-function Stage({ s }: { s: GameState }) {
+function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   const display = useDisplay();
   const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
   const dice = shownDice(s, display);
-  const lastRoll = s.meta.log.findLast?.((e) => e.event.type === 'diceRolled');
+  const lastRoll = [...s.meta.log].reverse().find((e) => e.event.type === 'diceRolled');
+  const thirdDouble = s.turn.doublesCount >= 3 && !!s.players[s.turn.currentPlayerIndex]?.inJail;
   const moveLine =
     dice && lastRoll?.event.type === 'diceRolled' && lastRoll.event.purpose === 'move'
-      ? s.turn.doublesCount >= 3 && s.players[s.turn.currentPlayerIndex]?.inJail
+      ? thirdDouble
         ? T.play.thirdDouble
         : T.play.move(dice[0] + dice[1])
       : null;
   const showRecap = s.turn.dice === null && s.flow.phase !== 'GameOver';
-  const compactLog = typeof window !== 'undefined' && window.innerWidth < 1280;
+  const doublesAgain =
+    s.turn.rollsLeft > 0 && !!s.turn.dice && s.turn.dice[0] === s.turn.dice[1] && s.flow.phase === 'AwaitRoll' && !display.busy;
   return (
-    <div className={`stage ${showPanel ? 'has-panel' : ''}`}>
+    <div className={`stage ${showPanel ? 'has-panel' : ''} ${compactLog ? 'is-compact' : ''}`}>
       <div className="stage-main">
         <FocusCard s={s} fallback={position} />
         <div className="stage-side">
-          <DicePanel dice={dice} line={moveLine} rolling={display.busy && display.dice !== null} />
-          {s.turn.rollsLeft > 0 && s.turn.dice && s.turn.dice[0] === s.turn.dice[1] && s.flow.phase === 'AwaitRoll' && (
-            <p className="hint-line">{T.play.doubles}</p>
-          )}
+          <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
+          {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
         </div>
       </div>
@@ -232,35 +241,43 @@ function Stage({ s }: { s: GameState }) {
   );
 }
 
-function Board({ s }: { s: GameState }) {
+function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
+  return (
+    <div className="hud">
+      <PlayersColumn s={s} />
+      <Stage s={s} compactLog={compactLog} />
+      <CoinFlight />
+    </div>
+  );
+}
+
+function Board({ s, stacked, compactLog }: { s: GameState; stacked: boolean; compactLog: boolean }) {
   const display = useDisplay();
+  const current = s.players[s.turn.currentPlayerIndex];
   const currentPos = shownPosition(s, display, s.turn.currentPlayerIndex);
+  const over = s.flow.phase === 'GameOver';
   const [focusIndex, setFocusIndex] = useState(0);
   const navigate = useCallback((from: number, delta: number) => {
     const next = (from + delta + 80) % 80;
     setFocusIndex(next);
-    const el = document.querySelector<HTMLElement>(`.board [data-space="${next}"]`);
-    el?.focus();
+    document.querySelector<HTMLElement>(`.board [data-space="${next}"]`)?.focus();
   }, []);
   return (
-    <main className="board" aria-label={GAME_TITLE} style={{ ['--lane-w' as string]: `${LANE_W}px`, ['--lane-h' as string]: `${LANE_H}px` }}>
+    <main className="board" aria-label={GAME_TITLE}>
       {BOARD.map((space) => (
         <Tile
           key={space.index}
           s={s}
           index={space.index}
-          isCurrent={space.index === currentPos && s.flow.phase !== 'GameOver'}
+          ring={space.index === currentPos && !over && current ? current.color : null}
           focusable={space.index === focusIndex}
           onNavigate={navigate}
         />
       ))}
       <div className="ocean">
         <OceanArt />
-        <TokenLayer s={s} laneW={LANE_W} laneH={LANE_H} />
-        <div className="hud">
-          <PlayersColumn s={s} />
-          <Stage s={s} />
-        </div>
+        <TokenLayer s={s} />
+        {!stacked && <Hud s={s} compactLog={compactLog} />}
       </div>
     </main>
   );
@@ -307,7 +324,7 @@ function useKeyboard(): void {
         openSheet({ kind: 'trade' });
       } else if (key === ' ' || key === 'enter') {
         // A focused control keeps its own Space/Enter; board tiles pass it to the primary button.
-        if (target?.closest('button:not(.tile), a, [role="switch"], [role="menuitem"], summary')) return;
+        if (target?.closest('button:not(.tile), a, [role="switch"], summary')) return;
         if (s.flow.trade || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
         const spec = primarySpec(s);
         if (!spec) return;
@@ -324,24 +341,31 @@ function useKeyboard(): void {
 export function GameScreen() {
   const s = useGame();
   const u = useUi();
+  const display = useDisplay();
+  const stacked = useMediaQuery(STACKED_QUERY);
+  const compactLog = useMediaQuery(COMPACT_QUERY);
   useKeyboard();
   useEffect(() => () => closeRules(), []);
   const showPass = s.flow.phase === 'PassDevice' && s.flow.notices.length === 0 && !s.flow.trade;
   return (
-    <div className="game-screen" data-phase={s.flow.phase}>
+    <div
+      className={`game-screen ${display.busy ? 'is-animating' : ''} ${stacked ? 'is-stacked' : ''}`}
+      data-phase={s.flow.phase}
+      data-speed={s.meta.settings.animationSpeed}
+    >
       <TopBar s={s} />
-      <Board s={s} />
-      {showPass && <PassDevice s={s} />}
-      {s.flow.trade && <TradeResponse key={`${s.flow.trade.from}-${s.meta.logSeq}`} s={s} />}
+      <Board s={s} stacked={stacked} compactLog={compactLog} />
+      {stacked && <Hud s={s} compactLog={false} />}
+      {showPass && <PassDevice key={s.turn.turnNumber} s={s} />}
+      {s.flow.trade && <TradeResponse key={`trade-${s.meta.logSeq}`} s={s} />}
       {!s.flow.trade && u.sheet?.kind === 'trade' && <TradeBuilder s={s} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
-      {u.sheet?.kind === 'settings' && <SettingsDialog s={s} />}
       <QuickHelpPopover />
       <ConfirmDialog s={s} />
       <Toast />
+      <Confetti />
       {DEBUG && <DebugPanel s={s} />}
     </div>
   );
 }
-

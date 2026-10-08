@@ -15,6 +15,7 @@ import {
   type SaveProblem,
   type Settings,
 } from '../engine';
+import { installSkipHandlers, playBatch, resetAnimation } from './animation';
 import type { RuleTopicId } from './strings';
 
 export type Screen = 'start' | 'setup' | 'game';
@@ -177,6 +178,7 @@ export function dispatch(action: Action, target: string | null = null): EngineEr
     return result.error;
   }
   storageSet(serializeGame(result.state));
+  playBatch(game, result.state, result.events, result.state.meta.settings.animationSpeed);
   app.set({ game: result.state, events: result.events, eventSeq: app.get().eventSeq + 1, refusal: null, hasSave: true });
   return null;
 }
@@ -226,6 +228,7 @@ export function dismissSaveProblem(): void {
 }
 
 export function resetUi(): void {
+  resetAnimation();
   ui.set({
     hover: null,
     pinned: null,
@@ -270,6 +273,7 @@ export function closeConfirm(): void {
 
 // Read-only hook for end-to-end tests and debugging. It exposes no way to change the game.
 if (typeof window !== 'undefined') {
+  installSkipHandlers();
   (window as unknown as { __GM__: unknown }).__GM__ = {
     getState: () => app.get().game,
     getScreen: () => app.get().screen,

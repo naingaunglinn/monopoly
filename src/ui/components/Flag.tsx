@@ -19,13 +19,14 @@ import type { FlagCode } from '../../data/countries';
 
 const FLAGS: Record<FlagCode, string> = { br, ca, cn, de, eg, es, fr, gb, il, it, jp, kr, mm, mx, nl, us };
 
-export function Flag({ code, width = 16, className }: { code: FlagCode; width?: number; className?: string }) {
+/** Without `width`, CSS sizes the flag (4:3). */
+export function Flag({ code, width, className }: { code: FlagCode; width?: number; className?: string }) {
   return (
     <img
       className={`flag ${className ?? ''}`}
       src={FLAGS[code]}
       width={width}
-      height={Math.round((width * 3) / 4)}
+      height={width ? Math.round((width * 3) / 4) : undefined}
       alt=""
       aria-hidden="true"
       draggable={false}

@@ -145,3 +145,64 @@ request after the first load.
 
 **D36. Continue** is enabled whenever a save exists; a corrupt or older save shows a clear message
 with Start a new game, and never crashes.
+
+## Visual identity, animation, responsive layout, accessibility (M4)
+
+**D37. Signal yellow is the primary button only.** Highlights the first draft painted yellow (the
+current tile's ring, highlighted table rows, the bidder whose turn it is, the winner's results row,
+the Event label) use the current player's colour or a light Info-blue tint instead.
+
+**D38. AA text shades.** Gain green, Loss red and Amber stay as fills and large numbers. Small text
+uses darker shades of the same hues (gain #137A43, loss #B42318, amber #8A4B00) and disabled labels
+use #5C6670, because the palette values fall below 4.5:1 as small text. Text on a country band is
+white or Ink, whichever contrasts more; a test checks every country at 4.5:1 or better. No country
+colour needed adjusting: neighbouring countries are clearly different (tested).
+
+**D39. Airport-signage pictograms.** White glyphs on Ocean squares head the corner tiles, every
+decision panel and the winner panel. Airports, companies and special spaces wear the Ocean band on
+the Focus Card.
+
+**D40. Signature pieces.** The Focus Card is a luggage tag: chamfered top corners and an eyelet
+punched through the country band. Chance is a boarding pass with a notched, perforated stub. Event
+is a news banner on the open ocean. The start screen's ocean carries a route map with dotted arcs
+joining the 16 countries in board order. The optional simplified continents were skipped.
+
+**D41. Panels are sized to their content** and anchored just above the action bar. The play area
+and the log hide behind an open panel, so the ocean shows around it.
+
+**D42. Animation player.** The engine state is final at once; the player replays the last action on
+top of the previous state: dice tumble, token steps with the path lit, World Start flash, landing
+glow, cash counting, floating signed amounts, the rent coin, the Bought stamp, house pips scaling
+in, the hotel merge, the Chance card sliding and flipping, the Event banner sliding, the Jail slide
+and the winner confetti. Decision panels wait for it to end. Any pointer or key input finishes it at
+once and is swallowed, so it never also presses a button. Fast halves every duration and Off
+disables everything. With prefers-reduced-motion, movement and bounces are off and panels fade in
+150 ms. Nothing loops.
+
+**D43. Responsive tiers.**
+- 1600px and wider: type, lanes and tokens scale up.
+- 1024 to 1279px: card tiles drop their names (from 1279px down, as the responsive table says,
+  rather than "about 1100px"), and the log becomes a 3-line strip that expands on click.
+- Under 1024px or in portrait: a rotate hint shows, the HUD moves below the board and the page
+  scrolls.
+
+**D44. Control sizes.** Settings sit in the top-bar menu as a popover, so they never cover the
+board. Help buttons, sheet close buttons and text links are 40px (44px on touch screens). Board
+tiles stay smaller than 44px because the spec fixes the board geometry; every action is also
+available as a full-size button.
+
+**D45. Status is never colour alone.** Tokens carry a lock badge in Jail and a palm badge on
+Vacation, and the player cards show the same status in words.
+
+**D46. "Mortgaged" may hyphenate** ("Mort-gaged") on the narrowest tiles (1024px).
+
+**D47. Crowded one-line tiles.** When a city has buildings, its one-line (side column) tile drops
+the flag (the colour bar still shows the country), and house pips overlap by half. Airports on
+one-line tiles show a plane icon and the country ("Germany", "UK", "US"); the Focus Card and the
+accessible name give the full name. A worst-case fixture (everything owned, hotels, mortgages)
+guards this in the screenshot audit.
+
+**D48. Screenshot review is automated and visual.** Every capture is audited for text under 10px,
+page scrolling, clipped text (strict on width), missing owner markers and overlapping HUD parts,
+then the images are opened and looked at. Fixtures run with animation Off so no capture lands
+mid-transition.

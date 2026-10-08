@@ -46,8 +46,14 @@ export function spaceName(s: GameState | null, index: number): string {
 }
 
 /** Short tile name (companies use their short form). */
+/** Short tile name: companies use their short form; airports keep their full name (two lines fit). */
 export function spaceShortName(s: GameState | null, index: number): string {
-  return COMPANY_BY_SPACE.get(index)?.shortName ?? AIRPORT_BY_SPACE.get(index)?.shortName ?? spaceName(s, index);
+  return COMPANY_BY_SPACE.get(index)?.shortName ?? spaceName(s, index);
+}
+
+/** One-line tiles: an airport shows its country beside a plane icon. */
+export function rowTileName(s: GameState | null, index: number): string {
+  return AIRPORT_BY_SPACE.get(index)?.shortName ?? spaceShortName(s, index);
 }
 
 export function playerName(s: GameState, id: number | null): string {

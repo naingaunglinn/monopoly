@@ -46,7 +46,7 @@ export function StartScreen() {
   }, []);
   return (
     <main className="start-screen">
-      <OceanArt />
+      <OceanArt routes />
       <div className="start-content">
         <BoardRing />
         <div className="start-text">

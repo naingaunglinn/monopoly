@@ -1,6 +1,6 @@
 // Decision panel frame: names whose decision it is and has a small help button that opens the
 // rule guide at the matching topic. Mandatory panels have no close button and ignore Esc.
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { Player } from '../../engine';
 import { TokenChip } from '../components/glyphs';
@@ -10,6 +10,7 @@ import { T, type RuleTopicId } from '../strings';
 export function Panel({
   id,
   title,
+  icon: Icon,
   whose,
   help,
   children,
@@ -19,6 +20,8 @@ export function Panel({
 }: {
   id: string;
   title: ReactNode;
+  /** Wayfinding pictogram shown beside the title. */
+  icon?: LucideIcon;
   whose?: Player | null;
   help: RuleTopicId;
   children?: ReactNode;
@@ -37,7 +40,12 @@ export function Panel({
             </span>
           )}
           <h2 id={`${id}-title`} className="panel-title">
-            {title}
+            {Icon && (
+              <span className="sign" aria-hidden="true">
+                <Icon />
+              </span>
+            )}
+            <span>{title}</span>
           </h2>
         </div>
         <button

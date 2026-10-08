@@ -55,12 +55,21 @@ async function enabled(page: Page, selector: string): Promise<boolean> {
   return (await el.getAttribute('aria-disabled')) !== 'true';
 }
 
+export interface PlayOptions {
+  /** Wait for animations to finish on their own (true) or skip them with a click (false). */
+  waitForAnimations?: boolean;
+}
+
 /** One player decision, made by clicking the button a person would use. Returns false when done. */
-export async function playStep(page: Page): Promise<boolean> {
+export async function playStep(page: Page, opts: PlayOptions = {}): Promise<boolean> {
   if (await visible(page, '[data-panel="winner"]')) return false;
-  // Let any playing animation finish (a click skips it).
   if (await visible(page, '.game-screen.is-animating')) {
-    await page.locator('.board').click({ position: { x: 5, y: 5 }, force: true });
+    if (opts.waitForAnimations) {
+      await page.locator('.game-screen.is-animating').waitFor({ state: 'detached', timeout: 15_000 });
+    } else {
+      // Any click finishes an animation at once.
+      await page.locator('.board').click({ position: { x: 5, y: 5 }, force: true });
+    }
     return true;
   }
   if (await visible(page, '[data-sheet="confirm"]')) {
@@ -96,9 +105,9 @@ export async function playStep(page: Page): Promise<boolean> {
   return true;
 }
 
-export async function playToWinner(page: Page, maxSteps = 4000): Promise<number> {
+export async function playToWinner(page: Page, opts: PlayOptions = {}, maxSteps = 4000): Promise<number> {
   for (let i = 0; i < maxSteps; i++) {
-    if (!(await playStep(page))) return i;
+    if (!(await playStep(page, opts))) return i;
   }
   throw new Error('the game did not finish');
 }

@@ -53,8 +53,12 @@ export function rollTo(s: GameState, target: number, dice: [number, number] = [3
   return act(st, { type: 'roll' });
 }
 
+/** Screenshots use animation Off so no capture lands mid-transition. */
 export function base(settings: Partial<Settings> = {}, seed = 7): GameState {
-  return createGame({ playerCount: 4, passDevice: false, playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'], ...settings }, seed);
+  return createGame(
+    { playerCount: 4, passDevice: false, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'], ...settings },
+    seed,
+  );
 }
 
 /** A believable mid-game: sensible bots play a while, then it is someone's turn to roll. */
@@ -74,6 +78,24 @@ export function midGame(seed = 11, steps = 900): GameState {
     const actor = decisionMaker(s) as number;
     s = act(s, sensibleBot({ state: s, legal, actor, rnd, freeActionsTaken: 0 }));
   }
+  return s;
+}
+
+/** Worst case for tile text: everything owned, full sets with 4 houses or hotels, mortgages. */
+export function crowdedBoard(): GameState {
+  let s = base();
+  const countries: number[][] = [
+    [1, 3], [6, 8, 10], [12, 14], [18, 20, 21], [22, 24], [26, 28, 30], [32, 33, 36], [38, 41],
+    [43, 44], [46, 49, 50], [52, 54, 56], [58, 60, 61], [63, 64], [66, 68, 69], [71, 72], [74, 76, 78, 79],
+  ];
+  countries.forEach((cities, i) => {
+    s = own(s, cities, i % 4);
+    if (i % 3 === 0) s = level(s, cities.map((sp): [number, number] => [sp, 5]));
+    else if (i % 3 === 1) s = level(s, cities.map((sp): [number, number] => [sp, 4]));
+    else s = act(s, ...cities.map((space) => ({ type: 'debug', op: 'setMortgaged', space, mortgaged: true }) as Action));
+  });
+  s = own(s, [4, 9, 15, 27, 35, 39, 48, 55, 67, 77], 1);
+  s = own(s, [11, 16, 25, 31, 37, 45, 51, 73], 2);
   return s;
 }
 
@@ -110,7 +132,8 @@ export function panelStates(): Record<string, GameState> {
   const over = act(bankrupt, { type: 'acknowledge' });
   return {
     'mid-game': mid,
-    'pass-device': createGame({ playerCount: 4, playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'] }, 7),
+    'crowded-board': crowdedBoard(),
+    'pass-device': createGame({ playerCount: 4, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'] }, 7),
     buy: rollTo(base(), 9),
     auction,
     rent: rollTo(level(own(base(), [38, 41], 1), [[38, 2], [41, 2]]), 38),

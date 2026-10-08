@@ -15,7 +15,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
   },
   test: {
-    include: ['tests/engine/**/*.test.ts', 'tests/ui/**/*.test.tsx'],
+    include: ['tests/engine/**/*.test.ts', 'tests/ui/**/*.test.{ts,tsx}'],
     environment: 'node',
+    // jsdom renders of the full board and the long engine runs are slow under parallel load.
+    testTimeout: 30_000,
   },
 });

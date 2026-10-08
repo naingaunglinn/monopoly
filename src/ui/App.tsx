@@ -8,8 +8,10 @@ import { useApp, useUi } from './store';
 export function App() {
   const { screen, game } = useApp();
   const { rules } = useUi();
+  // The speed setting applies to everything on screen, including overlays outside the board.
+  const speed = screen === 'game' && game ? game.meta.settings.animationSpeed : 'normal';
   return (
-    <div className="app">
+    <div className="app" data-speed={speed}>
       {screen === 'start' && <StartScreen />}
       {screen === 'setup' && <SetupScreen />}
       {screen === 'game' && game && <GameScreen />}

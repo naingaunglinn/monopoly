@@ -196,9 +196,11 @@ export const T = {
   },
   tile: {
     rent: (amount: number) => money(amount),
-    mortgaged: 'Mortgaged',
+    /** Soft hyphen: narrow tiles may break it as "Mort-gaged". */
+    mortgaged: 'Mort\u00ADgaged',
     dice: (multiplier: number) => `Dice ${TIMES}${multiplier}`,
     canBuild: 'You can build here now',
+    bought: 'Bought',
     owner: (name: string) => `Owned by ${name}`,
     level: (level: number) => (level === 5 ? 'Hotel' : plural(level, 'house', 'houses')),
   },

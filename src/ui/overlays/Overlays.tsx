@@ -1,5 +1,5 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
-import { ArrowLeftRight, Check, X } from 'lucide-react';
+import { ArrowLeftRight, Check, CircleHelp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
 import { COUNTRIES } from '../../data/countries';
@@ -20,7 +20,7 @@ import { Button } from '../components/Button';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
 import { askConfirm, closeConfirm, closeSheet, dispatch, goTo, ui, useUi } from '../store';
-import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES } from '../strings';
+import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { countryOfSpace, playerName, spaceName } from '../view';
 import { openRules } from '../store';
 
@@ -68,6 +68,7 @@ export function Sheet({
   children,
   footer,
   wide,
+  help,
 }: {
   id: string;
   title: ReactNode;
@@ -75,6 +76,8 @@ export function Sheet({
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  /** Rule-guide topic for the small help button. */
+  help?: RuleTopicId;
 }) {
   const ref = useFocusTrap();
   return (
@@ -84,6 +87,17 @@ export function Sheet({
           <h2 id={`${id}-title`} className="sheet-title">
             {title}
           </h2>
+          {help && (
+            <button
+              type="button"
+              className="icon-btn help-btn"
+              onClick={() => openRules(help)}
+              aria-label={`${T.panels.help}: ${typeof title === 'string' ? title : T.trade.title}`}
+              title={T.panels.help}
+            >
+              <CircleHelp size={18} aria-hidden="true" />
+            </button>
+          )}
           {onClose && (
             <button type="button" className="icon-btn" onClick={onClose} aria-label={T.properties.close} title={T.properties.close}>
               <X size={20} aria-hidden="true" />
@@ -135,7 +149,7 @@ function PropertyRow({ s, space, actor }: { s: GameState; space: number; actor: 
         <span>{spaceName(s, space)}</span>
       </span>
       <span className="prop-state">
-        <BuildingPips level={ps.level} size={10} />
+        <BuildingPips level={ps.level} />
         {ps.mortgaged ? <span className="badge badge-warn">{T.focus.mortgaged}</span> : null}
         <span className="muted money">{money(propertyPrice(space))}</span>
       </span>
@@ -377,6 +391,7 @@ export function TradeBuilder({ s }: { s: GameState }) {
       }
       onClose={closeSheet}
       wide
+      help="trading"
       footer={
         <>
           <Button id="trade-cancel" label={T.trade.cancel} onClick={closeSheet} />
@@ -505,6 +520,7 @@ export function TradeResponse({ s }: { s: GameState }) {
       id="trade-offer"
       title={T.trade.offerFrom(from.name)}
       wide
+      help="trading"
       footer={
         <>
           <Button id="trade-reject" label={T.trade.reject} icon={<X size={18} aria-hidden="true" />} action={{ type: 'respondTrade', accept: false }} />
@@ -592,9 +608,11 @@ export function Results({ s }: { s: GameState }) {
 
 // ---------------------------------------------------------------------------------------------
 
-export function SettingsDialog({ s }: { s: GameState }) {
+/** Settings live in the top-bar menu as a popover; they never cover the board. */
+export function SettingsFields({ s }: { s: GameState }) {
   return (
-    <Sheet id="settings" title={T.settings.title} onClose={closeSheet}>
+    <div className="settings-fields">
+      <p className="menu-heading">{T.settings.title}</p>
       <label className="toggle" htmlFor="set-pass">
         <input
           id="set-pass"
@@ -608,8 +626,7 @@ export function SettingsDialog({ s }: { s: GameState }) {
         </span>
         <span className="toggle-label">{T.settings.passDevice}</span>
       </label>
-      <p className="muted small">{T.settings.passDeviceHint}</p>
-      <fieldset className="field">
+      <fieldset className="field compact">
         <legend className="field-label">{T.settings.animation}</legend>
         <div className="segmented" role="radiogroup" aria-label={T.settings.animation}>
           {(['normal', 'fast', 'off'] as const).map((speed) => (
@@ -625,7 +642,7 @@ export function SettingsDialog({ s }: { s: GameState }) {
           ))}
         </div>
       </fieldset>
-    </Sheet>
+    </div>
   );
 }
 

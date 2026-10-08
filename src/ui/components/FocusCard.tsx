@@ -5,6 +5,7 @@ import { BALANCE, mortgageValue } from '../../data/balance';
 import { AIRPORT_BY_SPACE, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES } from '../../data/board';
 import { COUNTRY_BY_ID } from '../../data/countries';
 import { airportsOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
+import { readableInk } from '../contrast';
 import { ui, useUi } from '../store';
 import { money, SPECIAL_TEXT, T } from '../strings';
 import { isRestSpace, tileView } from '../view';
@@ -88,7 +89,7 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
           <div className="deed-row">
             <dt>{T.focus.level}</dt>
             <dd>
-              {ps && ps.level > 0 ? <BuildingPips level={ps.level} size={10} /> : null}
+              {ps && ps.level > 0 ? <BuildingPips level={ps.level} /> : null}
               <span>{ps && ps.level > 0 ? T.tile.level(ps.level) : T.focus.noBuilding}</span>
             </dd>
           </div>
@@ -162,28 +163,84 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
   );
 }
 
+/** The few numbers that matter when deciding to buy: rent now and with a full set. */
+export function DeedSummary({ s, index }: { s: GameState; index: number }) {
+  const city = CITY_BY_SPACE.get(index);
+  const airport = AIRPORT_BY_SPACE.get(index);
+  const company = COMPANY_BY_SPACE.get(index);
+  const me = s.turn.currentPlayerIndex;
+  if (city) {
+    const cities = COUNTRY_CITIES[city.country];
+    const mine = cities.filter((sp) => s.properties[sp]?.owner === me).length;
+    return (
+      <dl className="deed-summary">
+        <Row label={T.focus.rent} value={money(city.baseRent)} />
+        <Row label={T.focus.completeEmpty} value={money(city.baseRent * (BALANCE.cityRentMultipliers[0] as number))} />
+        <Row label={T.focus.hotel} value={money(city.baseRent * (BALANCE.cityRentMultipliers[5] as number))} />
+        <Row label={T.focus.houseCost} value={money(city.houseCost)} />
+        <Row label={COUNTRY_BY_ID[city.country].name} value={T.focus.countryProgress(mine, cities.length)} />
+      </dl>
+    );
+  }
+  if (airport) {
+    const owned = airportsOwnedBy(s, me);
+    return (
+      <dl className="deed-summary">
+        <Row label={T.focus.airportsOwned(owned + 1)} value={money(BALANCE.airportRent[owned] as number)} />
+        <Row label={T.focus.airportsOwned(10)} value={money(BALANCE.airportRent[9] as number)} />
+        <Row label={T.focus.mortgage} value={money(mortgageValue(airport.price))} />
+      </dl>
+    );
+  }
+  if (company) {
+    return (
+      <dl className="deed-summary">
+        <Row label={T.focus.rent} value={T.focus.companyFormula(company.multiplier)} />
+        <Row label={T.focus.mortgage} value={money(mortgageValue(company.price))} />
+      </dl>
+    );
+  }
+  return null;
+}
+
 export function FocusCard({ s, fallback }: { s: GameState; fallback: number }) {
   const { hover, pinned } = useUi();
   const index = hover ?? pinned ?? fallback;
   const v = tileView(s, index);
   const Icon = spaceIcon(v.space, isRestSpace(s, index));
-  const band = v.space.type === 'city' && v.country ? v.country.color : undefined;
+  // Cities wear their country colour; everything else wears the Ocean.
+  const band = v.space.type === 'city' && v.country ? v.country.color : '#12436B';
   return (
-    <article className={`deed ${band ? 'has-band' : ''}`} style={{ ['--band' as string]: band }} aria-live="polite" aria-label={v.name}>
+    <article
+      className="deed"
+      style={{ ['--band' as string]: band, ['--band-ink' as string]: readableInk(band) }}
+      aria-live="polite"
+      aria-label={v.name}
+      data-space={index}
+    >
+      <div className="deed-tag">
       <header className="deed-head">
-        {v.country && v.space.type !== 'company' ? <Flag code={v.country.flag} width={22} /> : Icon && <Icon size={20} aria-hidden="true" />}
+        <span className="deed-eyelet" aria-hidden="true" />
+        <span className="deed-mark">
+          {v.country && v.space.type !== 'company' ? (
+            <Flag code={v.country.flag} width={24} />
+          ) : (
+            Icon && <Icon size={20} aria-hidden="true" />
+          )}
+        </span>
         <div className="deed-title">
           <h2 className="deed-name">{v.name}</h2>
           {v.space.type === 'city' && v.country && <span className="deed-country">{v.country.name}</span>}
         </div>
         {pinned === index && (
           <button type="button" className="icon-btn deed-pin" onClick={() => ui.set({ pinned: null })} aria-label={T.focus.unpin} title={T.focus.unpin}>
-            <Pin size={14} aria-hidden="true" />
+            <Pin size={16} aria-hidden="true" />
           </button>
         )}
       </header>
       <div className="deed-body">
         <DeedBody s={s} index={index} />
+      </div>
       </div>
     </article>
   );
