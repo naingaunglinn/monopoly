@@ -1,7 +1,7 @@
 # Online play: final report
 
-2026-10-08, branch `milestones`. Spec section 17 describes what was built; decisions D55 to D79 in
-`DECISIONS.md` explain the choices. `DEPLOY.md` has the deployment steps.
+2026-10-08, branch `main` (developed as `milestones`). Spec section 17 describes what was built;
+decisions D55 to D79 in `DECISIONS.md` explain the choices. `DEPLOY.md` has the deployment steps.
 
 ## What was built
 
@@ -90,8 +90,9 @@ They now stay pinned at the bottom of the sheet, and the Buy panel shows the pri
 
 ## What you do next
 
-1. Push to GitHub and create the Vercel project (`DEPLOY.md` steps 1 and 2). The branch `milestones`
-   becomes `main`.
+1. Create the Vercel project from
+   [github.com/naingaunglinn/monopoly](https://github.com/naingaunglinn/monopoly), branch `main`
+   (`DEPLOY.md` step 2; step 1 is done).
 2. Add Upstash Redis from the Vercel Marketplace, connect it to the project, and redeploy (steps 3
    and 4).
 3. Check `https://<your-address>/api/health` shows `"store":"upstash"`, then run

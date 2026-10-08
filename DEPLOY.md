@@ -18,20 +18,24 @@ has moved, its name is usually the same.
 
 ## 1. Put the code on GitHub
 
+The code is at [github.com/naingaunglinn/monopoly](https://github.com/naingaunglinn/monopoly), on
+the `main` branch, which Vercel publishes as your live site. If that is your repository, go on to
+step 2.
+
+To use another repository instead:
+
 1. On github.com, create a new, empty repository (no README, no licence). Create it under your
    personal account, not under an organization: the Hobby plan cannot deploy a private repository
    that belongs to an organization.
 2. From the project folder, run:
 
    ```bash
-   git branch -M main
-   git remote add origin https://github.com/<you>/<repository>.git
+   git remote set-url origin https://github.com/<you>/<repository>.git
    git push -u origin main
    ```
 
-   The work is on a branch called `milestones`. The first line renames it to `main`, the branch
-   Vercel publishes as your live site. If `git push` asks you to sign in, run `gh auth login` first
-   (GitHub CLI), or publish the folder with GitHub Desktop instead.
+   If `git push` asks you to sign in, run `gh auth login` first (GitHub CLI), or publish the folder
+   with GitHub Desktop instead.
 
 ## 2. Create the Vercel project
 
