@@ -400,6 +400,15 @@ let current: VoiceCall | null = null;
 // ---------------------------------------------------------------------------------------------
 // Joining, muting, leaving
 
+/**
+ * Safari's audio session: game sounds play as "ambient" (they mix with music and follow the silent
+ * switch, D82); a voice call needs "play-and-record" while it lasts. Other browsers have no such setting.
+ */
+function audioSession(type: 'ambient' | 'play-and-record'): void {
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = type;
+}
+
 /** The plain-language reason a microphone could not be opened. */
 function micError(error: unknown): string {
   const name = (error as { name?: string } | null)?.name;
@@ -414,16 +423,19 @@ export async function joinVoice(): Promise<string | null> {
   if (!s || voice.get().status !== 'off') return null;
   if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') return T.voice.unsupported;
   patch({ status: 'joining' });
+  audioSession('play-and-record');
   let local: MediaStream;
   try {
     local = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
   } catch (error) {
+    audioSession('ambient');
     patch({ status: 'off' });
     return micError(error);
   }
   const r = await call<{ peer: string; peers: VoicePeer[]; iceServers?: IceServer[] }>('POST', '/api/room?op=voice', { code: s.code, tokens: s.tokens, state: 'join' });
   if (!r.ok || voiceSession()?.code !== s.code) {
     for (const track of local.getTracks()) track.stop();
+    audioSession('ambient');
     patch({ status: 'off' });
     return r.ok ? null : T.voice.failed;
   }
@@ -449,6 +461,7 @@ export function leaveVoice(): void {
   const c = current;
   current = null;
   c?.end();
+  if (c) audioSession('ambient');
   patch({ status: 'off', muted: false, me: null, speaking: [], links: {} });
   if (c) {
     void call('POST', '/api/room?op=voice', { code: c.room.code, tokens: c.room.tokens, state: 'leave' });
