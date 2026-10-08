@@ -1,7 +1,7 @@
 // Public engine API. The UI and the simulation import from here.
 export { reduce } from './reducer';
 export { legalActions, decisionMaker, freeActor, validateAction, isLegal, auctionBidOptions } from './legal';
-export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION, defaultPlayerName } from './state';
+export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION } from './state';
 export { checkInvariants } from './invariants';
 export { SAVE_KEY, serializeGame, parseSave, type ParseResult, type SaveProblem } from './save';
 export { netWorth, ranking, computeWinners, type NetWorth, type RankRow } from './networth';

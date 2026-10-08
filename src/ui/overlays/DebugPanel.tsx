@@ -32,15 +32,15 @@ export function DebugPanel({ s }: { s: GameState }) {
         <div className="debug-body">
           <div className="debug-row">
             <span>{T.debug.nextDice}</span>
-            <input type="number" min={1} max={6} value={d1} onChange={(e) => setD1(Number(e.target.value))} aria-label="Die 1" />
-            <input type="number" min={1} max={6} value={d2} onChange={(e) => setD2(Number(e.target.value))} aria-label="Die 2" />
+            <input type="number" min={1} max={6} value={d1} onChange={(e) => setD1(Number(e.target.value))} aria-label={T.debug.die1} />
+            <input type="number" min={1} max={6} value={d2} onChange={(e) => setD2(Number(e.target.value))} aria-label={T.debug.die2} />
             <button type="button" onClick={() => dispatch({ type: 'debug', op: 'setNextDice', dice: [d1, d2] })}>
               {T.debug.set}
             </button>
           </div>
           <div className="debug-row">
             <span>{T.debug.movePlayer}</span>
-            <select value={player} onChange={(e) => setPlayer(Number(e.target.value))} aria-label="Player">
+            <select value={player} onChange={(e) => setPlayer(Number(e.target.value))} aria-label={T.debug.player}>
               {living.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -60,7 +60,7 @@ export function DebugPanel({ s }: { s: GameState }) {
           </div>
           <div className="debug-row">
             <span>{T.debug.cash}</span>
-            <input type="number" step={50} value={delta} onChange={(e) => setDelta(Number(e.target.value))} aria-label="Cash change" />
+            <input type="number" step={50} value={delta} onChange={(e) => setDelta(Number(e.target.value))} aria-label={T.debug.cashChange} />
             <button type="button" onClick={() => dispatch({ type: 'debug', op: 'cash', player, delta })}>
               {T.debug.set}
             </button>

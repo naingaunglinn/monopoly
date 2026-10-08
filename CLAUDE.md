@@ -23,14 +23,17 @@ npm is used because pnpm is not installed (see DECISIONS.md).
 
 ```text
 src/
-  engine/   pure rules: reducer, phases, rent, building, cards, auction, trade, debt, rng, legal actions, invariants, save
-  data/     board, countries, cities, airports, companies, chance, events, balance (every number)
-  ui/       screens, components, animation player, strings.ts (every UI string), theme.css
-  sim/      bots and the simulation runner (CLI: src/sim/cli.ts)
+  engine/   pure rules: reducer, phases, rent, building, cards, auction, trade, debt, rng,
+            legal actions, invariants, save, net worth
+  data/     board, countries, cities, airports, companies, chance, events, players, balance (every number)
+  ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch, autosave),
+            display.ts + animation.ts (event player), strings.ts (every UI string), theme.css, hooks.ts
+  sim/      bots.ts, runner.ts, cli.ts (`npm run sim`)
 tests/
-  engine/   Vitest unit tests for data and engine
-  ui/       Vitest + Testing Library tests (jsdom)
-  e2e/      Playwright specs and screenshots
+  engine/   Vitest unit tests for data and engine (+ sim smoke run)
+  ui/       Vitest + Testing Library (jsdom): rule guide in every phase, contrast
+  e2e/      Playwright specs; fixtures.ts builds states with the engine, audit.ts checks layouts
+reports/    sim-report.json (committed), screenshots/ (generated, git-ignored)
 docs/       SPEC.md (source of truth)
 ```
 
@@ -52,3 +55,9 @@ docs/       SPEC.md (source of truth)
 - CSS: plain CSS with custom properties in `src/ui/theme.css`. Animate only transform and opacity.
 - Money in the UI always carries a sign and a symbol (`+$500`, `−$300`), tabular numerals.
 - Keep the full simulation out of `npm test`; only a small smoke run belongs there.
+- The UI never computes rules: buttons are enabled from `legalActions`/`validateAction`, and refusals
+  show the engine's reason. Animations replay engine events in `ui/animation.ts`; game state is final
+  before they play, and any input finishes them.
+- Signal yellow is for the primary button only. Small text uses the AA text shades in `theme.css`.
+- After UI changes run `npm run test:e2e`: the screenshot spec audits every capture (text under 10px,
+  page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080.

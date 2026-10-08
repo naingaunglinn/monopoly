@@ -1,6 +1,6 @@
 // One compact card per player. The current player's card is larger with a solid border in their
 // colour. Clicking a card opens that player's property list. Money changes float beside the card.
-import { BedDouble, House, IdCard, Lock, TreePalm } from 'lucide-react';
+import { BedDouble, Building2, Factory, House, IdCard, Lock, Plane, TreePalm } from 'lucide-react';
 import { airportsOwnedBy, citiesOwnedBy, companiesOwnedBy, type GameState, type Player } from '../../engine';
 import { shownCash, useDisplay, type FloatAmount } from '../display';
 import { openSheet } from '../store';
@@ -14,6 +14,7 @@ function PlayerCard({
   isCurrent,
   floats,
   pulse,
+  compact,
 }: {
   s: GameState;
   p: Player;
@@ -21,6 +22,8 @@ function PlayerCard({
   isCurrent: boolean;
   floats: FloatAmount[];
   pulse: number | null;
+  /** Five or six players: counts become icon + number so every card fits. */
+  compact: boolean;
 }) {
   const cities = citiesOwnedBy(s, p.id);
   const airports = airportsOwnedBy(s, p.id);
@@ -44,11 +47,37 @@ function PlayerCard({
           <span className="pc-name">{p.name}</span>
           <span className="pc-cash money">{p.bankrupt ? T.players.bankrupt : money(cash)}</span>
         </span>
-        {!p.bankrupt && (
+        {!p.bankrupt && !compact && (
           <span className="pc-counts">
             <span>{T.players.cities(cities)}</span>
             <span>{T.players.airports(airports)}</span>
             <span>{T.players.companies(companies)}</span>
+          </span>
+        )}
+        {!p.bankrupt && compact && (
+          <span className="pc-counts is-compact">
+            <span title={T.players.cities(cities)}>
+              <Building2 aria-hidden="true" />
+              {cities}
+              <span className="sr-only">{T.players.cities(cities)}</span>
+            </span>
+            <span title={T.players.airports(airports)}>
+              <Plane aria-hidden="true" />
+              {airports}
+              <span className="sr-only">{T.players.airports(airports)}</span>
+            </span>
+            <span title={T.players.companies(companies)}>
+              <Factory aria-hidden="true" />
+              {companies}
+              <span className="sr-only">{T.players.companies(companies)}</span>
+            </span>
+            {s.meta.settings.freeStay && (
+              <span title={T.players.freeStay(p.freeStay)}>
+                <BedDouble aria-hidden="true" />
+                {p.freeStay}
+                <span className="sr-only">{T.players.freeStay(p.freeStay)}</span>
+              </span>
+            )}
           </span>
         )}
         <span className="pc-badges">
@@ -64,7 +93,7 @@ function PlayerCard({
               {T.players.onVacation}
             </span>
           )}
-          {!p.bankrupt && s.meta.settings.freeStay && (
+          {!p.bankrupt && !compact && s.meta.settings.freeStay && (
             <span className="badge badge-soft" title={T.players.freeStay(p.freeStay)}>
               <BedDouble aria-hidden="true" />
               {T.players.freeStay(p.freeStay)}
@@ -98,12 +127,14 @@ function PlayerCard({
 export function PlayersColumn({ s }: { s: GameState }) {
   const display = useDisplay();
   const current = s.flow.phase === 'GameOver' ? -1 : s.turn.currentPlayerIndex;
+  const compact = s.players.length >= 5;
   return (
     <section className="players-col" aria-label={T.players.title}>
-      <ul className="player-list">
+      <ul className={`player-list ${compact ? 'is-compact' : ''}`}>
         {s.players.map((p) => (
           <PlayerCard
             key={p.id}
+            compact={compact}
             s={s}
             p={p}
             cash={shownCash(s, display, p.id)}

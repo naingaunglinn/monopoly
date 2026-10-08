@@ -1,13 +1,13 @@
 // Setup: one screen, not a wizard. The defaults start a game in two clicks.
 import { ArrowLeft, Play } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SETUP } from '../../data/balance';
 import { SEATS } from '../../data/players';
 import { DEFAULT_SETTINGS, type Settings } from '../../engine';
 import { Button } from '../components/Button';
 import { TokenChip } from '../components/glyphs';
 import { goTo, startNewGame } from '../store';
-import { money, T, TOKEN_NAMES } from '../strings';
+import { defaultPlayerName, money, T, TOKEN_NAMES } from '../strings';
 
 function Segmented<V extends string | number>({
   label,
@@ -61,6 +61,9 @@ function Toggle({ label, checked, onChange, id }: { label: string; checked: bool
 }
 
 export function SetupScreen() {
+  const startRef = useRef<HTMLButtonElement>(null);
+  // Start game has focus (Enter starts), without scrolling the form.
+  useEffect(() => startRef.current?.focus({ preventScroll: true }), []);
   const [settings, setSettings] = useState<Settings>({ ...DEFAULT_SETTINGS, playerNames: [...DEFAULT_SETTINGS.playerNames] });
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((s) => ({ ...s, [key]: value }));
   const setName = (seat: number, name: string) =>
@@ -99,7 +102,7 @@ export function SetupScreen() {
                       aria-label={T.setup.nameLabel(seat.seat)}
                       value={settings.playerNames[i] ?? ''}
                       maxLength={SETUP.maxNameLength}
-                      placeholder={`Player ${seat.seat}`}
+                      placeholder={defaultPlayerName(i)}
                       onChange={(e) => setName(i, e.target.value)}
                     />
                     <span className="seat-meta">{T.setup.seatColor(seat.colorName, TOKEN_NAMES[seat.token])}</span>
@@ -167,7 +170,7 @@ export function SetupScreen() {
         </div>
         <footer className="setup-footer">
           <Button label={T.setup.back} icon={<ArrowLeft size={18} aria-hidden="true" />} onClick={() => goTo('start')} />
-          <button type="submit" id="setup-start" className="btn btn-primary" autoFocus>
+          <button type="submit" id="setup-start" className="btn btn-primary" ref={startRef}>
             <Play size={18} aria-hidden="true" />
             <span className="btn-label">{T.setup.start}</span>
           </button>

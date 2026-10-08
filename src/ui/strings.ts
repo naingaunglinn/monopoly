@@ -16,6 +16,11 @@ import type { TokenKind } from '../data/players';
 export const GAME_TITLE = 'Global Monopoly';
 export const TAGLINE = 'Build your global empire';
 
+/** "Player 1" to "Player 6": default names, by seat index from 0. */
+export function defaultPlayerName(seat: number): string {
+  return `Player ${seat + 1}`;
+}
+
 const MINUS = '−';
 const TIMES = '×';
 
@@ -388,6 +393,10 @@ export const T = {
   },
   debug: {
     title: 'Debug',
+    die1: 'First die',
+    die2: 'Second die',
+    player: 'Player',
+    cashChange: 'Cash change',
     nextDice: 'Next dice',
     set: 'Set',
     movePlayer: 'Move player',

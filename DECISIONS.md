@@ -206,3 +206,12 @@ guards this in the screenshot audit.
 page scrolling, clipped text (strict on width), missing owner markers and overlapping HUD parts,
 then the images are opened and looked at. Fixtures run with animation Off so no capture lands
 mid-transition.
+
+## Verification (M5)
+
+**D49. Five or six players** switch the player cards to compact counts (an icon and a number for
+cities, airports, companies and Free Stay), so every card fits without scrolling at 1280 × 720.
+The setup screen keeps three columns down to 1024px so it fits one screen.
+
+**D50. Default player names** ("Player 1" to "Player 6") come from `ui/strings.ts`, like every
+other string; the engine imports them, as it already does for error reasons.

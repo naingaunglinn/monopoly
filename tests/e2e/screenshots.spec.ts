@@ -41,7 +41,7 @@ for (const size of SIZES) {
           await shot(page, size, `panel-${name}-handover`);
           await page.locator('#handover-ready').click();
         }
-        const plain = ['mid-game', 'crowded-board', 'pass-device', 'winner'].includes(name);
+        const plain = ['mid-game', 'crowded-board', 'six-tokens', 'six-tokens-top', 'pass-device', 'winner'].includes(name);
         await shot(page, size, plain ? name : `panel-${name}`);
         if (name === 'winner') {
           await page.locator('#winner-results').click();

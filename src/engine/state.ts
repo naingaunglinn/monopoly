@@ -2,6 +2,7 @@
 import { BALANCE, BOARD_SIZE, SETUP } from '../data/balance';
 import { isProperty } from '../data/board';
 import { SEATS } from '../data/players';
+import { defaultPlayerName } from '../ui/strings';
 import { buildDecks } from './cards';
 import { type Ctx, emit } from './core';
 import { beginTurn } from './phases';
@@ -12,7 +13,7 @@ export const SCHEMA_VERSION = 1;
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = {
   playerCount: SETUP.defaultPlayerCount,
-  playerNames: SEATS.map((seat) => `Player ${seat.seat}`),
+  playerNames: SEATS.map((_, i) => defaultPlayerName(i)),
   startingMoney: SETUP.defaultStartingMoney,
   mode: 'quick',
   roundLimit: SETUP.defaultRoundLimit,
@@ -26,9 +27,6 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   animationSpeed: 'normal',
 };
 
-export function defaultPlayerName(seat: number): string {
-  return `Player ${seat + 1}`;
-}
 
 /** Fills gaps and clamps every option to the values the setup screen offers. */
 export function normalizeSettings(input: Partial<Settings> = {}): Settings {

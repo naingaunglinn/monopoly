@@ -99,6 +99,22 @@ export function crowdedBoard(): GameState {
   return s;
 }
 
+/** Six tokens sharing one side-column tile and six sharing a top-row tile. */
+export function sixTokens(): GameState {
+  let s = createGame(
+    { playerCount: 6, passDevice: false, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia', 'Kenji', 'Nadia'] },
+    3,
+  );
+  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: p < 3 ? 21 : 21 });
+  return s;
+}
+
+export function sixTokensTop(): GameState {
+  let s = sixTokens();
+  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: 8 });
+  return s;
+}
+
 /** Every panel and screen the review needs, keyed by name. */
 export function panelStates(): Record<string, GameState> {
   const mid = midGame();
@@ -133,6 +149,8 @@ export function panelStates(): Record<string, GameState> {
   return {
     'mid-game': mid,
     'crowded-board': crowdedBoard(),
+    'six-tokens': sixTokens(),
+    'six-tokens-top': sixTokensTop(),
     'pass-device': createGame({ playerCount: 4, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'] }, 7),
     buy: rollTo(base(), 9),
     auction,

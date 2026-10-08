@@ -23,6 +23,13 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
     if (!allowVerticalScroll && doc.scrollHeight > window.innerHeight + 1) {
       problems.push(`page scrolls down (${doc.scrollHeight}px > ${window.innerHeight}px)`);
     }
+    // Containers that must show everything without inner scrolling.
+    for (const sel of ['.players-col', '.setup-card']) {
+      const el = document.querySelector<HTMLElement>(sel);
+      if (el && visible(el) && el.scrollHeight > el.clientHeight + 2) {
+        problems.push(`${sel} needs scrolling (${el.scrollHeight}px > ${el.clientHeight}px)`);
+      }
+    }
     const clipSelectors = [
       '.tile-name',
       '.tile-value',
