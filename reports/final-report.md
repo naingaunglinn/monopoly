@@ -1,7 +1,7 @@
 # Global Monopoly: final report
 
-Spec: `docs/SPEC.md`. Decisions: `DECISIONS.md` (D1 to D50). Commits: one per milestone on the
-`milestones` branch.
+Spec: `docs/SPEC.md`. Decisions: `DECISIONS.md` (D1 to D50). Commits: one per milestone (M1 to M5)
+plus a final verification commit, on the `milestones` branch.
 
 ## 1. What was implemented
 
@@ -68,7 +68,8 @@ invariant failures in 36.8 s. All 12 phases were reached in both modes.
 97% of Quick games ended at the first bankruptcy, because the random bots spend recklessly. Prices
 and rules were not changed because of these numbers.
 
-**UI (Playwright, Chromium).** 13 runs, all passing, with no console errors in any of them:
+**UI (Playwright, Chromium).** 22 runs, all passing in 2.1 minutes, with no console errors in any
+of them:
 - a seeded 5-round Quick game with animation Off, from setup to results
 - a 4-player game with the pass-device screen on
 - full games at Normal speed (every animation allowed to play), at Fast speed, with reduced motion,
@@ -77,13 +78,24 @@ and rules were not changed because of these numbers.
 - reload and Continue in the middle of an auction restore an identical state and the same panel,
   and the in-game Save shows its toast
 - a corrupt or older save shows a clear message and offers a new game
+- interactions beyond the yellow button:
+  - a trade opened with T, handed over, accepted after confirmation and applied; a rejected trade
+    changes nothing
+  - Build house spends the house cost, and Done continues the turn
+  - Use Free Stay and Pay $300 in Jail
+  - mortgage, unmortgage and sell from the property list, including a refused mortgage that states
+    its reason
+  - the debug panel sets the next dice (and is hidden without `?debug=1`)
+  - the keyboard: Space, B, P, T, R and Esc
+  - New game asks for confirmation
 
 **Screenshot review.** Captured at 1280 × 720, 1024 × 768 and 1920 × 1080: start, setup, a mid-game
 board, a crowded worst-case board, six tokens on one tile, every decision panel, the rule guide,
 pass-device, winner, results, property list and trade (90 images). Each capture is audited
 automatically for text under 10px, page scrolling, clipped text, missing owner markers, hidden
 player cards and HUD overlaps, and every image was opened and looked at. Problems found this way
-were fixed and the screens shot again:
+were fixed and the screens shot again, then all 90 final images were looked at again on contact
+sheets (several at full size):
 - see-through panels
 - names clipped by 1px
 - crowded side tiles
