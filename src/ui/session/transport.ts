@@ -5,7 +5,7 @@
 // - a watchdog treats a silent stream (the server pings every 20 s) as broken;
 // - when the stream fails, it polls every 2 s and tries the stream again now and then;
 // - resync() fetches what was missed at once (the tab became visible, a heartbeat saw a newer version).
-import type { RoomUpdate, RoomView } from '../../../server/room';
+import type { RoomUpdate, RoomView } from '../../online/protocol';
 
 export type LinkStatus = 'connecting' | 'live' | 'polling' | 'offline' | 'gone';
 

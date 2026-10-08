@@ -1,6 +1,6 @@
-// Colour choice on the setup screen (D53). The player's token opens a small palette that previews
-// the token in every colour. Picking a colour another player has swaps the two, so every player
-// always has a different colour. The palette floats above the form (fixed, not clipped by it).
+// Colour choice (D53). The player's token opens a small palette that previews the token in every
+// colour. On the setup screen picking a colour another player has swaps the two; in an online lobby
+// (exclusive) another player's colour cannot be taken. The palette floats above the form.
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,9 +20,11 @@ interface ColorPickerProps {
   /** Names of the other players by the colour they have now. */
   holders: Readonly<Record<string, string>>;
   onPick: (color: string) => void;
+  /** Online lobby: colours other players have cannot be picked (no swapping across devices). */
+  exclusive?: boolean;
 }
 
-export function ColorPicker({ seat, name, token, color, holders, onPick }: ColorPickerProps) {
+export function ColorPicker({ seat, name, token, color, holders, onPick, exclusive = false }: ColorPickerProps) {
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState<{ left: number; top: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -123,17 +125,21 @@ export function ColorPicker({ seat, name, token, color, holders, onPick }: Color
               {PLAYER_COLORS.map((c) => {
                 const holder = c === color ? null : (holders[c] ?? null);
                 const on = c === color;
+                const blocked = exclusive && holder !== null;
                 return (
                   <button
                     key={c}
                     type="button"
                     role="radio"
                     aria-checked={on}
-                    className={`swatch ${on ? 'is-on' : ''} ${holder ? 'is-held' : ''}`}
+                    aria-disabled={blocked || undefined}
+                    className={`swatch ${on ? 'is-on' : ''} ${holder ? 'is-held' : ''} ${blocked ? 'is-blocked' : ''}`}
                     data-color={c}
                     tabIndex={on ? 0 : -1}
-                    aria-label={T.setup.colorOption(colorName(c), holder)}
+                    aria-label={blocked ? T.online.colorTaken(holder) : T.setup.colorOption(colorName(c), holder)}
+                    title={blocked ? T.online.colorTaken(holder) : undefined}
                     onClick={() => {
+                      if (blocked) return;
                       if (!on) onPick(c);
                       close(true);
                     }}
@@ -152,7 +158,7 @@ export function ColorPicker({ seat, name, token, color, holders, onPick }: Color
                 );
               })}
             </div>
-            <p className="color-pop-hint">{T.setup.colorSwap}</p>
+            {!exclusive && <p className="color-pop-hint">{T.setup.colorSwap}</p>}
           </div>,
           document.querySelector('.app') ?? document.body,
         )}

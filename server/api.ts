@@ -3,7 +3,8 @@
 // Every write is a compare-and-set on the room's version; game actions are authoritative here.
 //
 //   GET  /api/health                     the store in use
-//   GET  /api/room?code=ABCD[&since=N]   the room view (and, for polling, the entries after N)
+//   GET  /api/room?code=ABCD[&since=N]   the room view (and, for polling, the entries after N);
+//                                        &probe=1 answers a missing room with { view: null }
 //   POST /api/room?op=...                create, join, seat, leave, settings, start, action,
 //                                        heartbeat, reclaim, host
 //   GET  /api/stream?code=ABCD&since=N   Server-Sent Events, resumable with Last-Event-ID
@@ -168,9 +169,13 @@ export function createApi(config: ApiConfig): Api {
     return seat >= 0 ? seat : fail('notInRoom', 403);
   }
 
-  async function seatResponse(room: Room, token: string | null, tokens: string[] = [], status = 200): Promise<Response> {
+  /** The room for the caller; `token` and `seatId` when a new seat token was just issued. */
+  async function seatResponse(room: Room, token: string | null, tokens: string[] = [], status = 200, seatId?: string): Promise<Response> {
     const all = token ? [token, ...tokens] : tokens;
-    return json({ code: room.code, ...(token ? { token } : {}), you: await seatsOf(room, all), view: viewOf(room), now: now() }, status);
+    return json(
+      { code: room.code, ...(token ? { token, seatId } : {}), you: await seatsOf(room, all), view: viewOf(room), now: now() },
+      status,
+    );
   }
 
   const update = (room: Room, entry: LogEntry): RoomUpdate & { now: number } => ({ ...entry, view: viewOf(room), now: now() });
@@ -182,8 +187,9 @@ export function createApi(config: ApiConfig): Api {
       const t = now();
       const room = newRoom({ code: newCode(), now: t, seatId: hex(randomBytes(6)), tokenHash: hash, name: body.name, color: body.color, settings: body.settings });
       if (await store.create(room, entryOf(room, 'created', 0))) {
-        await store.heartbeat(room.code, [room.seats[0]?.id as string], t);
-        return seatResponse(room, token, [], 201);
+        const seatId = room.seats[0]?.id as string;
+        await store.heartbeat(room.code, [seatId], t);
+        return seatResponse(room, token, [], 201, seatId);
       }
     }
     return errorResponse(fail('conflict', 409));
@@ -200,7 +206,7 @@ export function createApi(config: ApiConfig): Api {
     });
     if (isError(result)) return errorResponse(result);
     await store.heartbeat(code, [seatId], now());
-    return seatResponse(result.room, token, tokensOf(body.tokens));
+    return seatResponse(result.room, token, tokensOf(body.tokens), 200, seatId);
   }
 
   /** Lobby changes made by the caller's own seat (rename/colour, leave) or by the host (settings). */
@@ -275,7 +281,8 @@ export function createApi(config: ApiConfig): Api {
       });
       if (!isError(handed)) latest = handed.room;
     }
-    return json({ now: t, presence, you: mine, version: latest.version, host: latest.host });
+    const seatIds = mine.map((i) => room.seats[i]?.id as string);
+    return json({ now: t, presence, you: mine, seatIds, version: latest.version, host: latest.host });
   }
 
   // op=reclaim {code, seat, tokens?}: take over a disconnected seat (new device or browser).
@@ -293,7 +300,7 @@ export function createApi(config: ApiConfig): Api {
     });
     if (isError(result)) return errorResponse(result);
     await store.heartbeat(code, [seatId], now());
-    return seatResponse(result.room, token, tokensOf(body.tokens));
+    return seatResponse(result.room, token, tokensOf(body.tokens), 200, seatId);
   }
 
   // op=host {code, token, op, seat}: host controls: playFor, stopPlayingFor, remove.
@@ -327,7 +334,9 @@ export function createApi(config: ApiConfig): Api {
       return json({ view: viewOf(found.room), updates: found.entries === 'gap' ? null : found.entries, now: now() });
     }
     const room = await store.load(code);
-    if (!room) return errorResponse(fail('roomNotFound', 404));
+    // probe=1 (the start screen's rejoin check) answers a missing room with 200 and no view, so an
+    // expired room is not an error in the browser's console.
+    if (!room) return url.searchParams.get('probe') === '1' ? json({ view: null, now: now() }) : errorResponse(fail('roomNotFound', 404));
     return json({ view: viewOf(room), presence: await store.presence(code), now: now() });
   }
 

@@ -1,5 +1,5 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
-import { ArrowLeftRight, Check, CircleHelp, X } from 'lucide-react';
+import { ArrowLeftRight, Check, CircleHelp, Hourglass, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
 import { COUNTRIES } from '../../data/countries';
@@ -22,7 +22,20 @@ import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
-import { askConfirm, closeConfirm, closeSheet, dispatch, goTo, setAnimationSpeed, ui, useAnimationSpeed, useUi } from '../store';
+import { hostControl, leaveToStart, useOnline } from '../session/online';
+import {
+  askConfirm,
+  canAct,
+  closeConfirm,
+  closeSheet,
+  dispatch,
+  goTo,
+  setAnimationSpeed,
+  showToast,
+  ui,
+  useAnimationSpeed,
+  useUi,
+} from '../store';
 import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { countryOfSpace, playerName, spaceName } from '../view';
 import { openRules } from '../store';
@@ -116,8 +129,12 @@ export function Sheet({
 
 // ---------------------------------------------------------------------------------------------
 
-export function PassDevice({ s }: { s: GameState }) {
-  const p = s.players[s.turn.currentPlayerIndex] as Player;
+/**
+ * The handover between players on one device: the engine's pass-device phase locally, or (with
+ * `player` and `onReady`) an online device passing from one of its seats to another.
+ */
+export function PassDevice({ s, player, onReady }: { s: GameState; player?: number; onReady?: () => void }) {
+  const p = s.players[player ?? s.turn.currentPlayerIndex] as Player;
   const ref = useFocusTrap();
   return (
     <div className="pass-device" style={{ ['--player' as string]: p.color }} data-sheet="pass">
@@ -127,7 +144,14 @@ export function PassDevice({ s }: { s: GameState }) {
         <h2 id="pass-title" className="pass-name">
           {T.pass.to(p.name)}
         </h2>
-        <Button id="pass-ready" variant="primary" label={T.play.ready} action={{ type: 'ready' }} autoFocus />
+        <Button
+          id="pass-ready"
+          variant="primary"
+          label={T.play.ready}
+          action={onReady ? undefined : { type: 'ready' }}
+          onClick={onReady}
+          autoFocus
+        />
         <p className="muted pass-hint">{T.pass.hint}</p>
       </div>
     </div>
@@ -502,8 +526,21 @@ export function TradeResponse({ s }: { s: GameState }) {
   const offer = s.flow.trade as TradeOffer;
   const from = s.players[offer.from] as Player;
   const to = s.players[offer.to] as Player;
-  const [handed, setHanded] = useState(false);
+  const online = useOnline();
+  // Online the partner answers on their own device: no handover unless both seats are on this one.
+  const partnerHere = canAct(offer.to);
+  const proposerHere = canAct(offer.from);
+  const [handed, setHanded] = useState(online !== null && !(partnerHere && proposerHere));
   const ref = useFocusTrap();
+  if (online && !partnerHere) {
+    if (!proposerHere) return null;
+    return (
+      <div className="trade-waiting" role="status" data-sheet="trade-waiting">
+        <Hourglass size={18} aria-hidden="true" />
+        {T.online.tradeWaiting(to.name)}
+      </div>
+    );
+  }
   if (!handed) {
     return (
       <div className="pass-device" style={{ ['--player' as string]: to.color }} data-sheet="trade-handover">
@@ -554,6 +591,7 @@ export function TradeResponse({ s }: { s: GameState }) {
 
 export function Results({ s }: { s: GameState }) {
   const rows = useMemo(() => ranking(s), [s]);
+  const online = useOnline();
   return (
     <Sheet
       id="results"
@@ -563,7 +601,11 @@ export function Results({ s }: { s: GameState }) {
       footer={
         <>
           <Button id="results-close" label={T.results.close} onClick={closeSheet} />
-          <Button id="results-new" variant="primary" label={T.results.newGame} onClick={() => askConfirm({ kind: 'newGame' })} />
+          {online ? (
+            <Button id="results-new" variant="primary" label={T.online.backToStart} onClick={() => leaveToStart()} />
+          ) : (
+            <Button id="results-new" variant="primary" label={T.results.newGame} onClick={() => askConfirm({ kind: 'newGame' })} />
+          )}
         </>
       }
     >
@@ -616,9 +658,11 @@ export function SettingsFields({ s }: { s: GameState }) {
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const prefs = usePrefs();
   const animationSpeed = useAnimationSpeed();
+  const online = useOnline();
   return (
     <div className="settings-fields">
       <p className="menu-heading">{T.settings.title}</p>
+      {!online && (
       <label className="toggle" htmlFor="set-pass">
         <input
           id="set-pass"
@@ -632,6 +676,7 @@ export function SettingsFields({ s }: { s: GameState }) {
         </span>
         <span className="toggle-label">{T.settings.passDevice}</span>
       </label>
+      )}
       <fieldset className="field compact">
         <legend className="field-label">{T.settings.animation}</legend>
         <div className="segmented" role="radiogroup" aria-label={T.settings.animation}>
@@ -678,6 +723,14 @@ export function ConfirmDialog({ s }: { s: GameState }) {
       closeConfirm();
       goTo('setup');
     };
+  } else if (confirm.kind === 'removePlayer') {
+    title = T.online.removeTitle(confirm.name);
+    text = T.online.removeText(confirm.name, s.meta.settings.mode === 'quick');
+    yes = T.online.removeYes;
+    onYes = () => {
+      closeConfirm();
+      void hostControl('remove', confirm.seatId).then((err) => err && showToast(err));
+    };
   } else if (confirm.kind === 'bankruptcy') {
     const debt = s.flow.debts[0];
     title = T.confirm.bankruptTitle;
@@ -706,7 +759,13 @@ export function ConfirmDialog({ s }: { s: GameState }) {
         <p id="confirm-text">{text}</p>
         <div className="dialog-actions">
           <Button id="confirm-cancel" label={T.confirm.cancel} onClick={closeConfirm} />
-          <Button id="confirm-yes" variant={confirm.kind === 'bankruptcy' ? 'danger' : 'primary'} label={yes} onClick={onYes} autoFocus />
+          <Button
+            id="confirm-yes"
+            variant={confirm.kind === 'bankruptcy' || confirm.kind === 'removePlayer' ? 'danger' : 'primary'}
+            label={yes}
+            onClick={onYes}
+            autoFocus
+          />
         </div>
       </div>
     </div>

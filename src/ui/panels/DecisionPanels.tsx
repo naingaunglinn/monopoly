@@ -36,7 +36,8 @@ import { DeedSummary } from '../components/FocusCard';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
 import { CARD_ICONS, COMPANY_ICONS } from '../components/icons';
-import { askConfirm, dispatch, openSheet, refuse } from '../store';
+import { leaveToStart } from '../session/online';
+import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
 import { levelText, money, rentCalcText, signedMoney, T } from '../strings';
 import { countryOfSpace, decider, playerName, spaceName } from '../view';
 import { Panel, QuickHelpButton } from './Panel';
@@ -486,6 +487,7 @@ export function WinnerPanel({ s }: { s: GameState }) {
   const winners = (s.meta.winner ?? []).map((id) => s.players[id] as Player);
   const top = rows[0];
   const first = winners[0];
+  const { mode } = useApp();
   if (!first || !top) return null;
   const title = winners.length > 1 ? T.winner.shared(winners.map((w) => w.name).join(' and ')) : T.winner.wins(first.name);
   return (
@@ -522,7 +524,11 @@ export function WinnerPanel({ s }: { s: GameState }) {
       </dl>
       <div className="panel-actions">
         <Button id="winner-results" variant="primary" label={T.winner.viewResults} onClick={() => openSheet({ kind: 'results' })} />
-        <Button id="winner-new" label={T.winner.newGame} onClick={() => askConfirm({ kind: 'newGame' })} />
+        {mode === 'online' ? (
+          <Button id="winner-new" label={T.online.backToStart} onClick={() => leaveToStart()} />
+        ) : (
+          <Button id="winner-new" label={T.winner.newGame} onClick={() => askConfirm({ kind: 'newGame' })} />
+        )}
       </div>
     </section>
   );

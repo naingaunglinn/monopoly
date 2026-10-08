@@ -80,6 +80,6 @@ describe('animation pacing', () => {
     setPrefs({ motionAnyway: true });
     expect(prefersReducedMotion()).toBe(false);
     expect(playBatch(prev, next, events, 'normal')).toBeGreaterThan(DURATIONS.dice);
-    expect(JSON.parse(window.localStorage.getItem('global-monopoly/prefs/v1') as string)).toEqual({ motionAnyway: true });
+    expect(JSON.parse(window.localStorage.getItem('global-monopoly/prefs/v1') as string)).toMatchObject({ motionAnyway: true });
   });
 });

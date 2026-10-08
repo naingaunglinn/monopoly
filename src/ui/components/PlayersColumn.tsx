@@ -1,11 +1,41 @@
 // One compact card per player. The current player's card is larger with a solid border in their
 // colour. Clicking a card opens that player's property list. Money changes float beside the card.
-import { BedDouble, Building2, Factory, House, IdCard, Lock, Plane, TreePalm } from 'lucide-react';
+// Online, a card also shows when its player is disconnected or played by the host, and the host
+// gets Play for them and Remove for a disconnected player.
+import { BedDouble, Building2, Factory, Gamepad2, House, IdCard, Lock, Plane, TreePalm, UserX, WifiOff } from 'lucide-react';
 import { airportsOwnedBy, citiesOwnedBy, companiesOwnedBy, type GameState, type Player } from '../../engine';
 import { shownCash, useDisplay, type FloatAmount } from '../display';
-import { openSheet } from '../store';
+import { amHost, hostControl, isSeatConnected, useOnline, usePresenceClock, type OnlineState } from '../session/online';
+import { askConfirm, openSheet, showToast } from '../store';
 import { money, signedMoney, T } from '../strings';
 import { TokenChip } from './glyphs';
+
+interface SeatNet {
+  seatId: string;
+  offline: boolean;
+  proxyName: string | null;
+  proxyMine: boolean;
+  hostControls: boolean;
+}
+
+function seatNet(online: OnlineState | null, s: GameState, p: Player): SeatNet | null {
+  const seat = online?.view.seats[p.id];
+  if (!online || !seat) return null;
+  const mine = online.mine.includes(p.id);
+  const offline = !mine && !p.bankrupt && !isSeatConnected(online, seat.id);
+  const proxy = seat.proxy;
+  return {
+    seatId: seat.id,
+    offline,
+    proxyName: proxy !== null ? (online.view.seats[proxy]?.name ?? null) : null,
+    proxyMine: proxy !== null && online.mine.includes(proxy),
+    hostControls: amHost(online) && !mine && !p.bankrupt && s.flow.phase !== 'GameOver' && (offline || (proxy !== null && online.mine.includes(proxy))),
+  };
+}
+
+const report = (err: string | null) => {
+  if (err) showToast(err);
+};
 
 function PlayerCard({
   s,
@@ -15,6 +45,7 @@ function PlayerCard({
   floats,
   pulse,
   compact,
+  net,
 }: {
   s: GameState;
   p: Player;
@@ -24,6 +55,8 @@ function PlayerCard({
   pulse: number | null;
   /** Five or six players: counts become icon + number so every card fits. */
   compact: boolean;
+  /** Online: this player's connection and the host's controls. */
+  net: SeatNet | null;
 }) {
   const cities = citiesOwnedBy(s, p.id);
   const airports = airportsOwnedBy(s, p.id);
@@ -81,6 +114,18 @@ function PlayerCard({
           </span>
         )}
         <span className="pc-badges">
+          {net?.offline && (
+            <span className="badge badge-offline">
+              <WifiOff aria-hidden="true" />
+              {T.online.disconnected}
+            </span>
+          )}
+          {net?.proxyName && (
+            <span className="badge badge-soft">
+              <Gamepad2 aria-hidden="true" />
+              {net.proxyMine ? T.online.youPlayFor : T.online.playedBy(net.proxyName)}
+            </span>
+          )}
           {p.inJail && (
             <span className="badge badge-jail">
               <Lock aria-hidden="true" />
@@ -120,12 +165,37 @@ function PlayerCard({
           {signedMoney(f.amount)}
         </span>
       ))}
+      {net?.hostControls && (
+        <span className="pc-host">
+          {net.proxyMine ? (
+            <button type="button" className="btn btn-chip" id={`stop-play-${p.id}`} onClick={() => void hostControl('stopPlayingFor', net.seatId).then(report)}>
+              {T.online.stopPlayingFor}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-chip" id={`play-for-${p.id}`} onClick={() => void hostControl('playFor', net.seatId).then(report)}>
+              <Gamepad2 size={15} aria-hidden="true" />
+              {T.online.playFor}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-chip btn-chip-danger"
+            id={`remove-${p.id}`}
+            onClick={() => askConfirm({ kind: 'removePlayer', seatId: net.seatId, name: p.name })}
+          >
+            <UserX size={15} aria-hidden="true" />
+            {T.online.remove}
+          </button>
+        </span>
+      )}
     </li>
   );
 }
 
 export function PlayersColumn({ s }: { s: GameState }) {
   const display = useDisplay();
+  const online = useOnline();
+  usePresenceClock();
   const current = s.flow.phase === 'GameOver' ? -1 : s.turn.currentPlayerIndex;
   const compact = s.players.length >= 5;
   return (
@@ -141,6 +211,7 @@ export function PlayersColumn({ s }: { s: GameState }) {
             isCurrent={p.id === current}
             floats={display.floats.filter((f) => f.player === p.id)}
             pulse={display.pulse?.player === p.id ? display.pulse.id : null}
+            net={seatNet(online, s, p)}
           />
         ))}
       </ul>

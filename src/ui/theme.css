@@ -3550,3 +3550,394 @@ ol.rules-lines {
     display: none;
   }
 }
+
+/* ------------------------------------------------------------------------------------------ */
+/* Online play (spec section 17) */
+
+.start-groups {
+  margin-top: 30px;
+  display: grid;
+  gap: 18px;
+}
+
+.start-group-label {
+  margin-bottom: 8px;
+  color: var(--on-ocean-soft);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.start-groups .start-buttons {
+  margin-top: 0;
+}
+
+.online-card {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 24px 28px;
+  border-radius: var(--r-panel);
+  background: var(--chart-paper);
+  box-shadow: var(--shadow-panel);
+}
+
+.online-hint {
+  margin: -6px 0 16px;
+  color: var(--ink-soft);
+}
+
+.online-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.online-field .field-label {
+  margin-bottom: 0;
+}
+
+.code-input {
+  width: 6.4em;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.take-over-list {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.take-over-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.lobby-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  margin-bottom: 18px;
+}
+
+.lobby-eyebrow {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.lobby-code {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+}
+
+.lobby-invite {
+  flex: 1;
+  min-width: 0;
+}
+
+.lobby-invite .field-label {
+  margin-bottom: 2px;
+}
+
+.lobby-link {
+  overflow: hidden;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-invite-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.link-dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e3f4ea;
+  color: var(--gain-ink);
+}
+
+.link-dot.is-off {
+  background: #fbe3e1;
+  color: var(--loss-ink);
+}
+
+.link-dot svg {
+  width: 18px;
+  height: 18px;
+}
+
+.lobby-count {
+  margin-left: 6px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.lobby-seats {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.lobby-seat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 8px;
+  border: 1px solid var(--tile-line);
+  border-radius: 10px;
+  background: var(--tile);
+}
+
+.lobby-seat.is-mine {
+  border-color: var(--info);
+  box-shadow: inset 0 0 0 1px var(--info);
+}
+
+.lobby-chip {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+}
+
+.lobby-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-name-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.lobby-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.badge-you {
+  background: var(--info-tint);
+  color: var(--ink);
+}
+
+.badge-offline {
+  background: #fbe3e1;
+  color: var(--loss-ink);
+}
+
+.lobby-host-only {
+  margin: 0 0 12px;
+}
+
+.lobby-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lobby-waiting {
+  align-self: center;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.toggle.is-disabled {
+  cursor: default;
+}
+
+.toggle.is-disabled .toggle-track {
+  opacity: 0.55;
+}
+
+.swatch.is-blocked {
+  cursor: not-allowed;
+}
+
+.swatch.is-blocked .swatch-chip {
+  opacity: 0.35;
+}
+
+/* The game screen online */
+
+.tb-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e3f4ea;
+  color: var(--gain-ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tb-room.is-off {
+  background: #fbe3e1;
+  color: var(--loss-ink);
+}
+
+/* Someone else decides: a quiet, inactive slot where the yellow button would be. */
+.btn-waiting {
+  border-color: var(--tile-line);
+  background: var(--tile);
+  color: var(--ink-soft);
+  box-shadow: 0 3px 0 var(--tile-line);
+  margin-bottom: 3px;
+  cursor: default;
+}
+
+.btn-waiting:active {
+  transform: none;
+}
+
+/* The only looping animation: an action waiting for the server (shown after 300 ms). */
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.panel-waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.panel-waiting svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.turn-banner {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--topbar-h) + 10px);
+  z-index: 92;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: var(--shadow-panel);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: banner-pop calc(var(--t) * 450ms) cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes banner-pop {
+  from {
+    transform: translateX(-50%) translateY(-12px) scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%);
+    opacity: 1;
+  }
+}
+
+.link-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 96;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 4px 12px;
+  background: var(--amber-ink);
+  color: #fff;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.link-bar.is-gone {
+  background: var(--loss-ink);
+}
+
+.link-bar-detail {
+  font-weight: 500;
+}
+
+.trade-waiting {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--tile);
+  box-shadow: var(--shadow-panel);
+  font-weight: 600;
+  transform: translateX(-50%);
+}
+
+.pc-host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.btn-chip {
+  min-height: 40px;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+}
+
+.btn-chip-danger {
+  border-color: #f0c4c0;
+  color: var(--loss-ink);
+}
+
+@media (max-width: 1279px) {
+  .lobby-code {
+    font-size: 44px;
+  }
+
+  .lobby-header {
+    gap: 18px;
+  }
+}

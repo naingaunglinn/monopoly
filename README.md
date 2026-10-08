@@ -30,6 +30,17 @@ URL options: `?seed=123` makes new games reproducible, `?debug=1` adds the debug
 move a player, cash, owners, building levels, next card), and `?rounds=5` sets a short Quick round
 limit for testing. Screenshots from `npm run test:e2e` land in `reports/screenshots/`.
 
+## Play online
+
+Friends can play together from different browsers, phones and computers. Press **Play online >
+Create room**, send the link (or the 4-letter code), and everyone takes a seat in the lobby. The host
+picks the settings and starts with 2 to 6 players. One device can hold several seats.
+
+- Locally, with no Vercel and no Redis: `npm run dev:online` (http://localhost:5173), or after a
+  build `npm run serve:online` (http://localhost:4175).
+- Deployed on Vercel with Upstash Redis: see [DEPLOY.md](DEPLOY.md), then check the deployment with
+  `npm run smoke -- https://your-game.vercel.app`.
+
 ## How to play
 
 1. Press **New game**, set the players (or keep the defaults) and press **Start game**. Press a

@@ -8,61 +8,11 @@ import { DEFAULT_SETTINGS, type Settings } from '../../engine';
 import { REDUCED_MOTION_QUERY } from '../animation';
 import { Button } from '../components/Button';
 import { ColorPicker } from '../components/ColorPicker';
+import { ModeFields, RuleToggles, Segmented, Toggle, type GameOptions } from '../components/Fields';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
 import { goTo, startNewGame } from '../store';
-import { colorName, defaultPlayerName, money, T, TOKEN_NAMES } from '../strings';
-
-function Segmented<V extends string | number>({
-  label,
-  value,
-  options,
-  onChange,
-  render,
-  name,
-}: {
-  label: string;
-  value: V;
-  options: readonly V[];
-  onChange: (v: V) => void;
-  render: (v: V) => string;
-  name: string;
-}) {
-  return (
-    <fieldset className="field">
-      <legend className="field-label">{label}</legend>
-      <div className="segmented" role="radiogroup" aria-label={label}>
-        {options.map((opt) => (
-          <label key={String(opt)} className={`segment ${opt === value ? 'is-on' : ''}`}>
-            <input
-              type="radio"
-              name={name}
-              value={String(opt)}
-              checked={opt === value}
-              onChange={() => onChange(opt)}
-            />
-            <span>{render(opt)}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-function Toggle({ label, checked, onChange, id }: { label: string; checked: boolean; onChange: (v: boolean) => void; id: string }) {
-  return (
-    <label className="toggle" htmlFor={id}>
-      <input id={id} type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span className="toggle-track" aria-hidden="true">
-        <span className="toggle-thumb" />
-      </span>
-      <span className="toggle-label">{label}</span>
-      <span className="toggle-state" aria-hidden="true">
-        {checked ? T.setup.on : T.setup.off}
-      </span>
-    </label>
-  );
-}
+import { colorName, defaultPlayerName, T, TOKEN_NAMES } from '../strings';
 
 export function SetupScreen() {
   const startRef = useRef<HTMLButtonElement>(null);
@@ -76,6 +26,7 @@ export function SetupScreen() {
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const prefs = usePrefs();
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((s) => ({ ...s, [key]: value }));
+  const setOption = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => set(key, value as Settings[K]);
   const setName = (seat: number, name: string) =>
     setSettings((s) => ({ ...s, playerNames: s.playerNames.map((n, i) => (i === seat ? name : n)) }));
   // Taking another seat's colour gives that seat yours, so colours stay different.
@@ -147,33 +98,7 @@ export function SetupScreen() {
             </fieldset>
           </section>
           <section className="setup-col" aria-label={T.setup.mode}>
-            <Segmented
-              name="money"
-              label={T.setup.startingMoney}
-              value={settings.startingMoney}
-              options={SETUP.startingMoney}
-              onChange={(v) => set('startingMoney', v)}
-              render={(v) => money(v)}
-            />
-            <Segmented
-              name="mode"
-              label={T.setup.mode}
-              value={settings.mode}
-              options={['quick', 'normal'] as const}
-              onChange={(v) => set('mode', v)}
-              render={(v) => (v === 'quick' ? T.setup.quick : T.setup.normal)}
-            />
-            <p className="field-hint">{settings.mode === 'quick' ? T.setup.quickHint : T.setup.normalHint}</p>
-            {settings.mode === 'quick' && (
-              <Segmented
-                name="rounds"
-                label={T.setup.roundLimit}
-                value={settings.roundLimit}
-                options={SETUP.roundLimits}
-                onChange={(v) => set('roundLimit', v)}
-                render={(v) => T.setup.rounds(v)}
-              />
-            )}
+            <ModeFields options={settings} onChange={setOption} />
             <Segmented
               name="speed"
               label={T.setup.animation}
@@ -195,38 +120,9 @@ export function SetupScreen() {
             )}
           </section>
           <section className="setup-col" aria-label={T.setup.rules}>
-            <fieldset className="field">
-              <legend className="field-label">{T.setup.rules}</legend>
-              <div className="toggle-list">
-                <Toggle
-                  id="opt-freestay"
-                  label={T.setup.freeStay}
-                  checked={settings.freeStay}
-                  onChange={(v) => set('freeStay', v)}
-                />
-                <Toggle
-                  id="opt-vacation"
-                  label={T.setup.vacation}
-                  checked={settings.vacation}
-                  onChange={(v) => set('vacation', v)}
-                />
-                <Toggle id="opt-auction" label={T.setup.auction} checked={settings.auction} onChange={(v) => set('auction', v)} />
-                <Toggle id="opt-chance" label={T.setup.chance} checked={settings.chance} onChange={(v) => set('chance', v)} />
-                <Toggle id="opt-event" label={T.setup.event} checked={settings.event} onChange={(v) => set('event', v)} />
-                <Toggle
-                  id="opt-random-first"
-                  label={T.setup.randomFirst}
-                  checked={settings.randomFirstPlayer}
-                  onChange={(v) => set('randomFirstPlayer', v)}
-                />
-                <Toggle
-                  id="opt-pass"
-                  label={T.setup.passDevice}
-                  checked={settings.passDevice}
-                  onChange={(v) => set('passDevice', v)}
-                />
-              </div>
-            </fieldset>
+            <RuleToggles options={settings} onChange={setOption}>
+              <Toggle id="opt-pass" label={T.setup.passDevice} checked={settings.passDevice} onChange={(v) => set('passDevice', v)} />
+            </RuleToggles>
           </section>
         </div>
         <footer className="setup-footer">

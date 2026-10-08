@@ -350,3 +350,44 @@ In a Quick game this is the first bankruptcy, so it ends the game, as the rules 
 - `npm run dev:online` runs it beside the Vite dev server, which proxies `/api`. `npm run serve:online` serves the built game and the API on port 4175.
 - API tests run on MemoryStore, and also on UpstashStore when `UPSTASH_TEST_URL` is set. The setup: Upstash's own emulator (serverless-redis-http) in front of a real Redis in Docker, plus `scripts/upstash-test-proxy.ts`. The emulator lacks SUBSCRIBE, so the proxy serves it the way Upstash does over REST.
 - `npm run smoke -- <url>` checks a deployment end to end.
+
+**D64. Online screens.**
+- The start screen has two groups. Play on this device: New game, Continue. Play online: Create room, Join room.
+- A Rejoin room ABCD button appears when this browser holds a seat in a room that still exists. That check is the only request the start screen makes, and only when a room is stored, so local play stays fully offline.
+- Invite links are `/?room=ABCD`. Share opens the phone's share sheet on touch devices and copies the link elsewhere.
+
+**D65. Seat credentials.** `localStorage` key `global-monopoly/online/v1` holds `{ code, seats: [{ seatId, token }] }`, one room per browser. Reopening the link, or Rejoin, restores every seat with a full sync. A seat that was taken over on another device is dropped from this one; when none is left, the player is told and returns to the start screen.
+
+**D66. Lobby.**
+- Seats are in joining order. A player renames their own seats and picks colours nobody else has.
+- "Add a player on this device" gives one laptop a second seat.
+- Only the host changes the options. They are the setup screen's fields, without the per-device ones (Pass-device screen, Animation speed).
+- Start works with 2 to 6 seats. The host can remove any other seat in the lobby.
+
+**D67. Waiting states.** On a device whose seat is not deciding:
+- The primary button reads "Waiting for <name>" in a quiet style.
+- Panels show "Waiting for <name>" instead of their buttons.
+- Space does nothing.
+
+Bid buttons appear only on the bidder's device. A trade offer opens on the partner's device, while the proposer sees "Waiting for <name> to answer your offer"; there is a handover only if both seats are on one device.
+
+**D68. Your turn.** When a decision becomes this device's:
+- a banner shows for 4 s;
+- the tab title becomes "Your turn · Global Monopoly";
+- the phone vibrates once (200 ms), if the page has already had a tap, because browsers refuse vibration before one.
+
+The pass-device screen appears online only between two seats on the same device.
+
+**D69. Live animations.** Other players' moves animate as local ones do, at this device's own speed (a per-device preference online). An update that arrives during an animation waits for it; a backlog of more than 3 versions is shown at once.
+
+**D70. Connection feedback.**
+- Heartbeats go out every 20 s, and at once on joining, on another player joining or taking a seat back, on game start and on a host change.
+- A seat silent for 45 s shows "Disconnected". A seat not heard from yet counts as connected.
+- "Reconnecting…" shows on the browser's offline event, a failed heartbeat or failed polls, and blocks actions until the connection returns. A room that is gone gets its own bar with Back to start.
+- An action not answered within 300 ms shows a spinner on the button that sent it. Only one action is in flight at a time.
+
+**D71. Host controls in the game.**
+- A disconnected player's card shows the host Play for them (and Stop) and Remove. Remove asks first and, in a Quick game, says that it ends the game.
+- Anyone with the link can take a disconnected seat back from the join screen ("Take over <name>'s seat").
+
+**D72. Online menus.** The online menu has no Save, New game or Pass-device switch. It offers Copy invite link and Back to start, which keeps the seat. The winner panel and the results also offer Back to start.

@@ -87,13 +87,13 @@ export function resetDisplay(keep: Partial<DisplayState> = {}): void {
   for (const l of listeners) l();
 }
 
-function subscribe(l: Listener): () => void {
+export function subscribeDisplay(l: Listener): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
 }
 
 export function useDisplay(): DisplayState {
-  return useSyncExternalStore(subscribe, getDisplay, getDisplay);
+  return useSyncExternalStore(subscribeDisplay, getDisplay, getDisplay);
 }
 
 export function shownPosition(s: GameState, d: DisplayState, player: number): number {

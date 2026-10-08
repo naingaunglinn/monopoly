@@ -1,7 +1,9 @@
 // Buttons. A refused button stays focusable (aria-disabled), states why in a tooltip and inline
 // where it matters, and shakes once with the reason when pressed anyway (spec 13, Feedback).
+import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Action } from '../../engine';
+import { usePending } from '../session/online';
 import { dispatch, refuse, useApp } from '../store';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'chip';
@@ -53,6 +55,8 @@ export function Button({
   ariaLabel,
 }: ButtonProps) {
   const shaking = useShake(id);
+  // Online: the server has not answered this button's action within 300 ms.
+  const waiting = usePending(id);
   const disabled = reason !== null && reason !== undefined;
   const press = () => {
     if (disabled) {
@@ -74,8 +78,9 @@ export function Button({
         autoFocus={autoFocus}
         aria-label={ariaLabel}
         aria-keyshortcuts={keyHint}
+        aria-busy={waiting || undefined}
       >
-        {icon}
+        {waiting ? <Loader2 className="spinner" size={18} aria-hidden="true" /> : icon}
         <span className="btn-label">{label}</span>
         {keyHint && <kbd className="key-hint" aria-hidden="true">{keyHint}</kbd>}
       </button>

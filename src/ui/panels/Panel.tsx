@@ -1,10 +1,13 @@
 // Decision panel frame: names whose decision it is and has a small help button that opens the
 // rule guide at the matching topic. Mandatory panels have no close button and ignore Esc.
-import { CircleHelp, type LucideIcon } from 'lucide-react';
+// Online, a decision belongs to one device: everyone sees the panel, and the other devices see
+// "Waiting for <name>" in place of its buttons.
+import { CircleHelp, Hourglass, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { Player } from '../../engine';
+import { decisionMaker, type Player } from '../../engine';
 import { TokenChip } from '../components/glyphs';
-import { openRules, ui } from '../store';
+import { useOnline } from '../session/online';
+import { canAct, openRules, ui, useApp } from '../store';
 import { T, type RuleTopicId } from '../strings';
 
 export function Panel({
@@ -29,6 +32,10 @@ export function Panel({
   className?: string;
   tone?: 'good' | 'bad' | 'neutral' | 'warn';
 }) {
+  const { game } = useApp();
+  const online = useOnline();
+  const decider = game ? decisionMaker(game) : null;
+  const waitingFor = online && game && decider !== null && !canAct(decider) ? (game.players[decider]?.name ?? '') : null;
   return (
     <section className={`panel ${className ?? ''} ${tone ? `tone-${tone}` : ''}`} aria-labelledby={`${id}-title`} data-panel={id}>
       <header className="panel-head">
@@ -59,7 +66,13 @@ export function Panel({
         </button>
       </header>
       <div className="panel-body">{children}</div>
-      {actions && <div className="panel-actions">{actions}</div>}
+      {actions && waitingFor === null && <div className="panel-actions">{actions}</div>}
+      {waitingFor !== null && (
+        <p className="panel-waiting">
+          <Hourglass aria-hidden="true" />
+          {T.online.waitingFor(waitingFor)}
+        </p>
+      )}
     </section>
   );
 }

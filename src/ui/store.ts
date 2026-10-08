@@ -4,11 +4,13 @@
 import { useSyncExternalStore } from 'react';
 import type { Action, AnimationSpeed, EngineError, GameEvent, GameState, SaveProblem, Settings } from '../engine';
 import { installSkipHandlers, playBatch, resetAnimation } from './animation';
+import { usePrefs } from './prefs';
 import { LocalSession, readLocalSave } from './session/local';
 import type { GameSession, SessionHost, SessionMode } from './session/types';
 import type { RuleTopicId } from './strings';
 
-export type Screen = 'start' | 'setup' | 'game';
+/** online: create or join a room; lobby: the room before its game starts. */
+export type Screen = 'start' | 'setup' | 'game' | 'online' | 'lobby';
 
 export interface AppState {
   screen: Screen;
@@ -36,6 +38,7 @@ export type Confirm =
   | { kind: 'newGame' }
   | { kind: 'bankruptcy' }
   | { kind: 'acceptTrade' }
+  | { kind: 'removePlayer'; seatId: string; name: string }
   | null;
 
 export interface UiState {
@@ -81,7 +84,9 @@ const search = readSearch();
 export const DEBUG = search.get('debug') === '1';
 const SEED_PARAM = search.get('seed');
 /** Test hook: ?rounds=N sets the Quick round limit of new games (setup offers 30, 50 and 100). */
-const ROUNDS_PARAM = Number(search.get('rounds'));
+export const ROUNDS_PARAM = Number(search.get('rounds'));
+/** ?room=ABCD opens that online room (the invite link). */
+export const ROOM_PARAM = search.get('room');
 
 /** ?seed=N from the URL, or a random seed from crypto.getRandomValues. Never shown to players. */
 export function newSeed(): number {
@@ -145,7 +150,7 @@ let toastSeq = 0;
 // Session
 
 /** What the sessions use to show a game: both animate and display updates the same way. */
-const host: SessionHost = {
+export const sessionHost: SessionHost = {
   game: () => app.get().game,
   show(prev, next, events, speed) {
     playBatch(prev, next, events, speed);
@@ -160,7 +165,8 @@ export function getSession(): GameSession | null {
   return session;
 }
 
-function setSession(next: GameSession): void {
+/** Makes `next` the active session (closing the previous one); null leaves the game. */
+export function setSession(next: GameSession | null): void {
   if (session !== next) session?.close();
   session = next;
 }
@@ -173,6 +179,7 @@ export function canAct(player: number | null): boolean {
 /** The animation speed on this device (read reactively by the app root). */
 export function useAnimationSpeed(): AnimationSpeed {
   const { game, mode } = useApp();
+  usePrefs(); // online speed is a device preference: re-render when it changes
   return mode !== null && game && session ? session.animationSpeed() : 'normal';
 }
 
@@ -203,7 +210,7 @@ export function clearRefusal(): void {
 
 export function startNewGame(settings: Partial<Settings>): void {
   const roundLimit = Number.isInteger(ROUNDS_PARAM) && ROUNDS_PARAM > 0 ? ROUNDS_PARAM : settings.roundLimit;
-  const started = LocalSession.start(host, { ...settings, roundLimit }, newSeed());
+  const started = LocalSession.start(sessionHost, { ...settings, roundLimit }, newSeed());
   setSession(started.session);
   resetUi();
   app.set({
@@ -220,7 +227,7 @@ export function startNewGame(settings: Partial<Settings>): void {
 
 /** Continue: restores the exact phase and pending decision, or reports a bad save. */
 export function continueGame(): void {
-  const { session: local, parsed } = LocalSession.resume(host);
+  const { session: local, parsed } = LocalSession.resume(sessionHost);
   if (!parsed.ok) {
     app.set({ saveProblem: parsed.problem });
     return;

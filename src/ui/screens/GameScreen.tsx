@@ -1,9 +1,24 @@
 // The game screen: a slim top bar and the board ring filling the rest, every control inside the
 // ring (spec section 11). Under 1024 px or in portrait the HUD moves below the board.
-import { ArrowLeftRight, BookOpen, FastForward, Hammer, Layers, Menu as MenuIcon, Plus, Save } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  BookOpen,
+  Copy,
+  FastForward,
+  Hammer,
+  Hourglass,
+  Layers,
+  Loader2,
+  LogOut,
+  Menu as MenuIcon,
+  Plus,
+  Save,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOARD } from '../../data/board';
-import { freeActor, validateAction, type GameState, type Player } from '../../engine';
+import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { finishNow } from '../animation';
 import { Button, useShake } from '../components/Button';
 import { DicePanel } from '../components/Dice';
@@ -24,15 +39,16 @@ import {
   QuickHelpPopover,
   Results,
   SettingsFields,
-  Toast,
   TradeBuilder,
   TradeResponse,
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
+import { inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
 import { ActivePanel } from '../panels/DecisionPanels';
 import {
   app,
   askConfirm,
+  canAct,
   closeConfirm,
   closeRules,
   closeSheet,
@@ -54,6 +70,7 @@ import { legalTypes, names, playerName, primarySpec } from '../view';
 
 function TopBar({ s }: { s: GameState }) {
   const { menuOpen } = useUi();
+  const online = useOnline();
   const display = useDisplay();
   const current = s.players[s.turn.currentPlayerIndex] as Player;
   const quick = s.meta.settings.mode === 'quick';
@@ -89,6 +106,12 @@ function TopBar({ s }: { s: GameState }) {
         ))}
       </ul>
       <span className="tb-spacer" />
+      {online && (
+        <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
+          {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
+          {T.online.room(online.code)}
+        </span>
+      )}
       <Button
         id="tb-rules"
         variant="ghost"
@@ -113,21 +136,46 @@ function TopBar({ s }: { s: GameState }) {
           <div className="menu" role="dialog" aria-label={T.top.menu}>
             <SettingsFields s={s} />
             <div className="menu-sep" />
-            <button
-              type="button"
-              className="menu-item"
-              onClick={() => {
-                ui.set({ menuOpen: false });
-                showToast(saveNow() ? T.top.saved : T.top.saveFailed);
-              }}
-            >
-              <Save size={16} aria-hidden="true" />
-              {T.top.save}
-            </button>
-            <button type="button" className="menu-item" onClick={() => askConfirm({ kind: 'newGame' })}>
-              <Plus size={16} aria-hidden="true" />
-              {T.top.newGame}
-            </button>
+            {online ? (
+              <>
+                <button
+                  type="button"
+                  className="menu-item"
+                  onClick={() => {
+                    ui.set({ menuOpen: false });
+                    void navigator.clipboard
+                      ?.writeText(inviteLink(online.code))
+                      .then(() => showToast(T.online.copied))
+                      .catch(() => showToast(inviteLink(online.code)));
+                  }}
+                >
+                  <Copy size={16} aria-hidden="true" />
+                  {T.online.copy}
+                </button>
+                <button type="button" id="tb-leave" className="menu-item" onClick={() => leaveToStart()}>
+                  <LogOut size={16} aria-hidden="true" />
+                  {T.online.backToStart}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="menu-item"
+                  onClick={() => {
+                    ui.set({ menuOpen: false });
+                    showToast(saveNow() ? T.top.saved : T.top.saveFailed);
+                  }}
+                >
+                  <Save size={16} aria-hidden="true" />
+                  {T.top.save}
+                </button>
+                <button type="button" className="menu-item" onClick={() => askConfirm({ kind: 'newGame' })}>
+                  <Plus size={16} aria-hidden="true" />
+                  {T.top.newGame}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -139,6 +187,8 @@ function PrimaryButton({ s }: { s: GameState }) {
   const spec = primarySpec(s);
   const shaking = useShake('primary');
   const { busy } = useDisplay();
+  const online = useOnline();
+  const waiting = usePending('primary');
   if (!spec) return <div className="primary-slot" />;
   // While the board plays the last action the button offers to skip it, so an eager press is not
   // mistaken for the next step (any press or key skips; D51). It becomes the next step after.
@@ -152,11 +202,24 @@ function PrimaryButton({ s }: { s: GameState }) {
       </div>
     );
   }
+  // Online: someone else decides; this device waits (their moves still play here live).
+  const decider = decisionMaker(s);
+  if (online && decider !== null && !canAct(decider)) {
+    return (
+      <div className="primary-slot">
+        <button type="button" id="primary" className="btn btn-big btn-waiting" aria-disabled="true">
+          <Hourglass size={18} aria-hidden="true" />
+          <span className="btn-label">{T.online.waitingFor(s.players[decider]?.name ?? '')}</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="primary-slot">
       <button
         type="button"
         id="primary"
+        aria-busy={waiting || undefined}
         className={`btn btn-primary btn-big ${shaking ? 'shake' : ''}`}
         aria-disabled={spec.reason ? true : undefined}
         aria-describedby={spec.reason ? 'primary-reason' : undefined}
@@ -168,6 +231,7 @@ function PrimaryButton({ s }: { s: GameState }) {
           else dispatch(spec.action, 'primary');
         }}
       >
+        {waiting && <Loader2 className="spinner" size={18} aria-hidden="true" />}
         <span className="btn-label">{spec.label}</span>
       </button>
       {spec.reason && (
@@ -191,16 +255,19 @@ function RefusalLine() {
 
 function ActionBar({ s }: { s: GameState }) {
   const types = legalTypes(s);
+  const online = useOnline();
   const actor = freeActor(s);
-  const owner = actor ?? s.turn.currentPlayerIndex;
+  const actorHere = canAct(actor);
+  // "My properties": the free actor's on one device; online, this device's own player.
+  const owner = online ? (actorHere && actor !== null ? actor : (online.mine[0] ?? s.turn.currentPlayerIndex)) : (actor ?? s.turn.currentPlayerIndex);
   return (
     <div className="action-bar">
       <PrimaryButton s={s} />
       <div className="secondary-actions">
-        {types.has('openBuild') && (
+        {types.has('openBuild') && canAct(decisionMaker(s)) && (
           <Button id="act-build" label={T.play.build} icon={<Hammer size={16} aria-hidden="true" />} action={{ type: 'openBuild' }} />
         )}
-        {types.has('proposeTrade') && s.flow.phase !== 'Debt' && (
+        {types.has('proposeTrade') && s.flow.phase !== 'Debt' && actorHere && (
           <Button
             id="act-trade"
             label={T.play.trade}
@@ -341,6 +408,8 @@ function useKeyboard(): void {
         // A focused control keeps its own Space/Enter; board tiles pass it to the primary button.
         if (target?.closest('button:not(.tile), a, [role="switch"], summary')) return;
         if (s.flow.trade || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
+        // Online, Space does nothing while another device decides.
+        if (!canAct(decisionMaker(s))) return;
         const spec = primarySpec(s);
         if (!spec) return;
         e.preventDefault();
@@ -353,35 +422,120 @@ function useKeyboard(): void {
   }, []);
 }
 
+/**
+ * Online, one device may hold several seats (two people on one laptop). When the next decision
+ * moves from one of them to another, the device is handed over, as in a local game.
+ */
+function useHandover(s: GameState, online: OnlineState | null): { player: number; dismiss: () => void } | null {
+  const decider = decisionMaker(s);
+  const previous = useRef<number | null>(decider);
+  const [player, setPlayer] = useState<number | null>(null);
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = decider;
+    if (!online || decider === null || before === null || before === decider) return;
+    if (online.mine.includes(before) && online.mine.includes(decider)) setPlayer(decider);
+  }, [decider, online]);
+  useEffect(() => {
+    if (player !== null && decider !== player) setPlayer(null);
+  }, [decider, player]);
+  return player === null ? null : { player, dismiss: () => setPlayer(null) };
+}
+
+/** Online: a banner, the tab title and one short vibration when a decision becomes this device's. */
+function useYourTurn(s: GameState, online: OnlineState | null): string | null {
+  const decider = decisionMaker(s);
+  const mine = online !== null && decider !== null && online.mine.includes(decider);
+  const was = useRef(mine);
+  const [banner, setBanner] = useState<string | null>(null);
+  useEffect(() => {
+    if (!online) return;
+    const before = was.current;
+    was.current = mine;
+    document.title = mine ? `${T.online.titleYourTurn} · ${GAME_TITLE}` : GAME_TITLE;
+    if (!mine) {
+      setBanner(null);
+      return;
+    }
+    if (before || decider === null) return;
+    const name = s.players[decider]?.name ?? '';
+    setBanner(
+      s.flow.trade ? T.online.yourTrade(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
+    );
+    try {
+      const activated = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive;
+      if (activated) navigator.vibrate?.(200);
+    } catch {
+      // No vibration on this device.
+    }
+  }, [mine, decider, online, s]);
+  useEffect(() => {
+    if (!banner) return;
+    const timer = window.setTimeout(() => setBanner(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [banner]);
+  useEffect(() => () => void (document.title = GAME_TITLE), []);
+  return banner;
+}
+
+function LinkBar({ online }: { online: OnlineState }) {
+  if (online.link === 'gone') {
+    return (
+      <div className="link-bar is-gone" role="alert">
+        <span>{T.online.gone}</span>
+        <Button id="link-back" label={T.online.backToStart} onClick={() => leaveToStart()} />
+      </div>
+    );
+  }
+  if (online.link !== 'offline') return null;
+  return (
+    <div className="link-bar" role="status">
+      <Loader2 className="spinner" size={16} aria-hidden="true" />
+      <span>{T.online.reconnecting}</span>
+      <span className="link-bar-detail">{T.online.reconnectingDetail}</span>
+    </div>
+  );
+}
+
 export function GameScreen() {
   const s = useGame();
   const u = useUi();
   const display = useDisplay();
+  const online = useOnline();
+  const { mode } = useApp();
   const animationSpeed = useAnimationSpeed();
   const stacked = useMediaQuery(STACKED_QUERY);
   const compactLog = useMediaQuery(COMPACT_QUERY);
+  const handover = useHandover(s, online);
+  const banner = useYourTurn(s, online);
   useKeyboard();
   useEffect(() => () => closeRules(), []);
   const showPass = s.flow.phase === 'PassDevice' && s.flow.notices.length === 0 && !s.flow.trade;
   return (
     <div
-      className={`game-screen ${display.busy ? 'is-animating' : ''} ${stacked ? 'is-stacked' : ''}`}
+      className={`game-screen ${display.busy ? 'is-animating' : ''} ${stacked ? 'is-stacked' : ''} ${online ? 'is-online' : ''}`}
       data-phase={s.flow.phase}
       data-speed={animationSpeed}
     >
+      {online && <LinkBar online={online} />}
       <TopBar s={s} />
       <Board s={s} stacked={stacked} compactLog={compactLog} />
       {stacked && <Hud s={s} compactLog={false} />}
       {showPass && <PassDevice key={s.turn.turnNumber} s={s} />}
+      {handover && !s.flow.trade && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
+      {banner && !handover && (
+        <div className="turn-banner" role="status" key={banner}>
+          {banner}
+        </div>
+      )}
       {s.flow.trade && <TradeResponse key={`trade-${s.meta.logSeq}`} s={s} />}
       {!s.flow.trade && u.sheet?.kind === 'trade' && <TradeBuilder s={s} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
       <QuickHelpPopover />
       <ConfirmDialog s={s} />
-      <Toast />
       <Confetti />
-      {DEBUG && <DebugPanel s={s} />}
+      {DEBUG && mode === 'local' && <DebugPanel s={s} />}
     </div>
   );
 }
