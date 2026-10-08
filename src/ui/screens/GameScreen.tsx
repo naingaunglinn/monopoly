@@ -13,13 +13,15 @@ import {
   Menu as MenuIcon,
   Plus,
   Save,
+  Volume2,
+  VolumeX,
   Wifi,
   WifiOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BOARD } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
-import { finishNow } from '../animation';
+import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
 import { DicePanel } from '../components/Dice';
 import { CoinFlight, Confetti } from '../components/Effects';
@@ -43,7 +45,9 @@ import {
   TradeResponse,
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
+import { setPrefs, usePrefs } from '../prefs';
 import { inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
+import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
 import {
@@ -145,6 +149,27 @@ export function GameMenu({ s, compact = false }: { s: GameState; compact?: boole
   );
 }
 
+/** Sound effects on or off for this device (the volume is in the menu). */
+export function SoundToggle({ className = '' }: { className?: string }) {
+  const { soundOn } = usePrefs();
+  return (
+    <button
+      type="button"
+      id="tb-sound"
+      className={`icon-btn ${className}`}
+      aria-pressed={soundOn}
+      aria-label={T.top.sound}
+      title={soundOn ? T.top.soundOn : T.top.soundOff}
+      onClick={() => {
+        setPrefs({ soundOn: !soundOn });
+        if (!soundOn) playCue('tick');
+      }}
+    >
+      {soundOn ? <Volume2 size={18} aria-hidden="true" /> : <VolumeX size={18} aria-hidden="true" />}
+    </button>
+  );
+}
+
 function TopBar({ s }: { s: GameState }) {
   const online = useOnline();
   const display = useDisplay();
@@ -179,6 +204,7 @@ function TopBar({ s }: { s: GameState }) {
           {T.online.room(online.code)}
         </span>
       )}
+      <SoundToggle />
       <Button
         id="tb-rules"
         variant="ghost"
@@ -204,7 +230,7 @@ export function PrimaryButton({ s }: { s: GameState }) {
   if (busy) {
     return (
       <div className="primary-slot">
-        <button type="button" id="primary" className="btn btn-big btn-skip" aria-keyshortcuts="Space Enter" onClick={() => finishNow()}>
+        <button type="button" id="primary" className="btn btn-big btn-skip" aria-keyshortcuts="Space Enter" onClick={() => skipAnimation()}>
           <FastForward size={18} aria-hidden="true" />
           <span className="btn-label">{T.play.skip}</span>
         </button>
@@ -470,6 +496,8 @@ function useYourTurn(s: GameState, online: OnlineState | null): string | null {
     }
     if (before || decider === null) return;
     const name = s.players[decider]?.name ?? '';
+    // The airport chime, once the move that led here has played.
+    afterAnimation(() => playCue('yourTurn'));
     setBanner(
       s.flow.trade ? T.online.yourTrade(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
     );

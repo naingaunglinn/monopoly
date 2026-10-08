@@ -31,8 +31,8 @@ src/
   data/     board, countries, cities, airports, companies, chance, events, players, balance (every number)
   ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch),
             session/ (GameSession: LocalSession runs the engine and autosaves; OnlineSession talks to
-            the server), display.ts + animation.ts (event player), strings.ts (every UI string),
-            theme.css, hooks.ts
+            the server), display.ts + animation.ts (event player), sound/ (synthesised effects:
+            synth, cues, engine, plan), strings.ts (every UI string), theme.css, hooks.ts
   sim/      bots.ts, runner.ts, cli.ts (`npm run sim`)
 server/     online API: room.ts (pure room rules), api.ts (web-standard handlers), store.ts
             (RoomStore), memoryStore.ts, upstashStore.ts, vercel.ts, local.ts (local server)
@@ -69,6 +69,9 @@ docs/       SPEC.md (source of truth)
   show the engine's reason. Animations replay engine events in `ui/animation.ts`; game state is final
   before they play, and any input finishes them.
 - Signal yellow is for the primary button only. Small text uses the AA text shades in `theme.css`.
+- Sounds are synthesised in `ui/sound/` (no audio files). Game events get their cue in `plan.ts`
+  and play on the animation timeline; a new cue gets a loudness trim in `cues.ts`, measured with
+  `renderCue` (the sound spec keeps every cue between -36 and -18 dBFS).
 - Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
   both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
 - The save has a `schemaVersion` (now 2). A change to the state's shape bumps it and adds a migration

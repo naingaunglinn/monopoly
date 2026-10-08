@@ -1159,3 +1159,15 @@ GameSession ─ LocalSession          api/room.ts   GET  /api/room?code=&since= 
   - Live animation and the turn banner, lobby rules, host controls and taking a seat back.
   - Every phone screen in portrait and landscape, audited and reviewed.
 - **Deployment.** See `DEPLOY.md`. `npm run smoke -- <url>` checks a deployment end to end.
+
+## 18. Sound, chat and voice
+
+Added at the owner's request, after section 17, to make playing with friends livelier. Section 13 left sound for later, synthesised with WebAudio, with an on/off switch and no audio files or music; this section is that. The decisions behind it start at D80 in `DECISIONS.md`.
+
+### Sound (both modes)
+
+- **Synthesised.** Every sound is made with the Web Audio API as it plays: no audio files, nothing to download, and it works offline. Sounds start after the first tap, click or key press, as browsers require.
+- **A travel theme.** The token takes wooden steps; dice clatter and settle; World Start rings a register; buying stamps the passport; rent sends a coin across; Chance plays the two-tone boarding call and Events a teleprinter; Jail slams a cell door; Vacation is a warm chord on a wave; auctions use a gavel; building is hammer taps; trades, debts, bankruptcy and the winner's fanfare each have their own. Online, the player whose decision it is hears a rising airport chime.
+- **In time with the board.** Sounds play on the animation timeline, one step sound per space, so they match what is shown. Skipping an animation stops its sounds. With animation Off, reduced motion or nothing to animate, an action plays its key sounds at once (four at most). Reduced motion does not turn sound off.
+- **Settings (this device).** Sound effects on or off, and the volume (70% at first), in the menu; a speaker switch in the top bar on larger screens. They are remembered on the device, like the online animation speed.
+- **Levels.** Each sound is trimmed so big moments, actions and small feedback sit in three steps; none clips. A background tab plays only the chime, chat and voice sounds.

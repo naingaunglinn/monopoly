@@ -107,6 +107,9 @@ export const T = {
     saveFailed: 'Saving failed: this browser blocks storage.',
     modifiersLabel: 'Active events',
     until: (name: string) => `Until ${name}’s next turn`,
+    sound: 'Sound effects',
+    soundOn: 'Sound effects on',
+    soundOff: 'Sound effects off',
   },
   settings: {
     title: 'Settings',
@@ -114,6 +117,9 @@ export const T = {
     passDeviceHint: 'Show a handover screen at the start of each turn.',
     animation: 'Animation speed',
     motionAnyway: 'Show movement anyway',
+    sound: 'Sound effects',
+    volume: 'Volume',
+    volumeValue: (percent: number) => `${percent}%`,
     close: 'Close',
   },
   online: {

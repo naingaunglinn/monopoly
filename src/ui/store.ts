@@ -6,6 +6,7 @@ import type { Action, AnimationSpeed, EngineError, GameEvent, GameState, SavePro
 import { installSkipHandlers, playBatch, resetAnimation } from './animation';
 import { usePrefs } from './prefs';
 import { LocalSession, readLocalSave } from './session/local';
+import { installAudioUnlock, playCue } from './sound';
 import type { GameSession, SessionHost, SessionMode } from './session/types';
 import type { RuleTopicId } from './strings';
 
@@ -153,7 +154,7 @@ let toastSeq = 0;
 export const sessionHost: SessionHost = {
   game: () => app.get().game,
   show(prev, next, events, speed) {
-    playBatch(prev, next, events, speed);
+    playBatch(prev, next, events, speed, { online: app.get().mode === 'online' });
     app.set({ game: next, events, eventSeq: app.get().eventSeq + 1, refusal: null });
   },
   refuse: (reason, target) => refuse(reason, target),
@@ -200,6 +201,7 @@ export function dispatch(action: Action, target: string | null = null): EngineEr
 
 /** Shows a refusal reason without calling the engine (for UI-side checks such as an empty bid). */
 export function refuse(reason: string, target: string | null = null): void {
+  playCue('refuse');
   refusalSeq += 1;
   app.set({ refusal: { reason, seq: refusalSeq, target } });
 }
@@ -304,9 +306,12 @@ export function closeConfirm(): void {
 
 // Read-only hook for end-to-end tests and debugging. It exposes no way to change the game.
 if (typeof window !== 'undefined') {
+  // Audio starts on the first input, so it listens before the skip handlers can swallow that input.
+  installAudioUnlock();
   installSkipHandlers();
-  (window as unknown as { __GM__: unknown }).__GM__ = {
+  const w = window as unknown as { __GM__?: Record<string, unknown> };
+  w.__GM__ = Object.assign(w.__GM__ ?? {}, {
     getState: () => app.get().game,
     getScreen: () => app.get().screen,
-  };
+  });
 }

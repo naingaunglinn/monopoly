@@ -40,6 +40,14 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
         }
       }
     }
+    // Popovers (the menu) stay on screen: when there is not room for all of them, they scroll inside.
+    for (const pop of document.querySelectorAll('.menu')) {
+      if (!visible(pop)) continue;
+      const r = pop.getBoundingClientRect();
+      if (r.bottom > window.innerHeight + 0.5 || r.right > window.innerWidth + 0.5 || r.left < -0.5) {
+        problems.push(`the menu runs off screen (bottom ${Math.round(r.bottom)}px of ${window.innerHeight}px)`);
+      }
+    }
     // Containers that must show everything without inner scrolling (on phones they may scroll).
     for (const sel of phone ? [] : ['.players-col', '.setup-card']) {
       const el = document.querySelector<HTMLElement>(sel);

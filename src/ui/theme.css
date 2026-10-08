@@ -946,6 +946,10 @@ select {
   top: calc(100% + 6px);
   z-index: 60;
   width: 300px;
+  /* Short screens (a phone on its side): the menu scrolls inside rather than running off screen. */
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 10px;
   background: var(--tile);
   border-radius: 12px;
@@ -965,6 +969,44 @@ select {
 .menu .segment {
   min-height: 40px;
   padding: 6px 12px;
+}
+
+.volume {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3.2em;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.volume input {
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  accent-color: var(--ocean);
+  cursor: pointer;
+}
+
+.volume input:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 2px;
+}
+
+.volume-value {
+  color: var(--muted-ink);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.volume.is-disabled {
+  color: var(--muted-ink);
+}
+
+.volume.is-disabled input {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .menu-sep {

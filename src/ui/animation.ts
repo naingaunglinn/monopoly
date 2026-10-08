@@ -6,9 +6,12 @@
 // cannot also press a button. Speed: Normal uses DURATIONS, Fast halves them, Off is instant. With
 // prefers-reduced-motion, movement and bounces are off (fades stay, at most 150 ms) unless the
 // player turned on Show movement anyway (D52).
+// Sounds (spec section 18) play on the same timeline, so each one matches what the board shows;
+// skipping stops them. With nothing to animate, a batch plays its key sounds at once.
 import type { AnimationSpeed, Dice, GameEvent, GameState } from '../engine';
-import { getDisplay, resetDisplay, setDisplay, type FloatAmount } from './display';
+import { getDisplay, resetDisplay, setDisplay, subscribeDisplay, type FloatAmount } from './display';
 import { getPrefs } from './prefs';
+import { cueFor, playCue, playEvents, stopSounds, type CueName, type CueParams } from './sound';
 
 /**
  * Normal durations in ms. Slower than the spec table at the owner's request (D51) so a move can be
@@ -84,6 +87,25 @@ export function finishNow(): void {
   }
 }
 
+/** The player skipped: the board jumps to the final state and its sounds stop. */
+export function skipAnimation(): void {
+  finishNow();
+  stopSounds();
+}
+
+/** Runs `fn` once the current animation has finished (at once when nothing plays). */
+export function afterAnimation(fn: () => void): void {
+  if (!getDisplay().busy) {
+    fn();
+    return;
+  }
+  const stop = subscribeDisplay(() => {
+    if (getDisplay().busy) return;
+    stop();
+    fn();
+  });
+}
+
 /** Clears everything, including confetti (new game, continue, leaving the game). */
 export function resetAnimation(): void {
   clearAll();
@@ -110,11 +132,19 @@ function countCash(from: number[], to: number[], ms: number): void {
 
 /**
  * Builds and plays the timeline for one batch of events. `prev` is the state before the action.
- * Returns the total duration (0 when nothing is played).
+ * Returns the total duration (0 when nothing is played). Online, turn changes make no sound.
  */
-export function playBatch(prev: GameState | null, next: GameState, events: GameEvent[], speed: AnimationSpeed): number {
+export function playBatch(
+  prev: GameState | null,
+  next: GameState,
+  events: GameEvent[],
+  speed: AnimationSpeed,
+  opts: { online?: boolean } = {},
+): number {
   finishNow();
+  const sounds = { online: opts.online ?? false };
   if (!prev || events.length === 0 || speed === 'off' || prefersReducedMotion()) {
+    playEvents(events, sounds);
     const confetti = events.some((e) => e.type === 'gameOver') && speed !== 'off' && !prefersReducedMotion();
     resetDisplay(confetti ? { confetti: ++seq } : {});
     if (confetti) later(DURATIONS.confetti, () => setDisplay({ confetti: null }));
@@ -135,12 +165,17 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
   let animated = false;
 
   const at = (when: number, fn: () => void) => later(when, fn);
+  const sound = (when: number, cue: CueName, params?: CueParams) => at(when, () => playCue(cue, params));
+  /** Money changes that happen together make one sound. */
+  const heard = new Set<string>();
 
   for (const e of events) {
     switch (e.type) {
       case 'turnStarted': {
         const id = ++seq;
         at(t, () => setDisplay({ pulse: { player: e.player, id } }));
+        const call = cueFor(e, sounds);
+        if (call) sound(t, call.cue);
         break;
       }
       case 'diceRolled': {
@@ -148,15 +183,19 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         const final = e.dice;
         const dur = ms(DURATIONS.dice);
         at(t, () => setDisplay({ rolling: true, dice: [randomFace(), randomFace()] }));
-        // The faces change fast at first, then slower and slower until the dice settle.
+        // The faces change fast at first, then slower and slower until the dice settle; each change clicks.
         let f = 0;
         let gap = ms(55);
+        const offsets: number[] = [];
         while (f + gap < dur - ms(110)) {
           f += gap;
+          offsets.push(f / 1000);
           at(t + f, () => setDisplay({ dice: [randomFace(), randomFace()] }));
           gap = Math.round(gap * 1.16);
         }
+        sound(t, 'dice', { ms: dur, offsets });
         at(t + dur, () => setDisplay({ rolling: false, dice: final }));
+        if (e.doubles && e.purpose === 'move') sound(t + dur, 'doubles');
         lastDice = final;
         t += dur;
         break;
@@ -168,6 +207,8 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         const passesStart = e.direction === 1;
         e.path.forEach((space, i) => {
           const when = t + i * step;
+          const last = i === e.path.length - 1;
+          sound(when, last ? 'land' : 'hop', { step: i, steps: e.path.length });
           if (passesStart && space === 0) startAt = when;
           at(when, () => {
             positions[mover] = space;
@@ -188,6 +229,8 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
       case 'teleported': {
         animated = true;
         const dur = ms(DURATIONS.jail);
+        const call = cueFor(e, sounds);
+        if (call) sound(t, call.cue);
         at(t, () => {
           positions[e.player] = e.to;
           moveMs[e.player] = dur;
@@ -211,6 +254,11 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         const id = ++seq;
         const float: FloatAmount = { id, player: e.player, amount: e.delta };
         at(when, () => setDisplay({ floats: [...getDisplay().floats, float] }));
+        const call = cueFor(e, sounds);
+        if (call && !heard.has(`${call.cue}@${when}`)) {
+          heard.add(`${call.cue}@${when}`);
+          sound(when, call.cue);
+        }
         at(when + ms(DURATIONS.money), () => setDisplay({ floats: getDisplay().floats.filter((f) => f.id !== id) }));
         end = Math.max(end, when + ms(DURATIONS.money));
         break;
@@ -219,6 +267,7 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         animated = true;
         const id = ++seq;
         at(t, () => setDisplay({ coin: { from: e.from, to: e.to, id } }));
+        sound(t, 'rent', { flight: ms(DURATIONS.rent) });
         at(t + ms(DURATIONS.rent), () => setDisplay({ coin: null }));
         end = Math.max(end, t + ms(DURATIONS.rent));
         break;
@@ -228,6 +277,7 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         animated = true;
         const id = ++seq;
         at(t, () => setDisplay({ stamp: { space: e.space, id } }));
+        sound(t, e.type === 'bought' ? 'buy' : 'sold');
         at(t + ms(DURATIONS.buy), () => setDisplay({ stamp: null }));
         end = Math.max(end, t + ms(DURATIONS.buy));
         break;
@@ -238,6 +288,7 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
         const hotel = e.level === 5;
         const dur = ms(hotel ? DURATIONS.hotel : DURATIONS.house);
         at(t, () => setDisplay({ pip: { space: e.space, hotel, id } }));
+        sound(t, hotel ? 'hotel' : 'build');
         at(t + dur, () => setDisplay({ pip: null }));
         end = Math.max(end, t + dur);
         break;
@@ -245,11 +296,16 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
       case 'gameOver': {
         const id = ++seq;
         at(t, () => setDisplay({ confetti: id }));
+        sound(t, 'win');
         later(t + DURATIONS.confetti, () => setDisplay({ confetti: null }));
         break;
       }
-      default:
+      default: {
+        // Events without a picture of their own (bids, cards, Jail, trades...) still make their sound.
+        const call = cueFor(e, sounds);
+        if (call) sound(t, call.cue, call.params);
         break;
+      }
     }
   }
 
@@ -264,6 +320,7 @@ export function playBatch(prev: GameState | null, next: GameState, events: GameE
 
   if (!animated || t === 0) {
     clearAll();
+    playEvents(events, sounds);
     resetDisplay({ pulse: getDisplay().pulse });
     for (const e of events) {
       if (e.type === 'turnStarted') setDisplay({ pulse: { player: e.player, id: ++seq } });
@@ -301,7 +358,7 @@ export function installSkipHandlers(): void {
     }
     // Panning or pinching the phone board while a token moves follows it instead of skipping.
     if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('[data-gesture-zone]')) return;
-    finishNow();
+    skipAnimation();
     // The click that follows this press is swallowed however long the press lasts; after a key,
     // the click a focused button makes from it (Space on key up) within 400 ms.
     if (e.type === 'pointerdown') swallowClick = true;

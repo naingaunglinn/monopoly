@@ -429,3 +429,15 @@ The pass-device screen appears online only between two seats on the same device.
 Phones are tested at 360 × 800 and 390 × 844 in portrait and 844 × 390 in landscape, with touch emulation. Pinch and pan use real touch events.
 
 **D79. Decision panels on phones keep their buttons in view.** A panel's own buttons (Build, Pass, the bids and Fold, Sell or mortgage) stay pinned at the bottom of the sheet, and the details scroll under them with a short fade. In the Buy panel the price and the cash after buying come before the deed. Reviewing the phone captures showed the Build button below the fold, so a player could press Done without seeing it.
+
+## Sound, chat and voice (owner request, 2026-10-08)
+
+**D80. Sound is synthesised, as section 13 asked.** Every effect is built from oscillators, filtered noise, bells, wood blocks and thumps with the Web Audio API, with a small generated room reverb and a gentle limiter (`src/ui/sound/`). No audio files, so nothing is downloaded or licensed and local play stays offline. The set follows the board's travel theme (passport stamp, boarding call, teleprinter, cell door, gavel).
+
+**D81. Sounds ride the animation timeline.** `playBatch` schedules each cue with the same timers as the picture (one wooden step per space, dice clicks at each face change), so skipping (any input, or the Skip button) cancels what has not played and fades what is playing. When nothing animates (animation Off, reduced motion, a bid), `summarize` plays each distinct sound once, in order, four at most, 160 ms apart. Reduced motion keeps sound. A hidden tab plays only the turn chime, chat and voice cues, since its timers are throttled.
+
+**D82. Sound settings are device preferences.** On by default at 70% volume (`prefs`: `soundOn`, `soundVolume`; perceived loudness follows the square of the slider). The menu has the switch and the slider (a tick previews the level); larger screens also get a speaker switch in the top bar. The AudioContext is created on the first tap, click or key press (registered before the animation skip handlers, which swallow input); on iOS the audio session is set to ambient, so game sounds mix with music and follow the silent switch.
+
+**D83. Levels are measured, not guessed.** `renderCue` renders each cue offline and measures its loudest 50 ms; trims in `cues.ts` put big moments near -23 dBFS, actions near -27 and small feedback near -31. The browser test keeps every cue between -36 and -18 dBFS and below clipping.
+
+**D84. Turn sounds.** On one shared device a soft two-note marimba marks each turn change. Online, turn changes are silent; the device whose decision it is hears the rising airport chime once the move that led there has played.

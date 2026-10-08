@@ -68,7 +68,8 @@ players, the log and your properties. Decisions open there too.
 Press **Rules** (or R) at any time for the full rule guide. Shortcuts: B buys, P passes, T opens
 trade, Esc closes optional panels. Hover or tap a tile to see its details; click a player card to see
 what they own. Any click or key skips an animation (the button reads **Skip** while one plays);
-animation speed and the pass-device screen are in the menu. If your device is set to reduce motion
+animation speed, sound and the pass-device screen are in the menu (larger screens also have a
+speaker switch in the top bar). If your device is set to reduce motion
 (on Windows: Animation effects off), tokens jump instead of moving: turn on **Show movement anyway**
 in setup or in the menu to see them move. The game saves itself after every action; **Continue** on
 the start screen resumes it.
