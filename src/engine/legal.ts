@@ -1,14 +1,14 @@
 // Who decides now, what they may do, and why anything else is refused. legalActions() and
 // reduce() share validateAction(), so the UI, the bots and the reducer always agree.
-import { BALANCE } from '../data/balance';
-import { BOARD, propertyPrice } from '../data/board';
-import { minimumBid } from './auction';
-import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building';
-import { cardById, isKnownCard } from './cards';
-import { currentPlayer, livingPlayers, makeError } from './core';
-import { canOfferBuild } from './phases';
-import { tradeBlocker } from './trade';
-import type { Action, EngineError, GameState, LegalAction, Player } from './types';
+import { BALANCE } from '../data/balance.js';
+import { BOARD, propertyPrice } from '../data/board.js';
+import { minimumBid } from './auction.js';
+import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
+import { cardById, isKnownCard } from './cards.js';
+import { currentPlayer, livingPlayers, makeError } from './core.js';
+import { canOfferBuild } from './phases.js';
+import { tradeBlocker } from './trade.js';
+import type { Action, EngineError, GameState, LegalAction, Player } from './types.js';
 
 /** The player whose decision it is (the one holding the device), or null when the game is over. */
 export function decisionMaker(s: GameState): number | null {
@@ -37,6 +37,28 @@ export function freeActor(s: GameState): number | null {
       return s.flow.debts[0]?.debtor ?? null;
     default:
       return null;
+  }
+}
+
+/**
+ * The player who must send this action now (online play checks it): trading, mortgaging and
+ * selling belong to the free actor, every other game action to the decision maker. Settings,
+ * debug and removePlayer belong to no player.
+ */
+export function actorFor(s: GameState, action: Action): number | null {
+  switch (action.type) {
+    case 'sellBuilding':
+    case 'mortgage':
+    case 'unmortgage':
+    case 'proposeTrade':
+      return freeActor(s);
+    case 'setPassDevice':
+    case 'setAnimationSpeed':
+    case 'debug':
+    case 'removePlayer':
+      return null;
+    default:
+      return decisionMaker(s);
   }
 }
 
@@ -85,6 +107,11 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       return ['normal', 'fast', 'off'].includes(action.speed) ? null : makeError('invalidAction');
     case 'debug':
       return validateDebug(s, action);
+    case 'removePlayer': {
+      if (s.flow.phase === 'GameOver') return makeError('gameOver');
+      const p = Number.isInteger(action.player) ? s.players[action.player] : undefined;
+      return p && !p.bankrupt ? null : makeError('invalidAction');
+    }
     default:
       break;
   }

@@ -1,9 +1,9 @@
 // Auctions (spec 7.1). Bidding goes clockwise from the player after the lander; the lander bids
 // last. A fold is final; a bidder who cannot beat the high bid folds automatically.
-import { BALANCE } from '../data/balance';
-import { type Ctx, changeCash, emit, playerById, playersInTurnOrderFrom, prop } from './core';
-import { afterResolution } from './phases';
-import type { AuctionState } from './types';
+import { BALANCE } from '../data/balance.js';
+import { type Ctx, changeCash, emit, playerById, playersInTurnOrderFrom, prop } from './core.js';
+import { afterResolution } from './phases.js';
+import type { AuctionState } from './types.js';
 
 export function startAuction(c: Ctx, space: number): void {
   const s = c.s;
@@ -88,4 +88,27 @@ export function foldBid(c: Ctx, a: AuctionState): void {
   a.active = a.active.filter((id) => id !== bidder);
   emit(c, { type: 'folded', player: bidder, auto: false });
   advance(c, a, bidder);
+}
+
+/**
+ * A player leaves an auction for good (removed from the game): they fold, and a high bid they hold
+ * is withdrawn, so the others continue from the minimum bid. If it was their turn to bid, the next
+ * bidder clockwise takes over; the auction ends as usual once it is decided.
+ */
+export function withdrawBidder(c: Ctx, a: AuctionState, playerId: number): void {
+  const wasActive = a.active.includes(playerId);
+  a.active = a.active.filter((id) => id !== playerId);
+  if (a.highBidder === playerId) {
+    a.highBid = 0;
+    a.highBidder = null;
+  }
+  if (wasActive) emit(c, { type: 'folded', player: playerId, auto: true });
+  const decided = a.active.length === 0 || (a.active.length === 1 && a.active[0] === a.highBidder);
+  if (a.current === playerId || decided) advance(c, a, playerId);
+}
+
+/** Ends an auction at once with no sale (the lander left the game). */
+export function cancelAuction(c: Ctx, a: AuctionState): void {
+  emit(c, { type: 'auctionUnsold', space: a.space });
+  c.s.flow.pending = null;
 }

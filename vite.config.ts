@@ -7,7 +7,12 @@ const INLINE_EXTENSIONS = /\.(woff2?|svg)$/i;
 
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, strictPort: true },
+  // npm run dev:online: the dev server forwards /api to the local online server (server/local.ts).
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: process.env.API_PROXY ? { '/api': { target: process.env.API_PROXY, changeOrigin: false } } : undefined,
+  },
   preview: { port: 4173, strictPort: true },
   build: {
     target: 'es2022',
@@ -15,7 +20,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
   },
   test: {
-    include: ['tests/engine/**/*.test.ts', 'tests/ui/**/*.test.{ts,tsx}'],
+    include: ['tests/engine/**/*.test.ts', 'tests/ui/**/*.test.{ts,tsx}', 'tests/server/**/*.test.ts'],
     environment: 'node',
     // jsdom renders of the full board and the long engine runs are slow under parallel load.
     testTimeout: 30_000,

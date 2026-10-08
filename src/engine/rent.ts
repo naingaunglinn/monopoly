@@ -1,9 +1,9 @@
 // Rent (spec 5.6). Event modifiers apply last; results are rounded to whole dollars.
-import { BALANCE, roundMoney } from '../data/balance';
-import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE } from '../data/board';
-import type { ModifierType } from '../data/cardTypes';
-import { airportsOwnedBy, ownsCountry } from './core';
-import type { Dice, GameState, RentCalc } from './types';
+import { BALANCE, roundMoney } from '../data/balance.js';
+import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE } from '../data/board.js';
+import type { ModifierType } from '../data/cardTypes.js';
+import { airportsOwnedBy, ownsCountry } from './core.js';
+import type { Dice, GameState, RentCalc } from './types.js';
 
 export function modifierFactor(s: GameState, type: ModifierType): number | null {
   return s.flow.modifiers.find((m) => m.type === type)?.factor ?? null;

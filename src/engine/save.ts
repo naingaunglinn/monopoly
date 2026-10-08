@@ -1,12 +1,12 @@
 // Save and resume (spec section 9). The save is the game state as JSON with a schemaVersion.
 // A corrupt, older or newer save is reported, never thrown. Version 1 saves (before players
 // chose their colours) are migrated to version 2 on load.
-import { BOARD_SIZE, SETUP } from '../data/balance';
-import { isProperty } from '../data/board';
-import { isKnownCard } from './cards';
-import { checkInvariants } from './invariants';
-import { SCHEMA_VERSION, normalizeSettings } from './state';
-import { PHASES, type GameState, type Settings } from './types';
+import { BOARD_SIZE, SETUP } from '../data/balance.js';
+import { isProperty } from '../data/board.js';
+import { isKnownCard } from './cards.js';
+import { checkInvariants } from './invariants.js';
+import { SCHEMA_VERSION, normalizeSettings } from './state.js';
+import { PHASES, type GameState, type Settings } from './types.js';
 
 export const SAVE_KEY = 'global-monopoly/save/v1';
 

@@ -1,7 +1,7 @@
 // Debt and bankruptcy (spec 7.3, 7.4). Payments go through a queue processed in order; the head
 // of the queue may belong to any player (card effects can put other players in debt).
-import { CITY_BY_SPACE } from '../data/board';
-import { discardCard } from './cards';
+import { CITY_BY_SPACE } from '../data/board.js';
+import { discardCard } from './cards.js';
 import {
   type Ctx,
   changeCash,
@@ -10,10 +10,10 @@ import {
   playerById,
   propertiesOwnedBy,
   transfer,
-} from './core';
-import { afterResolution, endGame, leaveJail, moveSteps, passTurn } from './phases';
-import { sellRefund } from './rent';
-import type { DebtItem, GameState, MoneyReason, Resume } from './types';
+} from './core.js';
+import { afterResolution, endGame, leaveJail, moveSteps, passTurn } from './phases.js';
+import { sellRefund } from './rent.js';
+import type { DebtItem, GameState, MoneyReason, Resume } from './types.js';
 
 export function queueDebt(c: Ctx, debt: DebtItem): void {
   if (debt.amount > 0) c.s.flow.debts.push(debt);

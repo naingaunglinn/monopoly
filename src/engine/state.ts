@@ -1,13 +1,13 @@
 // Creating a new game (spec 5.1 and section 8).
-import { BALANCE, BOARD_SIZE, SETUP } from '../data/balance';
-import { isProperty } from '../data/board';
-import { PLAYER_COLORS, SEATS } from '../data/players';
-import { defaultPlayerName } from '../ui/strings';
-import { buildDecks } from './cards';
-import { type Ctx, emit } from './core';
-import { beginTurn } from './phases';
-import { normalizeSeed, randomInt } from './rng';
-import type { GameState, Player, Settings } from './types';
+import { BALANCE, BOARD_SIZE, SETUP } from '../data/balance.js';
+import { isProperty } from '../data/board.js';
+import { PLAYER_COLORS, SEATS } from '../data/players.js';
+import { defaultPlayerName } from '../ui/strings.js';
+import { buildDecks } from './cards.js';
+import { type Ctx, emit } from './core.js';
+import { beginTurn } from './phases.js';
+import { normalizeSeed, randomInt } from './rng.js';
+import type { GameState, Player, Settings } from './types.js';
 
 /** Version 2 added settings.playerColors; version 1 saves are migrated on load (save.ts). */
 export const SCHEMA_VERSION = 2;

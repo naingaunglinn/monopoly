@@ -1,7 +1,7 @@
 // Trading (spec 7.2): one partner, two columns (give / get) of properties, Get Out of Jail cards
 // and cash. Cities in a country with buildings cannot move. An accepted trade applies in one step.
-import { propertyName } from '../data/board';
-import { COUNTRY_BY_ID } from '../data/countries';
+import { propertyName } from '../data/board.js';
+import { COUNTRY_BY_ID } from '../data/countries.js';
 import {
   type Ctx,
   countryHasBuildings,
@@ -9,8 +9,8 @@ import {
   emit,
   makeError,
   transfer,
-} from './core';
-import type { EngineError, GameState, TradeOffer, TradeSide } from './types';
+} from './core.js';
+import type { EngineError, GameState, TradeOffer, TradeSide } from './types.js';
 
 function isWholeAmount(n: unknown): n is number {
   return typeof n === 'number' && Number.isInteger(n) && n >= 0;

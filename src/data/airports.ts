@@ -1,5 +1,5 @@
 // The 10 airports (spec section 4). Rent depends on how many airports the owner holds (balance.ts).
-import type { CountryId } from './countries';
+import type { CountryId } from './countries.js';
 
 export interface AirportData {
   space: number;

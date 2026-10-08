@@ -1,9 +1,9 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
-import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance';
-import { BOARD, propertyKind } from '../data/board';
-import { startAuction } from './auction';
-import { drawCard } from './cards';
+import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance.js';
+import { BOARD, propertyKind } from '../data/board.js';
+import { startAuction } from './auction.js';
+import { discardCard, drawCard } from './cards.js';
 import {
   type Ctx,
   changeCash,
@@ -14,12 +14,12 @@ import {
   ownsCountry,
   playerById,
   prop,
-} from './core';
-import { queueDebt, settleDebts } from './debt';
-import { computeWinners } from './networth';
-import { airportRent, cityRent } from './rent';
-import { rollDie } from './rng';
-import type { Dice, EndReason, GameState, RentDue } from './types';
+} from './core.js';
+import { queueDebt, settleDebts } from './debt.js';
+import { computeWinners } from './networth.js';
+import { airportRent, cityRent } from './rent.js';
+import { rollDie } from './rng.js';
+import type { Dice, EndReason, GameState, RentDue } from './types.js';
 
 /** Two dice from the seeded generator, unless the debug panel queued the next roll. */
 export function rollDice(c: Ctx): Dice {
@@ -108,6 +108,8 @@ export function passTurn(c: Ctx): void {
 
 export function endGame(c: Ctx, reason: EndReason): void {
   const s = c.s;
+  // A card still face up (the game ended while it was shown) goes to its discard pile.
+  if (s.flow.pending?.kind === 'card') discardCard(s, s.flow.pending.cardId);
   s.flow.phase = 'GameOver';
   s.flow.pending = null;
   s.flow.trade = null;

@@ -1,13 +1,13 @@
 // reduce(state, action) -> { state, events, error }. Pure: no React, DOM, timers, Date.now or
 // Math.random. The input state is never mutated; handlers work on a fresh clone.
-import { BALANCE } from '../data/balance';
-import { COUNTRY_CITIES } from '../data/board';
-import { foldBid, placeBid } from './auction';
-import { doBuild, doMortgage, doSell, doUnmortgage } from './building';
-import { applyCard, discardCard } from './cards';
-import { type Ctx, changeCash, cloneState, countryOf, currentPlayer, deepCopy, emit, prop } from './core';
-import { canRaiseMoney, goBankrupt, payHeadDebt, settleDebts } from './debt';
-import { freeActor, validateAction } from './legal';
+import { BALANCE } from '../data/balance.js';
+import { COUNTRY_CITIES } from '../data/board.js';
+import { foldBid, placeBid } from './auction.js';
+import { doBuild, doMortgage, doSell, doUnmortgage } from './building.js';
+import { applyCard, discardCard } from './cards.js';
+import { type Ctx, changeCash, cloneState, countryOf, currentPlayer, deepCopy, emit, prop } from './core.js';
+import { canRaiseMoney, goBankrupt, payHeadDebt, settleDebts } from './debt.js';
+import { freeActor, validateAction } from './legal.js';
 import {
   afterResolution,
   buyProperty,
@@ -23,10 +23,11 @@ import {
   rollForDoubles,
   setRentDue,
   teleport,
-} from './phases';
-import { companyRent } from './rent';
-import { applyTrade, tradeBlocker } from './trade';
-import type { Action, GameState, ReduceResult } from './types';
+} from './phases.js';
+import { removePlayer } from './remove.js';
+import { companyRent } from './rent.js';
+import { applyTrade, tradeBlocker } from './trade.js';
+import type { Action, GameState, ReduceResult } from './types.js';
 
 export function reduce(state: GameState, action: Action): ReduceResult {
   const error = validateAction(state, action);
@@ -51,6 +52,9 @@ function apply(c: Ctx, action: Action): void {
       return;
     case 'debug':
       applyDebug(c, action);
+      return;
+    case 'removePlayer':
+      removePlayer(c, action.player);
       return;
     case 'acknowledge':
       if (s.flow.notices.length > 0) {

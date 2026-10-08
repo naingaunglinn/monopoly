@@ -1,7 +1,7 @@
 // Chance deck: a traveller's luck. Each card states its exact effect in plain words.
 // Fixed cash effects sum to zero; at most 2 copies of Go To Jail, Go to Vacation,
 // Get Out of Jail, Free House and Roll again (spec section 6).
-import type { CardData } from './cardTypes';
+import type { CardData } from './cardTypes.js';
 
 export const CHANCE_CARDS: readonly CardData[] = [
   {

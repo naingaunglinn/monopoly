@@ -1,7 +1,7 @@
 // Net worth, winners and the results ranking (spec section 8).
-import { BALANCE, mortgageValue } from '../data/balance';
-import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE } from '../data/board';
-import type { GameState } from './types';
+import { BALANCE, mortgageValue } from '../data/balance.js';
+import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE } from '../data/board.js';
+import type { GameState } from './types.js';
 
 export interface NetWorth {
   cash: number;

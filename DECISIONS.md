@@ -287,3 +287,66 @@ from the app store and send every action through the active `GameSession` (`src/
 - `OnlineSession` sends actions to the server and shows the updates it pushes.
 - Both show updates through one shared path: `playBatch`, then the store. Animation speed is a
   session method: the game setting locally, a per-device preference online.
+
+**D56. Three Vercel Functions, web-standard handlers.**
+- `api/room.ts`: GET returns the room, or the entries since a version when polling. POST takes `?op=create|join|seat|leave|settings|start|action|heartbeat|reclaim|host`.
+- `api/stream.ts` is the live stream; `api/health.ts` reports which store is in use.
+- Why only three: Hobby allows 12 functions per deployment, and `[...path]` files are not catch-all routes.
+- Each file exports `export default { fetch }` and calls the shared `server/api.ts`.
+- Vercel runs every compiled file as a native ES module without bundling, so every relative import the API reaches carries a `.js` extension (engine, data, `ui/strings.ts`, `server/`). Vite, Vitest and tsx resolve `.js` to the TypeScript source.
+- Verified by running the output of a real `vercel build`. Importing the emitted functions and sending them requests works against a real Redis.
+- `vercel.json` sets `maxDuration` and `supportsCancellation` for the stream function. `engines.node` is `24.x`.
+
+**D57. Rooms in Upstash Redis.**
+- Per room, all under one hash tag `gm:{CODE}`: the document (JSON), its version, a list of the last 64 log entries (events only) and a presence hash.
+- Every key expires 48 hours after the room's last write.
+- Writes are Lua scripts that do the compare-and-set on the version, the log append and the expiry atomically. They use only basic commands (GET, SET, RPUSH, LTRIM, EXPIRE, HSET, HGETALL).
+- After a commit, a PUBLISH on `gm.room.CODE` wakes the open streams, which listen with SUBSCRIBE. Upstash serves SUBSCRIBE as an event stream over REST, and blocking reads are not available over REST, so nothing on the server polls.
+- If a publish is lost, streams re-read the room every 60 s, and devices resync when a heartbeat shows a newer version.
+- Without Redis credentials the deployed API answers 503 `notConfigured`. It never falls back to memory, because function instances do not share it.
+- Credentials: `KV_REST_API_URL`/`KV_REST_API_TOKEN`, or `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
+
+**D58. What devices see.** The public view hides the seed, the generator state and the order of both face-down decks. The rest of the game is public, as on one table, including the discard piles. Seat tokens are 32 random bytes. Only their SHA-256 is stored; the token itself lives only on the player's device.
+
+**D59. Authoritative actions.** In order, a game action must pass five checks:
+1. The game is running.
+2. The device sent the room's current version (`expectedVersion`). A stale version gets 409.
+3. Its token holds the seat that must act: the free actor for trading, mortgaging and selling, the decision maker for everything else, or a seat the host plays for.
+4. The action's type is among `legalActions(state)` for that player. Bids and trade offers carry free amounts and contents, so the type is matched, not the whole action.
+5. `validateAction` accepts it.
+
+The engine then applies it and the result is committed with a compare-and-set. If two actions arrive at once, one wins and the other gets 409 and changes nothing. Settings, debug actions and `removePlayer` are never player actions, and `?seed` and the debug panel do not exist online.
+
+**D60. Remove player.** New engine action `removePlayer`, sent by the host: the player is bankrupt to the bank. First:
+- a trade they are part of is cancelled;
+- in an auction they fold, and their high bid is withdrawn;
+- rent or a company roll owed to them is cancelled;
+- on their own turn, a shown card is discarded, an auction they started ends unsold, and the turn passes once any payments are settled.
+
+In a Quick game this is the first bankruptcy, so it ends the game, as the rules say. A game that ends with a card still face up now discards it. Tests:
+- a fuzz test plays seeded games and removes players from every phase;
+- an extra run of 2,606 games found no invariant failure and no stuck state.
+
+**D61. Seats and hosts.**
+- Lobby seats are in joining order, with stable ids. A device may hold several seats, for two people on one laptop.
+- A new seat gets the first free colour. A player may pick any colour no other seat has; another device's colour is refused rather than swapped.
+- The room's creator is host. Host status follows the seat: if the host's heartbeat is 45 s old, the next connected seat takes over, checked lazily on any heartbeat.
+- "Play for them" lets the host act for a disconnected seat until its own device sends a heartbeat or acts.
+- In the lobby the host can remove any other seat. In the game, only disconnected seats can be played for or removed.
+- Anyone with the room code can reclaim a disconnected seat. It gets a new token, and the old one stops working.
+
+**D62. Live updates.**
+- The stream is Server-Sent Events, resumable with `Last-Event-ID` or `?since=`, and sends every version after the one given exactly once, in order.
+- In a catch-up batch, only the last entry carries the view, and a device too far behind gets one snapshot.
+- Pings go out every 20 s, and a response ends at 270 s, under the 300 s limit.
+- The client reads the stream with `fetch` (`src/ui/session/transport.ts`), so tests run the same code as browsers:
+  - it reconnects from the last version;
+  - a watchdog treats 45 s of silence as broken;
+  - when the stream fails, it polls every 2 s and retries the stream every 30 s;
+  - it resyncs when the tab becomes visible.
+
+**D63. Running and testing online locally.**
+- `server/local.ts` mounts the same handlers on MemoryStore and can serve `dist/`.
+- `npm run dev:online` runs it beside the Vite dev server, which proxies `/api`. `npm run serve:online` serves the built game and the API on port 4175.
+- API tests run on MemoryStore, and also on UpstashStore when `UPSTASH_TEST_URL` is set. The setup: Upstash's own emulator (serverless-redis-http) in front of a real Redis in Docker, plus `scripts/upstash-test-proxy.ts`. The emulator lacks SUBSCRIBE, so the proxy serves it the way Upstash does over REST.
+- `npm run smoke -- <url>` checks a deployment end to end.

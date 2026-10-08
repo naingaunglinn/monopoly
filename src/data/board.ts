@@ -1,10 +1,10 @@
 // The fixed 80-space board (spec section 3). Property spaces come from the city, airport and
 // company tables; the 20 special spaces are listed here. Indices run clockwise from World Start.
-import { AIRPORTS, type AirportData } from './airports';
-import { BOARD_SIZE } from './balance';
-import { CITIES, type CityData } from './cities';
-import { COMPANIES, type CompanyData } from './companies';
-import { COUNTRIES, type CountryId } from './countries';
+import { AIRPORTS, type AirportData } from './airports.js';
+import { BOARD_SIZE } from './balance.js';
+import { CITIES, type CityData } from './cities.js';
+import { COMPANIES, type CompanyData } from './companies.js';
+import { COUNTRIES, type CountryId } from './countries.js';
 
 export type SpecialType =
   | 'start'

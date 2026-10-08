@@ -1,10 +1,10 @@
 // Invariants checked after every simulated action (spec section 15) and when loading a save.
-import { BALANCE, BOARD_SIZE } from '../data/balance';
-import { COUNTRY_CITIES, isProperty } from '../data/board';
-import { COUNTRIES } from '../data/countries';
-import { cardsForSettings } from './cards';
-import { legalActions } from './legal';
-import { PHASES, type GameState, type Pending } from './types';
+import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { COUNTRY_CITIES, isProperty } from '../data/board.js';
+import { COUNTRIES } from '../data/countries.js';
+import { cardsForSettings } from './cards.js';
+import { legalActions } from './legal.js';
+import { PHASES, type GameState, type Pending } from './types.js';
 
 const PENDING_FOR_PHASE: Readonly<Record<GameState['flow']['phase'], readonly (Pending['kind'] | null)[]>> = {
   PassDevice: [null],

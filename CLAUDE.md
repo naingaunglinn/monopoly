@@ -18,6 +18,9 @@ npm is used because pnpm is not installed (see DECISIONS.md).
 | `npm run sim` | Headless simulation: 200 Quick + 200 Normal seeded games with 4 bots, writes `reports/sim-report.json` |
 | `npm run sim -- --quick 10 --normal 4` | A shorter simulation run |
 | `npm run typecheck` | `tsc --noEmit` only |
+| `npm run dev:online` | Online play locally: API on MemoryStore (port 8787) + Vite dev server proxying `/api` |
+| `npm run serve:online` | The built game and the API on http://localhost:4175 (build first; used by online e2e) |
+| `npm run smoke -- <url>` | End-to-end check of a deployment (room, two seats, actions, stream) |
 
 ## Folder layout
 
@@ -31,9 +34,14 @@ src/
             the server), display.ts + animation.ts (event player), strings.ts (every UI string),
             theme.css, hooks.ts
   sim/      bots.ts, runner.ts, cli.ts (`npm run sim`)
+server/     online API: room.ts (pure room rules), api.ts (web-standard handlers), store.ts
+            (RoomStore), memoryStore.ts, upstashStore.ts, vercel.ts, local.ts (local server)
+api/        Vercel Functions (room, stream, health), thin wrappers around server/vercel.ts
+scripts/    dev-online.mjs, smoke.ts, upstash-test-proxy.ts
 tests/
   engine/   Vitest unit tests for data and engine (+ sim smoke run)
   ui/       Vitest + Testing Library (jsdom): rule guide in every phase, contrast
+  server/   Vitest: the online API (MemoryStore, and UpstashStore when configured) and the transport
   e2e/      Playwright specs; fixtures.ts builds states with the engine, audit.ts checks layouts
 reports/    sim-report.json (committed), screenshots/ (generated, git-ignored)
 docs/       SPEC.md (source of truth)
@@ -67,3 +75,22 @@ docs/       SPEC.md (source of truth)
   in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
 - After UI changes run `npm run test:e2e`: the screenshot spec audits every capture (text under 10px,
   page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080.
+- Online (spec section 17): the server is authoritative; never keep room state in function memory.
+  Every relative import reachable from `api/` needs an explicit `.js` extension (Vercel runs the
+  compiled files as native ES modules); `src/ui` never imports runtime code from `server/` or
+  `@upstash/redis` (shared wire types live in `src/online/`).
+- The client never runs `reduce`, `parseSave` or `checkInvariants` on an online view (decks are
+  hidden), and an online game never touches the local save.
+
+## Testing UpstashStore against a real Redis
+
+```bash
+D="/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe"   # or docker
+$D network create gm-test
+$D run -d --name gm-redis --network gm-test -p 6380:6379 redis:7-alpine
+$D run -d --name gm-srh --network gm-test -p 8079:80 -e SRH_MODE=env -e SRH_TOKEN=gm_local_token \
+  -e SRH_CONNECTION_STRING=redis://gm-redis:6379 hiett/serverless-redis-http:latest
+npx tsx scripts/upstash-test-proxy.ts --port 8078 &      # adds SUBSCRIBE, which the emulator lacks
+UPSTASH_TEST_URL=http://localhost:8078 UPSTASH_TEST_TOKEN=gm_local_token npx vitest run tests/server
+```
+

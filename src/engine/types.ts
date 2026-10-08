@@ -1,8 +1,8 @@
 // Engine types. The game state is plain JSON (no undefined, Maps or classes) so a save is a
 // straight JSON round trip.
-import type { DeckId, ModifierType } from '../data/cardTypes';
-import type { TaxKind } from '../data/board';
-import type { TokenKind } from '../data/players';
+import type { DeckId, ModifierType } from '../data/cardTypes.js';
+import type { TaxKind } from '../data/board.js';
+import type { TokenKind } from '../data/players.js';
 
 export type { DeckId, ModifierType, TokenKind };
 
@@ -307,6 +307,8 @@ export type Action =
   | { type: 'endTurn' }
   | { type: 'setPassDevice'; on: boolean }
   | { type: 'setAnimationSpeed'; speed: AnimationSpeed }
+  /** Online host control: the player leaves the game, bankrupt to the bank (DECISIONS D60). */
+  | { type: 'removePlayer'; player: number }
   | ({ type: 'debug' } & DebugOp);
 
 export type ActionType = Action['type'];
@@ -364,6 +366,8 @@ export type GameEvent =
   | { type: 'tradeProposed'; from: number; to: number }
   | { type: 'tradeAccepted'; offer: TradeOffer }
   | { type: 'tradeRejected'; from: number; to: number }
+  | { type: 'tradeCancelled'; from: number; to: number }
+  | { type: 'playerRemoved'; player: number }
   | { type: 'gameOver'; winners: number[]; reason: EndReason }
   | { type: 'settingChanged'; setting: 'passDevice' | 'animationSpeed' }
   | { type: 'debugApplied'; op: DebugOp['op'] };

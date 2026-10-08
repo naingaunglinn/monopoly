@@ -1,6 +1,6 @@
 // Event deck: world news headlines. Each card states its exact effect in plain words.
 // No Go To Jail here; fixed cash effects sum to zero (spec section 6).
-import type { CardData } from './cardTypes';
+import type { CardData } from './cardTypes.js';
 
 export const EVENT_CARDS: readonly CardData[] = [
   {

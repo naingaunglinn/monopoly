@@ -1,6 +1,6 @@
 // Card data shapes (spec section 6). Only these effect types exist.
-import type { CompanyId } from './companies';
-import type { CountryId } from './countries';
+import type { CompanyId } from './companies.js';
+import type { CountryId } from './countries.js';
 
 export type DeckId = 'chance' | 'event';
 export type CardTone = 'good' | 'bad' | 'neutral';

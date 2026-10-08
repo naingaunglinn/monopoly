@@ -1,5 +1,5 @@
 // The 42 cities (spec section 4). Hotel cost is always house cost × 2 (see balance.ts).
-import type { CountryId } from './countries';
+import type { CountryId } from './countries.js';
 
 export interface CityData {
   space: number;

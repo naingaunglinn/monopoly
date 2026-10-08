@@ -1,5 +1,5 @@
 // The 8 companies (spec section 4). Rent = total of two fresh dice × multiplier.
-import type { CountryId } from './countries';
+import type { CountryId } from './countries.js';
 
 export type CompanyId =
   | 'transport'

@@ -1,7 +1,7 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import type { SpecialType } from '../data/board';
-import type { DeckId, ModifierType } from '../data/cardTypes';
+import type { SpecialType } from '../data/board.js';
+import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
   ErrorCode,
   ErrorParams,
@@ -10,8 +10,8 @@ import type {
   RecapItem,
   RentCalc,
   Settings,
-} from '../engine/types';
-import type { TokenKind } from '../data/players';
+} from '../engine/types.js';
+import type { TokenKind } from '../data/players.js';
 
 export const GAME_TITLE = 'Global Monopoly';
 export const TAGLINE = 'Build your global empire';
@@ -748,6 +748,10 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return `${who(e.offer.to)} accepted ${who(e.offer.from)}’s trade.`;
     case 'tradeRejected':
       return `${who(e.to)} rejected ${who(e.from)}’s trade.`;
+    case 'tradeCancelled':
+      return `The trade between ${who(e.from)} and ${who(e.to)} was cancelled.`;
+    case 'playerRemoved':
+      return `${who(e.player)} left the game.`;
     case 'gameOver':
       return e.winners.length > 1
         ? `Game over: shared win for ${e.winners.map(who).join(' and ')}.`
@@ -765,6 +769,7 @@ export function logPlayer(e: GameEvent): number | null {
       return e.from;
     case 'tradeProposed':
     case 'tradeRejected':
+    case 'tradeCancelled':
       return e.from;
     case 'tradeAccepted':
       return e.offer.to;

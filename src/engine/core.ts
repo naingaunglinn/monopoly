@@ -1,6 +1,6 @@
 // Shared engine plumbing: the draft context, event emission, cash changes and board queries.
 // Handlers receive a draft (a fresh clone) and mutate it; reduce() never mutates its input.
-import { BALANCE } from '../data/balance';
+import { BALANCE } from '../data/balance.js';
 import {
   AIRPORT_SPACES,
   BOARD,
@@ -8,9 +8,9 @@ import {
   COMPANY_SPACES,
   COUNTRY_CITIES,
   propertyKind,
-} from '../data/board';
-import type { CountryId } from '../data/countries';
-import { errorText } from '../ui/strings';
+} from '../data/board.js';
+import type { CountryId } from '../data/countries.js';
+import { errorText } from '../ui/strings.js';
 import type {
   EngineError,
   ErrorCode,
@@ -20,7 +20,7 @@ import type {
   MoneyReason,
   Player,
   PropertyState,
-} from './types';
+} from './types.js';
 
 export interface Ctx {
   s: GameState;

@@ -1,6 +1,6 @@
 // Seeded PRNG (mulberry32). Its 32-bit state lives in state.meta.rngState, so the same seed and
 // the same actions always produce the same game.
-import type { GameState } from './types';
+import type { GameState } from './types.js';
 
 export function normalizeSeed(seed: number): number {
   return (Math.floor(Math.abs(seed)) >>> 0) || 0x9e3779b9;

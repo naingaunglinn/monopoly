@@ -1,11 +1,11 @@
 // Chance and Event cards (spec section 6): draw the top card, apply it, discard it; an empty deck
 // reshuffles its discard pile. Held cards (Jail card, Free House) leave the deck until used.
-import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance';
-import { AIRPORT_SPACES, COMPANY_SPACES, COUNTRY_CITIES } from '../data/board';
-import { COMPANIES } from '../data/companies';
-import type { AssetKind, CardData, DeckId, MoveTarget } from '../data/cardTypes';
-import { CHANCE_CARDS } from '../data/chance';
-import { EVENT_CARDS } from '../data/events';
+import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance.js';
+import { AIRPORT_SPACES, COMPANY_SPACES, COUNTRY_CITIES } from '../data/board.js';
+import { COMPANIES } from '../data/companies.js';
+import type { AssetKind, CardData, DeckId, MoveTarget } from '../data/cardTypes.js';
+import { CHANCE_CARDS } from '../data/chance.js';
+import { EVENT_CARDS } from '../data/events.js';
 import {
   type Ctx,
   airportsOwnedBy,
@@ -16,11 +16,11 @@ import {
   currentPlayer,
   emit,
   playersInTurnOrderFrom,
-} from './core';
-import { queueDebt, settleDebts } from './debt';
-import { afterResolution, moveSteps, sendToJail, startVacation, teleport } from './phases';
-import { shuffleInPlace } from './rng';
-import type { Decks, GameState, Settings } from './types';
+} from './core.js';
+import { queueDebt, settleDebts } from './debt.js';
+import { afterResolution, moveSteps, sendToJail, startVacation, teleport } from './phases.js';
+import { shuffleInPlace } from './rng.js';
+import type { Decks, GameState, Settings } from './types.js';
 
 export const ALL_CARDS: readonly CardData[] = [...CHANCE_CARDS, ...EVENT_CARDS];
 const CARD_BY_ID: ReadonlyMap<string, CardData> = new Map(ALL_CARDS.map((card) => [card.id, card]));

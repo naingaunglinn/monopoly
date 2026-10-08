@@ -1,8 +1,8 @@
 // Building (5.8, the landing-only house rule), selling (5.9) and mortgages (5.14).
-import { BALANCE, mortgageValue, unmortgageCost } from '../data/balance';
-import { CITY_BY_SPACE, propertyName, propertyPrice } from '../data/board';
-import { COUNTRY_BY_ID } from '../data/countries';
-import { discardCard } from './cards';
+import { BALANCE, mortgageValue, unmortgageCost } from '../data/balance.js';
+import { CITY_BY_SPACE, propertyName, propertyPrice } from '../data/board.js';
+import { COUNTRY_BY_ID } from '../data/countries.js';
+import { discardCard } from './cards.js';
 import {
   type Ctx,
   changeCash,
@@ -15,9 +15,9 @@ import {
   ownsCountry,
   playerById,
   prop,
-} from './core';
-import { buildCost, sellRefund } from './rent';
-import type { EngineError, GameState } from './types';
+} from './core.js';
+import { buildCost, sellRefund } from './rent.js';
+import type { EngineError, GameState } from './types.js';
 
 export interface BuildQuote {
   /** Level after building (5 = hotel). */
