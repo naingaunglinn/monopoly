@@ -1070,7 +1070,7 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 
 ## 17. Online play
 
-Added at the owner's request, after M5. Friends play one game together from different browsers, phones and computers. The one-device mode stays exactly as sections 1 to 16 describe, fully offline. For online mode only, this section overrides "no backend, no networking" in sections 1 and 2. The decisions behind it are D55 to D79 in `DECISIONS.md`.
+Added at the owner's request, after M5. Friends play one game together from different browsers, phones and computers. The one-device mode stays as sections 1 to 16 describe, fully offline, with one exception: the phone layout below applies to both modes and replaces the phone row of section 2 and the rotate hint of section 14 (D73). For online mode only, this section overrides "no backend, no networking" in sections 1 and 2. The decisions behind it are D55 to D79 in `DECISIONS.md`.
 
 ### What the player sees
 
@@ -1125,7 +1125,7 @@ GameSession ─ LocalSession          api/room.ts   GET  /api/room?code=&since= 
 - **Live updates.** Server-Sent Events carry every version after the one the device has: its events, and the view after it.
   - A response ends before the platform's time limit, and the browser reconnects from its last version (`Last-Event-ID` or `?since=`). Missed versions arrive exactly once; a device too far behind gets one snapshot.
   - Streams wait on Redis pub/sub: each commit publishes the new version. Nothing on the server polls.
-  - If the stream fails, the browser polls `GET /api/room?since=` every 2 s and keeps retrying the stream.
+  - If the stream fails, or ends within 5 s of opening, the browser polls `GET /api/room?since=` every 2 s and retries the stream every 30 s.
   - A device resyncs at once when its tab becomes visible or a heartbeat shows a newer version.
 - **Expiry.** Rooms expire 48 hours after their last write (Redis TTL).
 - **Local server.** `server/local.ts` mounts the same handlers on `MemoryStore` and can serve the built game: `npm run dev:online`, `npm run serve:online`.
@@ -1152,7 +1152,7 @@ GameSession ─ LocalSession          api/room.ts   GET  /api/room?code=&since= 
   - one device with two seats;
   - stream resume that delivers missed events exactly once;
   - polling.
-- **Transport tests.** The browser's connection code runs over HTTP and is tested for live delivery, resume, a blocked stream (polling), the silence watchdog and resync.
+- **Transport tests.** The browser's connection code runs over HTTP and is tested for live delivery, resume, a blocked stream and a stream that ends at once (both fall back to polling), the silence watchdog and resync.
 - **Playwright against the local server.**
   - A full Quick game on three devices, one of them a phone, with one device closed and reopened in its seat.
   - The same game with the stream blocked.

@@ -1,6 +1,6 @@
 // The client's live connection (src/ui/session/transport.ts) against the real API over HTTP:
 // live delivery, resuming across stream restarts without loss or repeats, the polling fallback when
-// the stream is blocked, the silence watchdog, resync and a room that is gone.
+// the stream is blocked or ends at once, the silence watchdog, resync and a room that is gone.
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { decisionMaker, legalActions, type Action, type GameState } from '../../src/engine';
 import { RoomTransport, type LinkStatus } from '../../src/ui/session/transport';
@@ -72,7 +72,8 @@ describe('room transport', () => {
   test('live: every new version arrives once, in order, with the view', async () => {
     const room = await startedRoom();
     const c = collector();
-    const t = new RoomTransport(room.code, room.view.version, c.handlers, { base });
+    // Streams end every 400 ms on this test server, which would otherwise count as failing.
+    const t = new RoomTransport(room.code, room.view.version, c.handlers, { base, minStreamMs: 0 });
     t.start();
     await until(() => t.status === 'live');
     let v = room.view;
@@ -86,7 +87,7 @@ describe('room transport', () => {
   test('the stream ends every 400 ms here and resumes from the last version: no loss, no repeats', async () => {
     const room = await startedRoom();
     const c = collector();
-    const t = new RoomTransport(room.code, room.view.version, c.handlers, { base });
+    const t = new RoomTransport(room.code, room.view.version, c.handlers, { base, minStreamMs: 0 });
     t.start();
     let v = room.view;
     for (let i = 0; i < 6; i++) {
@@ -125,6 +126,24 @@ describe('room transport', () => {
     const v = await play(room.code, room.tokens, room.view);
     await until(() => c.latest()?.version === v.version);
     expect(t.status).toBe('polling');
+    t.stop();
+  });
+
+  test('a stream that ends at once is not reopened in a loop: polling takes over', async () => {
+    const room = await startedRoom();
+    const c = collector();
+    let opened = 0;
+    const ending: typeof fetch = (input, init) => {
+      if (!String(input).includes('/api/stream')) return fetch(input, init);
+      opened++;
+      return Promise.resolve(new Response('event: bye\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }));
+    };
+    const t = new RoomTransport(room.code, room.view.version, c.handlers, { base, fetch: ending, pollMs: 100 });
+    t.start();
+    const v = await play(room.code, room.tokens, room.view);
+    await until(() => c.latest()?.version === v.version);
+    expect(t.status).toBe('polling');
+    expect(opened).toBe(1);
     t.stop();
   });
 

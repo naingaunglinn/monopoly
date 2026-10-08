@@ -3,7 +3,8 @@
 // - every reconnect resumes from the last version received, so nothing is missed or repeated;
 // - the stream ends before the platform's time limit and is reopened at once;
 // - a watchdog treats a silent stream (the server pings every 20 s) as broken;
-// - when the stream fails, it polls every 2 s and tries the stream again now and then;
+// - when the stream fails, or ends within seconds of opening, it polls every 2 s and tries the
+//   stream again now and then, so a server that cannot stream is never hit in a loop;
 // - resync() fetches what was missed at once (the tab became visible, a heartbeat saw a newer version).
 import type { RoomUpdate, RoomView } from '../../online/protocol';
 
@@ -23,6 +24,8 @@ export interface TransportOptions {
   silenceMs?: number;
   /** While polling, try the stream again after this long. */
   streamRetryMs?: number;
+  /** A stream that ends sooner than this after opening counts as failing. */
+  minStreamMs?: number;
   fetch?: typeof fetch;
 }
 
@@ -75,6 +78,7 @@ export class RoomTransport {
   private readonly pollMs: number;
   private readonly silenceMs: number;
   private readonly streamRetryMs: number;
+  private readonly minStreamMs: number;
   private readonly fetchFn: typeof fetch;
 
   constructor(
@@ -88,6 +92,7 @@ export class RoomTransport {
     this.pollMs = options.pollMs ?? 2000;
     this.silenceMs = options.silenceMs ?? 45_000;
     this.streamRetryMs = options.streamRetryMs ?? 30_000;
+    this.minStreamMs = options.minStreamMs ?? 5000;
     this.fetchFn = options.fetch ?? ((...args) => fetch(...args));
   }
 
@@ -180,6 +185,7 @@ export class RoomTransport {
         }
         if (!res.ok || !res.body) throw new Error(`stream HTTP ${res.status}`);
         this.setStatus('live');
+        const opened = Date.now();
         await readEvents(
           res.body,
           (f) => this.onFrame(f),
@@ -191,6 +197,8 @@ export class RoomTransport {
           },
         );
         if (silent) throw new Error('silent stream');
+        // Ending at once means the server cannot stream (it could not listen): poll instead.
+        if (Date.now() - opened < this.minStreamMs) throw new Error('stream ended early');
         // The response ended (time limit): reopen at once from the last version.
       } catch {
         if (!this.running) return;

@@ -138,8 +138,8 @@ Checked in October 2026; the providers' pricing pages have the current numbers.
   and Vercel shares an instance between connections when it can. An hour of play with four devices
   therefore uses about 2 to 8 GB-hours, so the plan covers roughly 45 to 180 hours of four-player
   games a month. A tab left in the background closes its connection after 10 minutes and catches up
-  when you come back. If the Hobby allowance runs out, online play pauses until 30 days have passed;
-  the one-device game keeps working. The dashboard's **Usage** page shows where you stand.
+  when you come back. If you go over a Hobby allowance, Vercel can pause the project until 30 days
+  have passed, so keep an eye on the dashboard's **Usage** page.
 
 ## Running it on your own computer
 

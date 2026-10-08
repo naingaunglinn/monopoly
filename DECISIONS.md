@@ -343,6 +343,7 @@ In a Quick game this is the first bankruptcy, so it ends the game, as the rules 
   - it reconnects from the last version;
   - a watchdog treats 45 s of silence as broken;
   - when the stream fails, it polls every 2 s and retries the stream every 30 s;
+  - a stream that ends within 5 s of opening counts as failing, so a server that cannot listen (for example a SUBSCRIBE error) is never reopened in a loop;
   - it resyncs when the tab becomes visible.
 
 **D63. Running and testing online locally.**

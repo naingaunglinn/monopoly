@@ -31,7 +31,7 @@
 
 | Check | Result |
 | --- | --- |
-| Unit and integration tests (Vitest) | 223 passed, 22 files |
+| Unit and integration tests (Vitest) | 224 passed, 22 files |
 | Type check (`tsc --noEmit`) | clean |
 | Browser tests (Playwright, Chromium) | 46 passed, 8 files |
 | Simulation (`npm run sim`) | 400 games, no crash, no invariant failure; same results as the committed report |
@@ -45,7 +45,7 @@ device; rejection of a wrong seat, an unknown token, an illegal action, debug an
 any change; stale versions; two simultaneous actions (exactly one wins); reconnecting and reclaiming
 seats; host handover; playing for and removing a player; resuming the stream without loss or
 repeats; snapshots for a device too far behind; polling. The transport tests cover live delivery,
-stream restarts, a blocked stream, a silent stream (watchdog) and resync.
+stream restarts, a blocked stream, a stream that ends at once, a silent stream (watchdog) and resync.
 
 The browser tests include:
 
@@ -81,8 +81,10 @@ They now stay pinned at the bottom of the sheet, and the Buy panel shows the pri
 - **A real Vercel deployment with a real Upstash database**: it needs your accounts. The smoke test
   checks exactly this after you deploy.
 - **Upstash's own SUBSCRIBE over REST**: tested only through the emulator and the proxy, which follows
-  Upstash's documented format. If the live stream misbehaves there, polling every 2 s still carries
-  the game, and the smoke test reports it.
+  Upstash's documented format. If SUBSCRIBE fails there, each stream ends at once and browsers poll
+  every 2 s instead (retrying the stream every 30 s, never in a loop). If it connects but delivers
+  nothing, the server's pings keep the stream open and moves reach the other devices within about
+  20 s, through the heartbeat. The smoke test fails loudly in both cases.
 - **Real phones**: tested in Chromium with touch emulation. Safari on iOS, Wake Lock, vibration and the
   share sheet were not tried on hardware. Firefox and Safari engines were not run.
 
