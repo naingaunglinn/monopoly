@@ -158,7 +158,16 @@ test.describe('online 1280 x 720', () => {
     await expect(host.page.locator('.player-card .voice-badge.is-muted')).toHaveCount(1);
     await shot(host.page, size, 'online-11-voice');
     await host.page.setViewportSize({ width: 1024, height: 768 });
+    // Compact screens: with the Chat tab selected, a panel still takes the whole stage...
     await shot(host.page, { width: 1024, height: 768 }, 'online-12-voice');
+    // ...and without one, the chat opens over the log row, here with the stamp tray.
+    for (let i = 0; i < 8 && (await host.page.locator('.stage.has-panel').count()); i++) {
+      await host.page.locator('#primary').click();
+      await host.page.waitForTimeout(250);
+    }
+    await expect(host.page.locator('.feed.is-expanded')).toBeVisible();
+    await host.page.locator('#chat-stamps').click();
+    await shot(host.page, { width: 1024, height: 768 }, 'online-13-chat-compact');
     expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
     expect(problems).toEqual([]);
     await host.context.close();
