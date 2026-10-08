@@ -59,10 +59,26 @@ function respReader(onPush: (items: (string | number)[]) => void): (chunk: Buffe
 
 const encodeCommand = (args: string[]) => `*${args.length}\r\n${args.map((a) => `$${Buffer.byteLength(a)}\r\n${a}\r\n`).join('')}`;
 
+/** Billable commands as Upstash counts them: one per command, each one in a pipeline too. */
+const counts: Record<string, number> = {};
+const count = (name: string) => {
+  counts[name] = (counts[name] ?? 0) + 1;
+};
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://proxy');
   const parts = url.pathname.split('/').filter(Boolean);
+  if (url.pathname === '/__counts') {
+    res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(counts));
+    return;
+  }
+  if (url.pathname === '/__reset') {
+    for (const k of Object.keys(counts)) delete counts[k];
+    res.writeHead(200).end('{}');
+    return;
+  }
   if (parts[0] === 'subscribe' && parts[1]) {
+    count('SUBSCRIBE');
     const channel = decodeURIComponent(parts.slice(1).join('/'));
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
     const socket = connect(Number(redisPort), redisHost);
@@ -78,6 +94,13 @@ createServer(async (req, res) => {
   // Everything else goes to SRH unchanged.
   const chunks: Buffer[] = [];
   for await (const c of req) chunks.push(c as Buffer);
+  try {
+    const body = JSON.parse(Buffer.concat(chunks).toString() || 'null') as unknown;
+    const commands = parts[0] === 'pipeline' || parts[0] === 'multi-exec' ? (body as unknown[][]) : [body as unknown[]];
+    for (const c of commands) if (Array.isArray(c)) count(String(c[0]).toUpperCase());
+  } catch {
+    // not a command
+  }
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string' && k !== 'host' && k !== 'content-length') headers[k] = v;
   try {

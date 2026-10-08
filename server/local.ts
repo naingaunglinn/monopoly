@@ -2,12 +2,15 @@
 // MemoryStore and, with --static, serves the built client too (one origin, like the deployment).
 //   tsx server/local.ts --port 8787              API only (Vite dev server proxies /api to it)
 //   tsx server/local.ts --port 4175 --static dist   API and the built game (end-to-end tests)
+//   --store upstash                                 rooms in Redis instead (KV_REST_API_URL/TOKEN or
+//                                                   UPSTASH_REDIS_REST_URL/TOKEN), to try production storage
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createApi, type Api, type ApiConfig } from './api.js';
 import { MemoryStore } from './memoryStore.js';
+import { UpstashStore, upstashConfig } from './upstashStore.js';
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -136,7 +139,13 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const port = Number(arg('port', process.env.PORT ?? '8787'));
   const staticDir = arg('static');
   const streamMs = Number(process.env.STREAM_MS ?? 270_000);
-  startLocalServer({ port, staticDir, api: { streamMs } }).then(({ port: p }) => {
-    console.log(`Online game server (MemoryStore) on http://localhost:${p}${staticDir ? ` serving ${resolve(staticDir)}` : ''}`);
+  const redis = arg('store') === 'upstash' ? upstashConfig() : null;
+  if (arg('store') === 'upstash' && !redis) {
+    console.error('--store upstash needs KV_REST_API_URL and KV_REST_API_TOKEN (or UPSTASH_REDIS_REST_URL/TOKEN).');
+    process.exit(1);
+  }
+  const store = redis ? new UpstashStore(redis) : new MemoryStore();
+  startLocalServer({ port, staticDir, api: { streamMs, store } }).then(({ port: p }) => {
+    console.log(`Online game server (${store.name}) on http://localhost:${p}${staticDir ? ` serving ${resolve(staticDir)}` : ''}`);
   });
 }

@@ -10,3 +10,6 @@ reports/screenshots/
 .DS_Store
 .vite/
 .vercel
+.e2e-run.log
+.proxy.log
+.local*.log

@@ -113,6 +113,11 @@ test('a full game with reduced motion (animations off, panels still appear)', as
 
 test('a full game with the network disabled after load', async ({ page, context }) => {
   const log = trackErrors(page);
+  // One-device play never calls the online API (no stored room: not even the rejoin check).
+  const apiCalls: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/api/')) apiCalls.push(r.url());
+  });
   await page.goto('/?seed=5&rounds=5');
   await page.evaluate(() => window.localStorage.clear());
   await page.reload();
@@ -131,6 +136,7 @@ test('a full game with the network disabled after load', async ({ page, context 
   expect(
     await page.evaluate(() => [...document.querySelectorAll('img.flag')].every((img) => (img as HTMLImageElement).naturalWidth > 0)),
   ).toBe(true);
+  expect(apiCalls).toEqual([]);
   expect(log.errors).toEqual([]);
 });
 

@@ -29,9 +29,19 @@ interface OnlineInfo {
 async function openDevice(
   browser: Browser,
   name: string,
-  opts: { viewport?: { width: number; height: number }; storageState?: Awaited<ReturnType<BrowserContext['storageState']>>; blockStream?: boolean } = {},
+  opts: {
+    viewport?: { width: number; height: number };
+    /** A phone: 390 x 844 portrait with touch (the phone layout). */
+    phone?: boolean;
+    storageState?: Awaited<ReturnType<BrowserContext['storageState']>>;
+    blockStream?: boolean;
+  } = {},
 ): Promise<Device> {
-  const context = await browser.newContext({ viewport: opts.viewport ?? { width: 1280, height: 720 }, storageState: opts.storageState });
+  const context = await browser.newContext(
+    opts.phone
+      ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: opts.storageState }
+      : { viewport: opts.viewport ?? { width: 1280, height: 720 }, storageState: opts.storageState },
+  );
   // Animation Off on every device (a per-device preference online).
   await context.addInitScript(() => {
     try {
@@ -127,7 +137,8 @@ test.describe('online', () => {
   test('three devices play a Quick game to the results; one closes mid-game and resumes its seat', async ({ browser }) => {
     const a = await openDevice(browser, 'Mia');
     const b = await openDevice(browser, 'Leo', { viewport: { width: 1024, height: 768 } });
-    let c = await openDevice(browser, 'Aung');
+    // Aung plays on a phone: the phone layout, and the device that closes and comes back.
+    let c = await openDevice(browser, 'Aung', { phone: true });
     const code = await createRoom(a);
     await joinRoom(b, code);
     await joinRoom(c, code);
@@ -135,6 +146,7 @@ test.describe('online', () => {
     await a.page.locator('#lobby-start').click();
     for (const d of [a, b, c]) await expect(d.page.locator('.game-screen')).toBeVisible();
     expect((await info(c))?.mine).toEqual([2]);
+    await expect(c.page.locator('.game-screen.is-phone')).toBeVisible();
 
     // Play a while, then close Aung's browser when it is someone else's decision.
     for (let i = 0; i < 25; i++) await onlineStep([a, b, c]);
@@ -153,10 +165,10 @@ test.describe('online', () => {
       await onlineStep([a, b]);
     }
     // Aung reopens the link: back in the same seat, with the same game.
-    c = await openDevice(browser, 'Aung', { storageState: stored });
+    c = await openDevice(browser, 'Aung', { phone: true, storageState: stored });
     c.errors.push(...cErrors);
     await c.page.goto(`${ONLINE}/?room=${code}`);
-    await expect(c.page.locator('.game-screen')).toBeVisible();
+    await expect(c.page.locator('.game-screen.is-phone')).toBeVisible();
     expect((await info(c))?.mine).toEqual([2]);
     const latest = (await info(a))?.version;
     await everyoneSees([c], (_, i) => i.version >= (latest ?? 0));
@@ -176,11 +188,11 @@ test.describe('online', () => {
   test('with the live stream blocked, polling carries the whole game', async ({ browser }) => {
     const devices = [
       await openDevice(browser, 'Mia', { blockStream: true }),
-      await openDevice(browser, 'Leo', { blockStream: true }),
-      await openDevice(browser, 'Aung', { blockStream: true }),
+      await openDevice(browser, 'Leo', { blockStream: true, viewport: { width: 1024, height: 768 } }),
+      await openDevice(browser, 'Aung', { blockStream: true, phone: true }),
     ];
     const [a, b, c] = devices as [Device, Device, Device];
-    const code = await createRoom(a, '?rounds=3');
+    const code = await createRoom(a, '?rounds=5');
     await joinRoom(b, code);
     await joinRoom(c, code);
     await expect(a.page.locator('.lobby-seat')).toHaveCount(3);

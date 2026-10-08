@@ -1067,3 +1067,95 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 - Space or Enter presses the yellow button. B buys, P passes, T trades, R opens this guide.
 - Hover over or tap a tile to see its details. Click a player to see what they own.
 - Any click skips an animation. Animation speed is in Settings.
+
+## 17. Online play
+
+Added at the owner's request, after M5. Friends play one game together from different browsers, phones and computers. The one-device mode stays exactly as sections 1 to 16 describe, fully offline. For online mode only, this section overrides "no backend, no networking" in sections 1 and 2. The decisions behind it are D55 to D79 in `DECISIONS.md`.
+
+### What the player sees
+
+- **Start screen.** Play on this device (New game, Continue) and Play online (Create room, Join room). Rejoin room ABCD appears when this browser holds a seat in a room that still exists.
+- **Create.** You get a 4-letter room code and an invite link, `/?room=ABCD`. Share uses the phone's share sheet; elsewhere it copies the link.
+- **Join.** Type the code and a name, or open the link.
+  - Before the game starts, you take a new seat.
+  - After it has started, the join screen lists disconnected seats you can take over.
+- **Lobby.**
+  - Seats are in joining order. Each player names their own seat and picks a colour nobody else has.
+  - "Add a player on this device" gives one device a second seat.
+  - Only the host changes the options: the section 8 options without the per-device ones. The host starts the game with 2 to 6 seats.
+- **The game.**
+  - Each device acts only on decisions that belong to its seats. Everyone else sees the same dice, moves, cards and money live, at their own animation speed, while the primary button says "Waiting for <name>".
+  - Bids and trade answers happen on each player's own device.
+  - There is no pass-device screen, except between two seats on the same device.
+  - When a decision becomes this device's, a banner shows, the tab title changes and the phone vibrates once.
+- **Connections.**
+  - A seat with no heartbeat (sent every 20 s) for 45 s shows "Disconnected"; the game waits, with no timer.
+  - "Reconnecting…" shows while offline and blocks actions.
+  - An action not answered within 300 ms shows a spinner, and an action is never sent twice.
+- **Host controls.**
+  - Play for them: the host acts for a disconnected player until they return.
+  - Remove player: bankrupt to the bank. In a Quick game this ends the game, as the first bankruptcy.
+  - If the host disconnects, the next connected player becomes host.
+- **Rule guide.** A new topic, "Playing online", explains all of this.
+
+### Architecture
+
+```text
+browser (Vite app)                  Vercel Functions (Node 24, Fluid compute)       Upstash Redis
+GameSession ─ LocalSession          api/room.ts   GET  /api/room?code=&since=        gm:{CODE}:room  JSON
+            └ OnlineSession ──POST─▶              POST /api/room?op=...  ─────────▶ gm:{CODE}:v     version
+               transport ◀── SSE ── api/stream.ts GET  /api/stream?code=&since=      gm:{CODE}:log   last 64 entries
+                         ◀── poll   api/health.ts GET  /api/health                   gm:{CODE}:seen  heartbeats
+```
+
+- **GameSession.** The screens talk only to `GameSession`. `LocalSession` runs the engine in the tab and autosaves. `OnlineSession` sends actions to the server and plays the updates it receives, through the same animation path.
+- **Handlers.** The API is web-standard `(Request) => Response` handlers (`server/api.ts`) over a `RoomStore` interface.
+  - `UpstashStore` is used in production. Credentials come from `KV_REST_API_URL`/`KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
+  - `MemoryStore` is used for local development and tests.
+  - Function memory never holds room state.
+- **The server is authoritative.** Every action is a POST with the version the device saw. The function then:
+  1. loads the room;
+  2. checks that the game is running and that the version is current (otherwise 409);
+  3. checks that the sender's seat token controls the player who must act: the free actor for trading, mortgaging and selling, the decision maker otherwise, or a seat the host plays for;
+  4. checks that the action's type is in `legalActions(state)` for that player and that `validateAction` accepts it;
+  5. runs `reduce`, and saves with an atomic compare-and-set on the version, in a Lua script.
+
+  When two actions race, one wins and the other changes nothing (409). Debug actions, settings actions and `?seed` do not exist online.
+- **Secrets stay on the server.** The seed, the generator state and the order of the face-down decks never leave it. Seat tokens are 32 random bytes kept in the browser's localStorage; the server stores only their SHA-256.
+- **Live updates.** Server-Sent Events carry every version after the one the device has: its events, and the view after it.
+  - A response ends before the platform's time limit, and the browser reconnects from its last version (`Last-Event-ID` or `?since=`). Missed versions arrive exactly once; a device too far behind gets one snapshot.
+  - Streams wait on Redis pub/sub: each commit publishes the new version. Nothing on the server polls.
+  - If the stream fails, the browser polls `GET /api/room?since=` every 2 s and keeps retrying the stream.
+  - A device resyncs at once when its tab becomes visible or a heartbeat shows a newer version.
+- **Expiry.** Rooms expire 48 hours after their last write (Redis TTL).
+- **Local server.** `server/local.ts` mounts the same handlers on `MemoryStore` and can serve the built game: `npm run dev:online`, `npm run serve:online`.
+
+### Phones (both modes)
+
+- **Status bar.** Round, whose turn, my cash, Rules and Menu.
+- **The board.** It keeps its 1280 × 720 layout and is scaled as a whole.
+  - Pinch to zoom, drag to pan, double-tap for the whole board and back.
+  - It centres on the moving token and follows it.
+  - Tapping a tile shows its Focus Card.
+- **The control sheet.** It sits at the bottom in portrait and on the side in landscape. It holds the primary button (always visible), the dice, and tabs for Card, Players, Log and Mine. Decision panels open in it; a panel's own buttons stay pinned at its bottom while the details scroll.
+- **Comfort.** Touch targets are at least 44 px, safe-area insets are respected, and nothing scrolls sideways. The screen stays awake during a game where the Wake Lock API allows it.
+
+### Verification
+
+- **Engine.** A fuzz test removes players from every phase in seeded bot games, with invariants checked after every action.
+- **API tests** (Vitest). They run on `MemoryStore`, and on `UpstashStore` against a real Redis through Upstash's REST emulator. They cover:
+  - the room lifecycle;
+  - wrong-seat, illegal and stale actions;
+  - concurrent actions;
+  - reconnecting;
+  - host handover and host controls;
+  - one device with two seats;
+  - stream resume that delivers missed events exactly once;
+  - polling.
+- **Transport tests.** The browser's connection code runs over HTTP and is tested for live delivery, resume, a blocked stream (polling), the silence watchdog and resync.
+- **Playwright against the local server.**
+  - A full Quick game on three devices, one of them a phone, with one device closed and reopened in its seat.
+  - The same game with the stream blocked.
+  - Live animation and the turn banner, lobby rules, host controls and taking a seat back.
+  - Every phone screen in portrait and landscape, audited and reviewed.
+- **Deployment.** See `DEPLOY.md`. `npm run smoke -- <url>` checks a deployment end to end.
