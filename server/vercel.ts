@@ -2,6 +2,7 @@
 // Without them, online play answers 503 with a clear reason instead of keeping rooms in memory
 // (function instances never share memory, so rooms would vanish between requests).
 import { createApi, type Api } from './api.js';
+import { iceServersFromEnv } from './ice.js';
 import { UpstashStore, upstashConfig } from './upstashStore.js';
 
 let api: Api | null = null;
@@ -17,7 +18,8 @@ export async function handle(request: Request): Promise<Response> {
         headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
       });
     }
-    api = createApi({ store: new UpstashStore(config) });
+    // Voice chat: STUN by default, a TURN relay when its variables are set (DEPLOY.md, step 7).
+    api = createApi({ store: new UpstashStore(config), iceServers: () => iceServersFromEnv() });
   }
   return api(request);
 }

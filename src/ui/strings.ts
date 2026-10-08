@@ -12,6 +12,7 @@ import type {
   Settings,
 } from '../engine/types.js';
 import type { TokenKind } from '../data/players.js';
+import type { StampId } from '../online/protocol.js';
 
 export const GAME_TITLE = 'Global Monopoly';
 export const TAGLINE = 'Build your global empire';
@@ -204,10 +205,48 @@ export const T = {
       seatConnected: 'That player is still connected.',
       seatGone: 'That seat has left the game.',
       gameOver: 'The game is over.',
+      slowDown: 'Wait a moment before sending again.',
       notConfigured: 'Online play is not set up on this server yet.',
       network: 'No connection. Check your internet and try again.',
       server: 'The server had a problem. Please try again.',
     } as Record<string, string>,
+  },
+  chat: {
+    title: 'Chat',
+    log: 'Log',
+    tabsLabel: 'Log and chat',
+    inputLabel: 'Message',
+    placeholder: 'Message everyone',
+    send: 'Send',
+    as: 'Send as',
+    empty: 'No messages yet. Say hello to the table.',
+    stampsLabel: 'Stamps',
+    stampButton: (word: string) => `Stamp: ${word}`,
+    stamped: (name: string, word: string) => `${name} stamped ${word}`,
+    slowDown: 'Wait a moment before sending again.',
+    open: 'Open chat',
+    unread: (n: number) => (n === 1 ? '1 new message' : `${n} new messages`),
+    preview: (name: string) => `New message from ${name}. Open chat`,
+    you: 'you',
+  },
+  voice: {
+    join: 'Join voice',
+    joining: 'Joining voice',
+    leave: 'Leave voice',
+    mute: 'Mute microphone',
+    unmute: 'Unmute microphone',
+    micOn: 'Mic on',
+    inVoice: (n: number) => (n === 1 ? '1 person in voice' : `${n} people in voice`),
+    talking: 'Talking',
+    muted: 'Muted',
+    listening: 'In voice',
+    volume: 'Voice volume',
+    hint: 'Use headphones so the others do not hear themselves.',
+    micBlocked: 'The microphone is blocked. Allow it for this site in the browser settings, then join again.',
+    noMic: 'No microphone was found. Connect one, then join again.',
+    failed: 'Voice chat could not start. Please try again.',
+    unsupported: 'This browser cannot do voice chat. Try a recent Chrome, Safari, Edge or Firefox.',
+    dropped: 'You left voice chat after losing the connection. Join again when you are back.',
   },
   phone: {
     boardLabel: 'Board: drag to move, pinch to zoom, double-tap for the whole board',
@@ -528,6 +567,25 @@ export const T = {
 
 // ---------------------------------------------------------------------------------------------
 // Board names
+
+/** The words on the stamps (spec section 18), shown in capitals on the stamp. */
+export const STAMP_WORDS: Readonly<Record<StampId, string>> = {
+  nice: 'Nice',
+  ouch: 'Ouch',
+  haha: 'Ha ha',
+  wow: 'Wow',
+  hurry: 'Hurry up',
+  gg: 'Good game',
+};
+
+/** A chat message's time, in the viewer's clock: 14:05. */
+export function chatTime(at: number): string {
+  try {
+    return new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
 
 export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
   start: 'World Start',
@@ -1131,7 +1189,8 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'Bids and trade answers happen on each player’s own device.',
       'Lost the connection? Open the link again to get your seat back. The game waits; there is no timer.',
       'If a player is gone, the host can play for them or remove them (bankrupt to the bank).',
-      'Animation speed is chosen on each device.',
+      'Chat with the table from the Chat tab (in the lobby: the Chat button). Stamps are quick reactions that land on your card.',
+      'Animation speed and sound are chosen on each device.',
     ],
   },
 ];

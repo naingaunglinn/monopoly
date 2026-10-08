@@ -3,15 +3,29 @@
 // Every write is a compare-and-set on the room's version; game actions are authoritative here.
 //
 //   GET  /api/health                     the store in use
-//   GET  /api/room?code=ABCD[&since=N]   the room view (and, for polling, the entries after N);
-//                                        &probe=1 answers a missing room with { view: null }
+//   GET  /api/room?code=ABCD[&since=N]   the room view (and, for polling, the entries after N, with
+//                                        &chat=M the chat messages after id M, with &voice=1 who is
+//                                        in voice); &probe=1 answers a missing room with { view: null }
 //   POST /api/room?op=...                create, join, seat, leave, settings, start, action,
-//                                        heartbeat, reclaim, host
-//   GET  /api/stream?code=ABCD&since=N   Server-Sent Events, resumable with Last-Event-ID
+//                                        heartbeat, reclaim, host, chat, voice, signal, signals
+//   GET  /api/stream?code=ABCD&since=N[&chat=M]   Server-Sent Events, resumable with Last-Event-ID
+//                                        (versions); chat, voice and signal notices are their own events
 import type { GameEvent } from '../src/engine/index.js';
+import {
+  CHAT_GAP_MS,
+  MAX_SDP,
+  PRESENCE_TIMEOUT_MS,
+  STAMP_GAP_MS,
+  type ChatMessage,
+  type IceServer,
+  type Notice,
+  type Signal,
+  type VoicePeer,
+} from '../src/online/protocol.js';
 import {
   addSeat,
   changeSettings,
+  chatMessage,
   CODE_ALPHABET,
   CODE_PATTERN,
   endProxies,
@@ -45,6 +59,8 @@ export interface ApiConfig {
   pingMs?: number;
   /** An open stream re-reads the room this often even without a notification (a lost publish). */
   recheckMs?: number;
+  /** The servers that help devices connect for voice chat (none: same network only, as in tests). */
+  iceServers?: () => Promise<IceServer[]>;
 }
 
 export type Api = (req: Request) => Promise<Response>;
@@ -103,6 +119,12 @@ async function readBody(req: Request): Promise<Record<string, unknown> | null> {
   }
 }
 
+/** A non-negative integer from a query parameter, or `fallback`. */
+function cursorOf(value: string | null, fallback: number): number {
+  const n = Number(value ?? NaN);
+  return Number.isInteger(n) && n >= 0 ? n : fallback;
+}
+
 function codeOf(value: unknown): string | null {
   const code = typeof value === 'string' ? value.trim().toUpperCase() : '';
   return CODE_PATTERN.test(code) ? code : null;
@@ -123,6 +145,12 @@ async function seatsOf(room: Room, tokens: string[]): Promise<number[]> {
   return out.sort((a, b) => a - b);
 }
 
+/** A device's voice peer id: stable while it keeps its first seat. */
+const peerOf = (room: Room, seats: number[]): string => `v${room.seats[seats[0] as number]?.id ?? ''}`;
+
+/** Voice entries seen within the presence timeout. */
+const freshPeers = (peers: VoicePeer[], now: number): VoicePeer[] => peers.filter((p) => now - p.at <= PRESENCE_TIMEOUT_MS);
+
 const entryOf = (room: Room, kind: UpdateKind, seat: number | null, events: GameEvent[] = []): LogEntry => ({
   v: room.version,
   kind,
@@ -138,6 +166,7 @@ export function createApi(config: ApiConfig): Api {
   const streamMs = config.streamMs ?? 270_000;
   const pingMs = config.pingMs ?? 20_000;
   const recheckMs = config.recheckMs ?? 60_000;
+  const iceServers = config.iceServers ?? (async () => []);
 
   /**
    * Load, change, compare-and-set; on a conflict (someone else wrote first) it runs again on the
@@ -282,7 +311,65 @@ export function createApi(config: ApiConfig): Api {
       if (!isError(handed)) latest = handed.room;
     }
     const seatIds = mine.map((i) => room.seats[i]?.id as string);
+    // A device in voice chat stays listed while its heartbeats come; one that stopped is dropped.
+    const v = body.voice as { muted?: unknown } | undefined;
+    if (v && typeof v === 'object') {
+      const peer: VoicePeer = { id: peerOf(room, mine), seats: seatIds, muted: v.muted === true, at: t };
+      const result = await store.voice(code, peer.id, peer, t, PRESENCE_TIMEOUT_MS);
+      if (result !== 'missing' && (result.created || result.dropped > 0)) await store.notify(code, { k: 'voice', peers: result.peers });
+    }
     return json({ now: t, presence, you: mine, seatIds, version: latest.version, host: latest.host });
+  }
+
+  // op=voice {code, tokens, state}: this device joins (or mutes, unmutes, leaves) the room's voice
+  // chat (spec section 18). Joining also brings the servers that help devices reach each other.
+  async function voice(code: string, body: Record<string, unknown>): Promise<Response> {
+    const state = body.state;
+    if (state !== 'join' && state !== 'mute' && state !== 'unmute' && state !== 'leave') return errorResponse(fail('badRequest', 400));
+    const room = await store.load(code);
+    if (!room) return errorResponse(fail('roomNotFound', 404));
+    const mine = await seatsOf(room, tokensOf(body.tokens));
+    if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
+    const t = now();
+    const id = peerOf(room, mine);
+    const muted = state === 'mute' || (state === 'join' && body.muted === true);
+    const peer: VoicePeer | null = state === 'leave' ? null : { id, seats: mine.map((i) => room.seats[i]?.id as string), muted, at: t };
+    const result = await store.voice(code, id, peer, t, PRESENCE_TIMEOUT_MS);
+    if (result === 'missing') return errorResponse(fail('roomNotFound', 404));
+    await store.notify(code, { k: 'voice', peers: result.peers });
+    const servers = state === 'join' ? await iceServers() : null;
+    return json({ peer: id, peers: result.peers, ...(servers ? { iceServers: servers } : {}), now: t });
+  }
+
+  // op=signal {code, tokens, to, kind, sdp}: connection set-up for voice, from this device to another
+  // one in voice chat. Only its receiver can read it (op=signals); the stream announces it.
+  async function signal(code: string, body: Record<string, unknown>): Promise<Response> {
+    const kind = body.kind;
+    const sdp = body.sdp;
+    if ((kind !== 'offer' && kind !== 'answer') || typeof sdp !== 'string' || sdp.length === 0 || sdp.length > MAX_SDP || typeof body.to !== 'string') {
+      return errorResponse(fail('badRequest', 400));
+    }
+    const room = await store.load(code);
+    if (!room) return errorResponse(fail('roomNotFound', 404));
+    const mine = await seatsOf(room, tokensOf(body.tokens));
+    if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
+    const from = peerOf(room, mine);
+    const t = now();
+    const peers = freshPeers(await store.voicePeers(code), t);
+    if (from === body.to || !peers.some((p) => p.id === from) || !peers.some((p) => p.id === body.to)) return errorResponse(fail('badRequest', 400));
+    const sent = await store.signal(code, { id: 0, from, to: body.to, kind, sdp, at: t } satisfies Signal);
+    if (sent === 'missing') return errorResponse(fail('roomNotFound', 404));
+    return json({ id: sent.id, now: t });
+  }
+
+  // op=signals {code, tokens, after}: the set-up messages sent to this device after id `after`.
+  async function signals(code: string, body: Record<string, unknown>): Promise<Response> {
+    const room = await store.load(code);
+    if (!room) return errorResponse(fail('roomNotFound', 404));
+    const mine = await seatsOf(room, tokensOf(body.tokens));
+    if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
+    const after = typeof body.after === 'number' && Number.isInteger(body.after) && body.after >= 0 ? body.after : 0;
+    return json({ signals: await store.signals(code, peerOf(room, mine), after), now: now() });
   }
 
   // op=reclaim {code, seat, tokens?}: take over a disconnected seat (new device or browser).
@@ -321,8 +408,26 @@ export function createApi(config: ApiConfig): Api {
     return json(update(result.room, result.entry));
   }
 
-  // GET /api/room?code=ABCD[&since=N]: the room. With `since` (polling) it is one store call and
-  // brings the log entries after N (events only; the view is the latest one).
+  // op=chat {code, token, text | stamp}: a chat message or a stamp from the caller's seat (spec
+  // section 18). It is kept beside the game and never changes the room's version.
+  async function chat(code: string, body: Record<string, unknown>): Promise<Response> {
+    const room = await store.load(code);
+    if (!room) return errorResponse(fail('roomNotFound', 404));
+    const s = await callerSeat(room, body.token);
+    if (isError(s)) return errorResponse(s);
+    const t = now();
+    const message = chatMessage(room, s, { text: body.text, stamp: body.stamp }, t);
+    if (isError(message)) return errorResponse(message);
+    const stamp = message.stamp !== null;
+    const sent = await store.chat(code, message, `${message.seatId}:${stamp ? 'stamp' : 'text'}`, t, stamp ? STAMP_GAP_MS : CHAT_GAP_MS);
+    if (sent === 'missing') return errorResponse(fail('roomNotFound', 404));
+    if (sent === 'slow') return errorResponse(fail('slowDown', 429));
+    return json({ message: sent, now: t });
+  }
+
+  // GET /api/room?code=ABCD[&since=N][&chat=M]: the room. With `since` (polling) it is one store
+  // call and brings the log entries after N (events only; the view is the latest one), and with
+  // `chat` the chat messages after id M.
   async function getRoom(url: URL): Promise<Response> {
     const code = codeOf(url.searchParams.get('code'));
     if (!code) return errorResponse(fail('badRequest', 400));
@@ -331,7 +436,16 @@ export function createApi(config: ApiConfig): Api {
       const since = Number(sinceRaw);
       const found = await store.since(code, Number.isInteger(since) ? since : -1);
       if (!found.room) return errorResponse(fail('roomNotFound', 404));
-      return json({ view: viewOf(found.room), updates: found.entries === 'gap' ? null : found.entries, now: now() });
+      const chatAfter = url.searchParams.get('chat');
+      const chat = chatAfter !== null ? await store.chatSince(code, cursorOf(chatAfter, 0)) : undefined;
+      const voicePeers = url.searchParams.get('voice') === '1' ? freshPeers(await store.voicePeers(code), now()) : undefined;
+      return json({
+        view: viewOf(found.room),
+        updates: found.entries === 'gap' ? null : found.entries,
+        ...(chat ? { chat } : {}),
+        ...(voicePeers ? { voice: voicePeers } : {}),
+        now: now(),
+      });
     }
     const room = await store.load(code);
     // probe=1 (the start screen's rejoin check) answers a missing room with 200 and no view, so an
@@ -368,21 +482,32 @@ export function createApi(config: ApiConfig): Api {
         return reclaim(code, body);
       case 'host':
         return host(code, body);
+      case 'chat':
+        return chat(code, body);
+      case 'voice':
+        return voice(code, body);
+      case 'signal':
+        return signal(code, body);
+      case 'signals':
+        return signals(code, body);
       default:
         return errorResponse(fail('badRequest', 400));
     }
   }
 
-  // GET /api/stream?code=ABCD&since=N: Server-Sent Events. Every version after N exactly once, in
-  // order (a catch-up batch sends the view only with its last entry), then live versions. The
-  // browser reconnects by itself with Last-Event-ID (the last version it saw) when the response
-  // ends, which it does before the platform's time limit.
+  // GET /api/stream?code=ABCD&since=N[&chat=M]: Server-Sent Events. Every version after N exactly
+  // once, in order (a catch-up batch sends the view only with its last entry), then live versions.
+  // The browser reconnects by itself with Last-Event-ID (the last version it saw) when the response
+  // ends, which it does before the platform's time limit. Chat messages after id M arrive as `chat`
+  // events with no id (the event id is always a version): the backlog first, then live ones, which
+  // come straight from the announcement without reading the store.
   async function stream(req: Request, url: URL): Promise<Response> {
     const code = codeOf(url.searchParams.get('code'));
     if (!code) return errorResponse(fail('badRequest', 400));
     const fromHeader = req.headers.has('last-event-id') ? Number(req.headers.get('last-event-id')) : NaN;
     const fromQuery = Number(url.searchParams.get('since') ?? NaN);
     let since = Number.isInteger(fromHeader) ? fromHeader : Number.isInteger(fromQuery) ? fromQuery : 0;
+    let chatAfter = cursorOf(url.searchParams.get('chat'), 0);
     if (!(await store.load(code))) return errorResponse(fail('roomNotFound', 404));
     const abort = new AbortController();
     req.signal?.addEventListener('abort', () => abort.abort());
@@ -395,16 +520,31 @@ export function createApi(config: ApiConfig): Api {
           if (!abort.signal.aborted) controller.enqueue(encoder.encode(text));
         };
         let dirty = true;
+        let chatDirty = true;
+        let voiceDirty = true;
+        const notices: Notice[] = [];
         let broken = false;
         let wake: (() => void) | null = null;
         abort.signal.addEventListener('abort', () => wake?.());
+        const sendChat = (messages: ChatMessage[]) => {
+          if (messages.length === 0) return;
+          send(`event: chat\ndata: ${JSON.stringify({ messages })}\n\n`);
+          chatAfter = Math.max(chatAfter, ...messages.map((m) => m.id));
+        };
         try {
           // Listen first, then read: a commit in between is never missed.
           await store.watch(
             code,
             abort.signal,
-            () => {
-              dirty = true;
+            (message) => {
+              if (/^\d+$/.test(message)) dirty = true;
+              else {
+                try {
+                  notices.push(JSON.parse(message) as Notice);
+                } catch {
+                  chatDirty = true;
+                }
+              }
               wake?.();
             },
             () => {
@@ -415,7 +555,35 @@ export function createApi(config: ApiConfig): Api {
           send(`retry: 1000\n\n`);
           let lastRead = 0;
           while (!abort.signal.aborted && !broken && now() < deadline) {
+            // Announced chat goes straight out; one that skips an id means a message was missed, so read.
+            // Voice lists and signal notices are relayed as they come (a signal's content is fetched
+            // by its receiver with its seat).
+            for (const notice of notices.splice(0)) {
+              if (notice.k === 'voice') {
+                send(`event: voice\ndata: ${JSON.stringify({ peers: notice.peers })}\n\n`);
+                voiceDirty = false;
+              } else if (notice.k === 'signal') {
+                send(`event: signal\ndata: ${JSON.stringify({ to: notice.to, id: notice.id })}\n\n`);
+              } else if (notice.k === 'chat' && notice.m.id > chatAfter) {
+                if (notice.m.id === chatAfter + 1 && !chatDirty) sendChat([notice.m]);
+                else chatDirty = true;
+              }
+            }
+            if (voiceDirty) {
+              voiceDirty = false;
+              send(`event: voice\ndata: ${JSON.stringify({ peers: freshPeers(await store.voicePeers(code), now()) })}\n\n`);
+            }
+            if (chatDirty) {
+              chatDirty = false;
+              const found = await store.chatSince(code, chatAfter);
+              if (found.last < chatAfter) chatAfter = 0;
+              sendChat(found.messages.filter((m) => m.id > chatAfter));
+            }
             if (dirty || now() - lastRead >= recheckMs) {
+              if (!dirty) {
+                chatDirty = true;
+                voiceDirty = true;
+              }
               dirty = false;
               lastRead = now();
               const found = await store.since(code, since);

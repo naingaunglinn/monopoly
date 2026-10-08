@@ -2,7 +2,8 @@
 // actions are POSTed with the version this device saw, and every new version arrives through the
 // transport (stream, or polling as a fallback) and is animated exactly like a local action.
 // Updates wait while an animation plays, so every player's moves are shown in full.
-// This module also holds the room operations the screens call (create, join, lobby, host).
+// This module also holds the room operations the screens call (create, join, lobby, host) and the
+// room's chat and stamps (spec section 18), which arrive at once, never queued behind animations.
 // It never touches the local save.
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import {
@@ -14,9 +15,22 @@ import {
   type EngineError,
   type GameState,
 } from '../../engine';
-import { HEARTBEAT_MS, PRESENCE_TIMEOUT_MS, type RoomSettings, type RoomUpdate, type RoomView } from '../../online/protocol';
+import {
+  CHAT_GAP_MS,
+  CHAT_KEEP,
+  HEARTBEAT_MS,
+  STAMP_GAP_MS,
+  PRESENCE_TIMEOUT_MS,
+  type ChatMessage,
+  type RoomSettings,
+  type RoomUpdate,
+  type RoomView,
+  type StampId,
+  type VoicePeer,
+} from '../../online/protocol';
 import { getDisplay, subscribeDisplay } from '../display';
 import { getPrefs, setPrefs } from '../prefs';
+import { playCue } from '../sound';
 import { app, refuse, resetUi, ROUNDS_PARAM, sessionHost, setSession, showToast } from '../store';
 import { T } from '../strings';
 import { RoomTransport, type LinkStatus } from './transport';
@@ -72,6 +86,12 @@ export interface OnlineState {
   link: LinkStatus;
   /** The action waiting for the server's answer: the button shows a spinner after 300 ms. */
   pending: { target: string | null; since: number } | null;
+  /** Chat (spec section 18): the newest messages, oldest first. */
+  chat: ChatMessage[];
+  /** Messages from others that arrived while the chat was closed. */
+  unread: number;
+  /** The seat (id) this device chats as; the first of its seats until the player picks another. */
+  chatAs: string | null;
 }
 
 /** The create and join screens. */
@@ -86,7 +106,7 @@ export interface JoinState {
   busy: boolean;
 }
 
-class Box<T> {
+export class Box<T> {
   private listeners = new Set<() => void>();
   constructor(private value: T) {}
   get = (): T => this.value;
@@ -101,6 +121,47 @@ class Box<T> {
 }
 
 export const online = new Box<OnlineState | null>(null);
+
+/** A stamp on screen: it thuds onto the sender's card (or the board) and fades. */
+export interface StampShow {
+  key: number;
+  /** The sender's seat index (player id in a game), or null when the seat has left. */
+  seat: number | null;
+  stamp: StampId;
+  name: string;
+  color: string;
+}
+
+/** Stamps showing now, and the newest message from someone else to preview while the chat is closed. */
+export const stamps = new Box<StampShow[]>([]);
+export const chatPreview = new Box<ChatMessage | null>(null);
+
+/** Chat views on screen (the chat tab or sheet). While one is open, nothing counts as unread. */
+let chatViews = 0;
+/** Asks the screen to open its chat (the preview was tapped): each request increments it. */
+export const chatRequest = new Box<number>(0);
+
+export function chatOpened(): () => void {
+  chatViews += 1;
+  chatPreview.set(null);
+  const st = online.get();
+  if (st && st.unread > 0) online.set({ ...st, unread: 0 });
+  return () => {
+    chatViews = Math.max(0, chatViews - 1);
+  };
+}
+
+export function requestChat(): void {
+  chatPreview.set(null);
+  chatRequest.set(chatRequest.get() + 1);
+}
+
+/** How long a stamp stays on screen, ms. */
+export const STAMP_MS = 2600;
+/** How long a message preview shows, ms. */
+export const PREVIEW_MS = 4500;
+/** Messages older than this when they arrive (after a reconnect) are shown without sound or effects. */
+const LIVE_MS = 15_000;
 export const joining = new Box<JoinState>({ mode: 'join', code: '', view: null, presence: {}, offset: 0, error: null, busy: false });
 
 export function useOnline(): OnlineState | null {
@@ -140,7 +201,19 @@ export function inviteLink(code: string): string {
 type ApiOk<T> = { ok: true; data: T };
 type ApiFail = { ok: false; status: number; error: string; reason?: string; version?: number };
 
-async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiOk<T> | ApiFail> {
+/**
+ * Voice chat (session/voice.ts) plugs in here, so this module does not depend on it: it hears who is
+ * in voice and which signals arrived, adds itself to heartbeats and leaves with the session.
+ */
+export const voiceHooks: {
+  peers?: (peers: VoicePeer[]) => void;
+  signal?: (to: string, id: number) => void;
+  heartbeat?: () => { muted: boolean } | undefined;
+  reconnected?: () => void;
+  leave?: () => void;
+} = {};
+
+export async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<ApiOk<T> | ApiFail> {
   try {
     const res = await fetch(path, {
       method,
@@ -204,6 +277,8 @@ export class OnlineSession implements GameSession {
   private shown: number;
   private hiddenTimer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  /** Server time when this session began: chat sent before it is history (no sound, not unread). */
+  private readonly startedAt: number;
 
   constructor(
     private creds: Credentials,
@@ -218,13 +293,21 @@ export class OnlineSession implements GameSession {
       offset: initial.now - Date.now(),
       link: 'connecting',
       pending: null,
+      chat: [],
+      unread: 0,
+      chatAs: creds.seats[0]?.seatId ?? null,
     });
+    this.startedAt = initial.now;
     this.transport = new RoomTransport(creds.code, initial.view.version, {
       updates: (entries, view) => this.receive(entries, view),
       status: (link) => {
         patchOnline({ link });
         if (link === 'gone') this.roomGone();
+        if (link === 'live' || link === 'polling') voiceHooks.reconnected?.();
       },
+      chat: (messages) => this.receiveChat(messages),
+      voice: (peers) => voiceHooks.peers?.(peers),
+      signal: (to, id) => voiceHooks.signal?.(to, id),
     });
     this.transport.start();
     this.heartbeatTimer = setInterval(() => void this.heartbeat(), HEARTBEAT_MS);
@@ -294,6 +377,7 @@ export class OnlineSession implements GameSession {
 
   close(): void {
     if (this.stopped) return;
+    voiceHooks.leave?.();
     this.stopped = true;
     this.transport.stop();
     clearInterval(this.heartbeatTimer);
@@ -318,6 +402,47 @@ export class OnlineSession implements GameSession {
     this.applyView([], view);
     const st = online.get();
     if (st) online.set({ ...st, mine: mineOf(st.view, this.creds) });
+  }
+
+  /**
+   * Chat messages from the stream, polling or this device's own answer, each shown once. New ones
+   * from others sound and count as unread while the chat is closed; stamps thud on screen.
+   */
+  receiveChat(messages: ChatMessage[]): void {
+    const st = online.get();
+    if (!st) return;
+    const known = new Set(st.chat.map((m) => m.id));
+    const fresh = messages.filter((m) => !known.has(m.id)).sort((a, b) => a.id - b.id);
+    if (fresh.length === 0) return;
+    const mine = new Set(this.creds.seats.map((c) => c.seatId));
+    const serverNow = Date.now() + st.offset;
+    let unread = st.unread;
+    for (const m of fresh) {
+      if (m.at <= this.startedAt) continue;
+      const live = serverNow - m.at < LIVE_MS;
+      if (m.stamp) {
+        if (!live) continue;
+        const seat = st.view.seats.findIndex((x) => x.id === m.seatId);
+        const show: StampShow = { key: m.id, seat: seat >= 0 ? seat : null, stamp: m.stamp, name: m.name, color: m.color };
+        stamps.set([...stamps.get().filter((x) => x.key !== m.id), show].slice(-3));
+        window.setTimeout(() => stamps.set(stamps.get().filter((x) => x.key !== m.id)), STAMP_MS);
+        playCue('stamp', { stamp: m.stamp });
+      } else if (!mine.has(m.seatId)) {
+        if (chatViews === 0) {
+          unread += 1;
+          if (live) chatPreview.set(m);
+        }
+        if (live) playCue('message');
+      }
+    }
+    online.set({ ...st, chat: [...st.chat, ...fresh].sort((a, b) => a.id - b.id).slice(-CHAT_KEEP), unread });
+  }
+
+  /** The token this device chats with: the chosen seat's, or its first seat's. */
+  chatToken(): string | null {
+    const st = online.get();
+    const pick = this.creds.seats.find((c) => c.seatId === st?.chatAs) ?? this.creds.seats[0];
+    return pick?.token ?? null;
   }
 
   /** The token that may act for this player: their own, or the seat that plays for them. */
@@ -394,7 +519,8 @@ export class OnlineSession implements GameSession {
   private async heartbeat(): Promise<void> {
     if (this.stopped) return;
     const sent = this.creds.seats.slice();
-    const r = await call<Heartbeat>('POST', '/api/room?op=heartbeat', { code: this.creds.code, tokens: sent.map((s) => s.token) });
+    const voice = voiceHooks.heartbeat?.();
+    const r = await call<Heartbeat>('POST', '/api/room?op=heartbeat', { code: this.creds.code, tokens: sent.map((s) => s.token), ...(voice ? { voice } : {}) });
     if (this.stopped) return;
     if (!r.ok) {
       // Only when every seat this request named is gone (a seat added meanwhile is not).
@@ -661,6 +787,40 @@ export async function hostControl(hostOp: 'playFor' | 'stopPlayingFor' | 'remove
   if (!r.ok) return errorText(r);
   session.applyResult(r.data);
   return null;
+}
+
+/** When this device last sent a message or a stamp (the server's limits, kept here too, need no request). */
+const lastSent = { text: 0, stamp: 0 };
+/** Network timing varies a little: wait this much longer than the server asks. */
+const SEND_MARGIN_MS = 150;
+
+/** Sends a chat message or a stamp from this device. Returns an error text to show, or null. */
+export async function sendChat(input: { text: string } | { stamp: StampId }): Promise<string | null> {
+  const session = active;
+  const st = online.get();
+  const token = session?.chatToken();
+  if (!session || !st || !token) return null;
+  const kind = 'stamp' in input ? 'stamp' : 'text';
+  const gap = (kind === 'stamp' ? STAMP_GAP_MS : CHAT_GAP_MS) + SEND_MARGIN_MS;
+  if (Date.now() - lastSent[kind] < gap) return T.chat.slowDown;
+  lastSent[kind] = Date.now();
+  const r = await call<{ message: ChatMessage }>('POST', '/api/room?op=chat', { code: st.code, token, ...input });
+  if (!r.ok) return r.error === 'slowDown' ? T.chat.slowDown : errorText(r);
+  session.receiveChat([r.data.message]);
+  return null;
+}
+
+/** On a device with several seats: which of them chats. */
+export function setChatAs(seatId: string): void {
+  const st = online.get();
+  if (st) online.set({ ...st, chatAs: seatId });
+}
+
+/** The online session in use and its room code, for voice chat. */
+export function voiceSession(): { code: string; tokens: string[] } | null {
+  const st = online.get();
+  if (!active || !st) return null;
+  return { code: st.code, tokens: active.credentials.seats.map((s) => s.token) };
 }
 
 /** This device is the host's. */

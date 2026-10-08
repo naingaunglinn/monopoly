@@ -14,7 +14,20 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
     trace: 'off',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 720 } } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
+        // Voice chat tests (spec section 18): a fake microphone (it beeps), no permission prompt, and
+        // plain local addresses so two browser contexts connect on this machine.
+        launchOptions: {
+          args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--disable-features=WebRtcHideLocalIpsWithMdns'],
+        },
+      },
+    },
+  ],
   webServer: [
     {
       command: 'npm run build && npx vite preview --port 4173 --strictPort',

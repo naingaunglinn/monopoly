@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { COUNTRIES } from '../../src/data/countries';
 import { PLAYER_COLORS, SEATS } from '../../src/data/players';
-import { contrastRatio, MORTGAGED_TINT, OWNED_TINT, ownedTileColor, PATH_TINT, readableInk, tint } from '../../src/ui/contrast';
+import { contrastRatio, inkOnPaper, MORTGAGED_TINT, OWNED_TINT, ownedTileColor, PATH_TINT, readableInk, tint } from '../../src/ui/contrast';
 
 describe('band text contrast (WCAG AA)', () => {
   test('every country band gets white or Ink text at 4.5:1 or better', () => {
@@ -77,6 +77,28 @@ describe('player colours and owned tiles (D53, D54)', () => {
       for (let j = i + 1; j < tints.length; j++) {
         expect(distance(tints[i] as string, tints[j] as string), `${PLAYER_COLORS[i]} / ${PLAYER_COLORS[j]}`).toBeGreaterThan(30);
       }
+    }
+  });
+});
+
+/** The hue of a colour in degrees (HSL). */
+function hue(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16) / 255) as [number, number, number];
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  if (d === 0) return 0;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+
+describe('stamp ink (spec section 18)', () => {
+  test('every player colour, as stamp and chat ink, reads as small text on white (AA) and keeps its hue', () => {
+    for (const color of PLAYER_COLORS) {
+      const ink = inkOnPaper(color);
+      expect(contrastRatio(ink, '#FFFFFF'), color).toBeGreaterThanOrEqual(4.5);
+      // Still that player's colour: the hue moves by 25 degrees at most.
+      const turn = Math.abs(hue(ink) - hue(color)) % 360;
+      expect(Math.min(turn, 360 - turn), color).toBeLessThanOrEqual(25);
     }
   });
 });

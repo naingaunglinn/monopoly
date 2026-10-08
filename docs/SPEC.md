@@ -1171,3 +1171,18 @@ Added at the owner's request, after section 17, to make playing with friends liv
 - **In time with the board.** Sounds play on the animation timeline, one step sound per space, so they match what is shown. Skipping an animation stops its sounds. With animation Off, reduced motion or nothing to animate, an action plays its key sounds at once (four at most). Reduced motion does not turn sound off.
 - **Settings (this device).** Sound effects on or off, and the volume (70% at first), in the menu; a speaker switch in the top bar on larger screens. They are remembered on the device, like the online animation speed.
 - **Levels.** Each sound is trimmed so big moments, actions and small feedback sit in three steps; none clips. A background tab plays only the chime, chat and voice sounds.
+
+### Chat and stamps (online)
+
+- **Where.** On large screens a Chat tab sits beside the log; on phones a Chat tab is in the sheet; in the lobby a Chat button opens it. With the chat open on a large screen, a decision panel takes the play area and the chat stays beside it.
+- **Messages.** One line of plain text, 200 characters at most, with the sender's token, name and time. Messages from one seat in a row share a heading. One device with several seats chooses which of them writes.
+- **Stamps.** Quick reactions, words not emoji: Nice, Ouch, Ha ha, Wow, Hurry up, Good game. A stamp thuds onto the sender's card like a passport stamp, in their colour, with its own sound, and appears in the chat.
+- **Noticing.** While the chat is closed, new messages from others count on the Chat tab or button and show briefly as a preview that opens the chat; they make a soft pop. Writing never skips the animation that is playing, and no key is lost.
+- **Delivery.** Chat travels with the game updates (stream, or polling) but never changes the game's version. A room keeps its newest 100 messages; they go when the room expires. A seat may send a message every 0.6 s and a stamp every 1.5 s.
+
+### Voice chat (online)
+
+- **Join voice.** On large screens in the top bar, on phones in the status bar (in place of Rules, which moves into the menu), and in the lobby. The button shows how many are already in voice. The browser asks for the microphone; a hint suggests headphones.
+- **Talking.** The microphone switch reads Mic on or Muted and glows while you talk. Each player's token carries a badge: listening, talking (green) or muted (red). Leave voice is beside the switch (phones: in the menu). Voice volume is set per device in the menu.
+- **How it works.** The devices in voice connect to each other directly, audio only; the game's server only lists who is in voice and passes each connection's set-up to its receiver. Voice carries on from the lobby into the game and stops when the device leaves the room.
+- **Networks.** Devices find each other with a public STUN server (Cloudflare's). Some networks also need a relay (TURN), which the deployment can add (DEPLOY.md). Devices in a voice chat learn each other's network addresses.

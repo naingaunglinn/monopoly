@@ -17,11 +17,20 @@ export interface Prefs {
   soundOn: boolean;
   /** Sound effects volume, 0 to 1. */
   soundVolume: number;
+  /** Voice chat volume (the others' voices), 0 to 1. */
+  voiceVolume: number;
 }
 
 export const DEFAULT_VOLUME = 0.7;
 
-const DEFAULTS: Prefs = { motionAnyway: false, onlineSpeed: 'normal', onlineName: '', soundOn: true, soundVolume: DEFAULT_VOLUME };
+const DEFAULTS: Prefs = {
+  motionAnyway: false,
+  onlineSpeed: 'normal',
+  onlineName: '',
+  soundOn: true,
+  soundVolume: DEFAULT_VOLUME,
+  voiceVolume: 1,
+};
 
 const unit = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
@@ -36,6 +45,7 @@ function load(): Prefs {
       onlineName: typeof raw?.onlineName === 'string' ? raw.onlineName.slice(0, 16) : '',
       soundOn: raw?.soundOn !== false,
       soundVolume: unit(raw?.soundVolume, DEFAULT_VOLUME),
+      voiceVolume: unit(raw?.voiceVolume, 1),
     };
   } catch {
     return { ...DEFAULTS };

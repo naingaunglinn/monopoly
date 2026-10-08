@@ -2,6 +2,7 @@
 // set follows the game's travel theme: an airport announcement chime for your turn and Chance
 // boarding passes, a passport stamp when a property is bought, a teleprinter for news Events, a
 // cell door for Jail, wooden steps for the token, coins for money, a gavel for auctions.
+import type { StampId } from '../../online/protocol';
 import { bell, clack, clank, hz, noise, thump, tone, vary, wood, type Mix } from './synth';
 
 export const CUE_NAMES = [
@@ -52,7 +53,7 @@ export const CUE_NAMES = [
 export type CueName = (typeof CUE_NAMES)[number];
 
 /** Quick reactions (spec section 18): each stamp has its own little sound after the thud. */
-export type StampSound = 'nice' | 'ouch' | 'haha' | 'wow' | 'hurry' | 'gg';
+export type StampSound = StampId;
 
 export interface CueParams {
   /** Dice: how long the dice tumble, ms. */

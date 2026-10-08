@@ -19,14 +19,17 @@ import {
 } from '../src/engine/index.js';
 import { defaultPlayerName } from '../src/ui/strings.js';
 import {
+  CHAT_MAX_LENGTH,
   CODE_ALPHABET,
   CODE_PATTERN,
+  STAMPS,
   HEARTBEAT_MS,
   LOG_LENGTH,
   MAX_SEATS,
   MIN_SEATS,
   PRESENCE_TIMEOUT_MS,
   ROOM_TTL_SECONDS,
+  type ChatMessage,
   type ErrorCode,
   type LogEntry,
   type RoomSettings,
@@ -34,6 +37,7 @@ import {
   type RoomUpdate,
   type RoomView,
   type SeatView,
+  type StampId,
   type UpdateKind,
 } from '../src/online/protocol.js';
 
@@ -111,6 +115,35 @@ export function viewOf(room: Room): RoomView {
     settings: room.settings,
     game: room.game ? publicView(room.game) : null,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Chat (spec section 18)
+
+/**
+ * One line of plain text: control, line-break and text-direction characters become spaces, runs
+ * of spaces become one, and it is cut to CHAT_MAX_LENGTH characters.
+ */
+export function cleanText(text: string): string {
+  const flat = text
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u2028-\u202e\u2066-\u2069]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return [...flat].slice(0, CHAT_MAX_LENGTH).join('').trim();
+}
+
+/** A chat message or a stamp from a seat, not yet numbered (id 0, first, so a store can number it). */
+export function chatMessage(room: Room, seat: number, input: { text?: unknown; stamp?: unknown }, now: number): ChatMessage | OpError {
+  const s = room.seats[seat];
+  if (!s) return fail('notInRoom', 403);
+  const base = { id: 0, seatId: s.id, name: s.name, color: s.color, at: now };
+  if (input.stamp !== undefined && input.stamp !== null) {
+    if (typeof input.stamp !== 'string' || !(STAMPS as readonly string[]).includes(input.stamp)) return fail('badRequest', 400);
+    return { ...base, text: null, stamp: input.stamp as StampId };
+  }
+  if (typeof input.text !== 'string') return fail('badRequest', 400);
+  const text = cleanText(input.text);
+  return text ? { ...base, text, stamp: null } : fail('badRequest', 400);
 }
 
 export function defaultRoomSettings(): RoomSettings {

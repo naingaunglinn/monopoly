@@ -356,8 +356,13 @@ export function installSkipHandlers(): void {
       if (e.type === 'pointerdown') swallowClick = false;
       return;
     }
+    const target = e.target as Element | null;
     // Panning or pinching the phone board while a token moves follows it instead of skipping.
-    if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('[data-gesture-zone]')) return;
+    if (e.type === 'pointerdown' && target?.closest?.('[data-gesture-zone]')) return;
+    // Chat and voice (data-no-skip) and typing in a text box never skip: online, someone else's
+    // move can be playing while a player writes (D85).
+    if (target?.closest?.('[data-no-skip]')) return;
+    if (e.type === 'keydown' && target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     skipAnimation();
     // The click that follows this press is swallowed however long the press lasts; after a key,
     // the click a focused button makes from it (Space on key up) within 400 ms.

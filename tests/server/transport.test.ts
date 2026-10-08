@@ -1,8 +1,9 @@
 // The client's live connection (src/ui/session/transport.ts) against the real API over HTTP:
 // live delivery, resuming across stream restarts without loss or repeats, the polling fallback when
-// the stream is blocked or ends at once, the silence watchdog, resync and a room that is gone.
+// the stream is blocked or ends at once, the silence watchdog, resync, a room that is gone, and chat.
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { decisionMaker, legalActions, type Action, type GameState } from '../../src/engine';
+import { CHAT_GAP_MS } from '../../src/online/protocol';
 import { RoomTransport, type LinkStatus } from '../../src/ui/session/transport';
 import { startLocalServer, type LocalServer } from '../../server/local';
 import type { RoomUpdate, RoomView } from '../../server/room';
@@ -145,6 +146,37 @@ describe('room transport', () => {
     expect(t.status).toBe('polling');
     expect(opened).toBe(1);
     t.stop();
+  });
+
+  test('chat arrives once each, on the stream and through polling when the stream is blocked', async () => {
+    const room = await startedRoom();
+    const say = async (seat: number, text: string) => {
+      const res = await post('chat', { code: room.code, token: room.tokens[seat], text });
+      expect(res.message?.text).toBe(text);
+    };
+    const live: string[] = [];
+    const t = new RoomTransport(room.code, room.view.version, { ...collector().handlers, chat: (ms) => live.push(...ms.map((m) => m.text ?? '')) }, { base, minStreamMs: 0 });
+    t.start();
+    await until(() => t.status === 'live');
+    await say(0, 'hello');
+    await say(1, 'hi Mia');
+    await until(() => live.length === 2);
+    t.stop();
+    expect(live).toEqual(['hello', 'hi Mia']);
+
+    const blocked: typeof fetch = (input, init) =>
+      String(input).includes('/api/stream') ? Promise.reject(new TypeError('blocked')) : fetch(input, init);
+    const polled: string[] = [];
+    const p = new RoomTransport(room.code, room.view.version, { ...collector().handlers, chat: (ms) => polled.push(...ms.map((m) => m.text ?? '')) }, { base, fetch: blocked, pollMs: 100 });
+    p.start();
+    await until(() => polled.length === 2);
+    // One seat may send a message every CHAT_GAP_MS.
+    await new Promise((r) => setTimeout(r, CHAT_GAP_MS));
+    await say(0, 'polled');
+    await until(() => polled.length === 3);
+    await new Promise((r) => setTimeout(r, 300));
+    p.stop();
+    expect(polled).toEqual(['hello', 'hi Mia', 'polled']);
   });
 
   test('resync fetches what was missed; a room that is gone is reported', async () => {

@@ -699,6 +699,7 @@ export function SettingsFields({ s }: { s: GameState }) {
         </div>
       </fieldset>
       <SoundFields />
+      {online && <VoiceVolume />}
       {reducedMotion && (
         <label className="toggle" htmlFor="set-motion">
           <input
@@ -715,6 +716,28 @@ export function SettingsFields({ s }: { s: GameState }) {
         </label>
       )}
     </div>
+  );
+}
+
+/** How loud the others' voices play on this device (online). */
+function VoiceVolume() {
+  const prefs = usePrefs();
+  const percent = Math.round(prefs.voiceVolume * 100);
+  return (
+    <label className="volume" htmlFor="set-voice-volume">
+      <span className="volume-label">{T.voice.volume}</span>
+      <input
+        id="set-voice-volume"
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={percent}
+        aria-valuetext={T.settings.volumeValue(percent)}
+        onChange={(e) => setPrefs({ voiceVolume: Number(e.target.value) / 100 })}
+      />
+      <span className="volume-value">{T.settings.volumeValue(percent)}</span>
+    </label>
   );
 }
 

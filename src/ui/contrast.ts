@@ -31,6 +31,26 @@ export function tint(hex: string, amount: number): string {
   return `#${mixed.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
+/** Mixes `amount` (0 to 1) of Ink into a colour (a darker shade of it). */
+export function shade(hex: string, amount: number): string {
+  const h = hex.replace('#', '');
+  const ink = INK.replace('#', '');
+  const mixed = [0, 2, 4].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * (1 - amount) + parseInt(ink.slice(i, i + 2), 16) * amount));
+  return `#${mixed.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+}
+
+/**
+ * A player's colour as ink on white paper: darkened towards Ink just enough for small text (AA,
+ * 4.5:1), so stamps and chat marks keep the player's hue and stay readable (spec section 18).
+ */
+export function inkOnPaper(hex: string): string {
+  for (let step = 0; step <= 20; step++) {
+    const c = shade(hex, step / 20);
+    if (contrastRatio(c, WHITE) >= 4.5) return c;
+  }
+  return INK;
+}
+
 /** An owned tile takes this much of its owner's colour (D54); white tiles are for sale. */
 export const OWNED_TINT = 0.4;
 /** A mortgaged tile is paler, so its amber Mortgaged label still passes AA. */

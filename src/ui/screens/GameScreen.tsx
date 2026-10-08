@@ -18,16 +18,18 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { BOARD } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
+import { ChatPanel, ChatPreview, StampLayer, UnreadBadge } from '../components/Chat';
+import { LeaveVoiceItem, VoiceButton } from '../components/Voice';
 import { DicePanel } from '../components/Dice';
 import { CoinFlight, Confetti } from '../components/Effects';
 import { FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
-import { Log } from '../components/Log';
+import { Log, LogLines, LogMoreButton } from '../components/Log';
 import { OceanArt } from '../components/OceanArt';
 import { PlayersColumn } from '../components/PlayersColumn';
 import { Tile } from '../components/Tile';
@@ -46,7 +48,7 @@ import {
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
 import { setPrefs, usePrefs } from '../prefs';
-import { inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
+import { chatRequest, inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
 import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
@@ -119,6 +121,13 @@ export function GameMenu({ s, compact = false }: { s: GameState; compact?: boole
                   <Copy size={16} aria-hidden="true" />
                   {T.online.copy}
                 </button>
+                {compact && (
+                  <button type="button" id="menu-rules" className="menu-item" onClick={() => openRules()}>
+                    <BookOpen size={16} aria-hidden="true" />
+                    {T.top.rules}
+                  </button>
+                )}
+                <LeaveVoiceItem />
                 <button type="button" id="tb-leave" className="menu-item" onClick={() => leaveToStart()}>
                   <LogOut size={16} aria-hidden="true" />
                   {T.online.backToStart}
@@ -198,6 +207,7 @@ function TopBar({ s }: { s: GameState }) {
         ))}
       </ul>
       <span className="tb-spacer" />
+      {online && <VoiceButton />}
       {online && (
         <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
           {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
@@ -320,8 +330,49 @@ function ActionBar({ s }: { s: GameState }) {
   );
 }
 
+type FeedTab = 'log' | 'chat';
+
+/**
+ * Online, the log box has a Chat tab beside the log (spec section 18). With the chat open, a
+ * decision panel takes the play area only, so the conversation stays in view.
+ */
+function Feed({ s, compact, tab, onTab }: { s: GameState; compact: boolean; tab: FeedTab; onTab: (t: FeedTab) => void }) {
+  const online = useOnline();
+  const { logExpanded } = useUi();
+  if (!online) return <Log s={s} compact={compact} />;
+  const expanded = compact && (tab === 'chat' || logExpanded);
+  return (
+    <section className={`log feed ${compact ? 'is-compact' : ''} ${expanded ? 'is-expanded' : ''}`} aria-label={T.chat.tabsLabel}>
+      <header className="log-head feed-head">
+        <div className="feed-tabs" role="tablist" aria-label={T.chat.tabsLabel}>
+          <button type="button" role="tab" id="feed-log" aria-selected={tab === 'log'} className={`feed-tab ${tab === 'log' ? 'is-on' : ''}`} onClick={() => onTab('log')}>
+            {T.chat.log}
+          </button>
+          <button type="button" role="tab" id="feed-chat" aria-selected={tab === 'chat'} className={`feed-tab ${tab === 'chat' ? 'is-on' : ''}`} onClick={() => onTab('chat')}>
+            {T.chat.title}
+            <UnreadBadge count={online.unread} />
+          </button>
+        </div>
+        {compact && tab === 'log' && <LogMoreButton />}
+      </header>
+      {tab === 'log' ? <LogLines s={s} compact={compact} /> : <ChatPanel className="feed-chat" />}
+    </section>
+  );
+}
+
 function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   const display = useDisplay();
+  const online = useOnline();
+  const [feed, setFeed] = useState<FeedTab>('log');
+  // A tapped message preview opens the chat.
+  const request = useSyncExternalStore(chatRequest.subscribe, chatRequest.get, chatRequest.get);
+  const seen = useRef(request);
+  useEffect(() => {
+    if (request === seen.current) return;
+    seen.current = request;
+    setFeed('chat');
+  }, [request]);
+  const chatOpen = online !== null && feed === 'chat';
   const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
@@ -338,7 +389,7 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   const doublesAgain =
     s.turn.rollsLeft > 0 && !!s.turn.dice && s.turn.dice[0] === s.turn.dice[1] && s.flow.phase === 'AwaitRoll' && !display.busy;
   return (
-    <div className={`stage ${showPanel ? 'has-panel' : ''} ${compactLog ? 'is-compact' : ''}`}>
+    <div className={`stage ${showPanel ? 'has-panel' : ''} ${compactLog ? 'is-compact' : ''} ${chatOpen ? 'has-chat' : ''}`}>
       <div className="stage-main">
         <FocusCard s={s} fallback={position} />
         <div className="stage-side">
@@ -347,7 +398,7 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
         </div>
       </div>
-      <Log s={s} compact={compactLog} />
+      <Feed s={s} compact={compactLog} tab={feed} onTab={setFeed} />
       {showPanel && (
         <div className="panel-layer">
           <ActivePanel s={s} />
@@ -612,6 +663,8 @@ export function GameScreen() {
       <QuickHelpPopover />
       <ConfirmDialog s={s} />
       <Confetti />
+      {online && <StampLayer />}
+      {online && <ChatPreview />}
       {DEBUG && mode === 'local' && <DebugPanel s={s} />}
     </div>
   );

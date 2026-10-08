@@ -60,6 +60,8 @@ docs/       SPEC.md (source of truth)
   Card text, city, airport and company names are data in `src/data/`.
 - State must be plain JSON: no `undefined`, no class instances, no Maps. Use `null`.
 - No network calls, CDNs or remote assets. Fonts and flags are bundled and inlined at build time.
+  Online play talks to the game's own server (section 17); online voice also asks a public STUN
+  server for the device's address after the player presses Join voice (D93). Nothing else.
 - No emoji anywhere in the interface. Flags are bundled SVGs, icons come from lucide-react,
   tokens, houses and hotels are original inline SVG.
 - CSS: plain CSS with custom properties in `src/ui/theme.css`. Animate only transform and opacity.
@@ -85,6 +87,12 @@ docs/       SPEC.md (source of truth)
   `@upstash/redis` (shared wire types live in `src/online/`).
 - The client never runs `reduce`, `parseSave` or `checkInvariants` on an online view (decks are
   hidden), and an online game never touches the local save.
+- Chat (spec section 18) never changes a room's version: it has its own store keys and stream
+  events (no `id:` line; the event id is always a version). Controls that take input during online
+  play (chat, stamps, voice) carry `data-no-skip`, so they never skip the animation that is playing.
+- Voice (`session/voice.ts`) is peer to peer; the server only lists peers and passes set-up messages,
+  which only their receiver can read. Playwright runs Chromium with a fake microphone
+  (`playwright.config.ts`); the local server hands out no ICE servers, so tests stay offline.
 - Phones (`PHONE_QUERY` in `ui/hooks.ts`, `screens/PhoneGame.tsx`): the board is the 1280 x 676
   desktop board scaled inside `.board-canvas`, whose CSS pins every board size (media queries see the
   phone). Nothing inside the canvas may use `position: fixed`. The camera lives in a ref, not state.
