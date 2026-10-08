@@ -168,6 +168,23 @@ describe('debt', () => {
     expect(decisionMaker(s)).toBe(0);
   });
 
+  test('if the drawer goes bankrupt on a card, the others still settle their share before the turn passes', () => {
+    let s = own(own(game({ playerCount: 3, mode: 'normal' }), 1, 0), [3, 6], 1);
+    s = setCash(setCash(s, 0, 50), 1, 50);
+    s = rollTo(forceCard(s, 'event-global-recession'), 19).state;
+    s = act(s, { type: 'confirmCard' });
+    expect(s.flow.debts[0]).toMatchObject({ debtor: 0, amount: 100 });
+    s = act(s, { type: 'declareBankruptcy' }, { type: 'acknowledge' });
+    // Player 0 is out, but player 1 still owes the bank before the turn passes.
+    expect(s.players[0]?.bankrupt).toBe(true);
+    expect(s.flow.phase).toBe('Debt');
+    expect(decisionMaker(s)).toBe(1);
+    s = act(s, { type: 'mortgage', space: 3 }, { type: 'mortgage', space: 6 }, { type: 'payDebt' });
+    expect(s.players.map((p) => p.cash)).toEqual([0, 50, 3900]);
+    expect(s.turn.currentPlayerIndex).toBe(1);
+    expect(s.flow.phase).toBe('AwaitRoll');
+  });
+
   test('a payment owed to several players is paid in turn order', () => {
     let s = own(game({ playerCount: 3 }), MEXICO_AIRPORT, 0);
     s = setCash(s, 0, 150);

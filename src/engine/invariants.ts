@@ -41,7 +41,11 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
   }
   const current = s.players[s.turn.currentPlayerIndex];
   if (!current) errors.push('no current player');
-  else if (current.bankrupt && phase !== 'GameOver') errors.push('current player is bankrupt');
+  else if (current.bankrupt && phase !== 'GameOver') {
+    // Allowed only while other players settle their share of the same card before the turn passes.
+    const waitingToPass = phase === 'Debt' && s.flow.resume?.kind === 'passTurn';
+    if (!waitingToPass) errors.push('current player is bankrupt');
+  }
 
   s.properties.forEach((ps, space) => {
     if (isProperty(space) !== (ps !== null)) {

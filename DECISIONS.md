@@ -85,3 +85,26 @@ least one item on either side; a gift is allowed.
 
 **D21. The rule-guide test is part of M3.** M1 has no UI to open the guide in; the test runs with
 Testing Library in M3, and the guide is UI-only so it cannot reach the engine.
+
+## Simulation (M2)
+
+**D22. Bots per game.** Every simulated game seats two sensible and two random bots; which seats get
+which alternates with the seed. Both bots choose only from `legalActions()`.
+
+**D23. Random bot.** It picks a random action type, then a random instance of it. It may propose a
+small random trade and answers offers at random. To keep random play from stalling a game, any bot
+gets at most 4 free actions (trade, mortgage, unmortgage, sell) per decision before it must make
+progress.
+
+**D24. Sensible bot.** It follows the spec list (keeps $300 when buying, builds whenever legal,
+uses Free Stay on rent above $150, pays the Jail fee above $1,000, mortgages its cheapest property
+in debt and sells buildings if nothing can be mortgaged, unmortgages above $1,500). Where the spec is
+silent: it bids in +$10 steps up to the printed price while keeping $300, never proposes trades, and
+accepts an offer only when it receives at least 1.25 times what it gives.
+
+**D25. Bankrupt current player.** On a card that charges every player, the drawer can go bankrupt
+while others still owe their share. The invariant allows a bankrupt current player only in that
+window (Debt phase, turn about to pass). The simulation found this case (Normal, seed 129).
+
+**D26. Capped Normal games count 2,000 rounds** in the median. The results do not change any price
+or rule; they are in `reports/sim-report.json` and the final report.

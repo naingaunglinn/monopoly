@@ -15,7 +15,8 @@ npm is used because pnpm is not installed (see DECISIONS.md).
 | `npm run preview` | Serve the production build on http://localhost:4173 |
 | `npm test` | Vitest: engine, data, sim smoke and UI unit tests |
 | `npm run test:e2e` | Playwright against `vite preview` (builds first) |
-| `npm run sim` | Headless simulation: 200 Quick + 200 Normal seeded games with 4 bots |
+| `npm run sim` | Headless simulation: 200 Quick + 200 Normal seeded games with 4 bots, writes `reports/sim-report.json` |
+| `npm run sim -- --quick 10 --normal 4` | A shorter simulation run |
 | `npm run typecheck` | `tsc --noEmit` only |
 
 ## Folder layout
