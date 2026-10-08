@@ -7,6 +7,7 @@ import { gridPosition } from '../../data/board';
 import type { GameState } from '../../engine';
 import { ownedTileColor, PATH_TINT, tint } from '../contrast';
 import { useDisplay } from '../display';
+import { PHONE_QUERY } from '../hooks';
 import { ui } from '../store';
 import { T } from '../strings';
 import { isRestSpace, rowTileName, tileView } from '../view';
@@ -15,6 +16,14 @@ import { BuildingPips, TokenChip } from './glyphs';
 import { spaceIcon } from './icons';
 
 export type TileKind = 'corner' | 'card' | 'row';
+
+function isPhoneLayout(): boolean {
+  try {
+    return window.matchMedia(PHONE_QUERY).matches;
+  } catch {
+    return false;
+  }
+}
 
 export function tileKind(index: number): TileKind {
   const pos = gridPosition(index);
@@ -115,7 +124,7 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
       onMouseLeave={() => ui.get().hover === index && ui.set({ hover: null })}
       onFocus={() => ui.set({ hover: index })}
       onBlur={() => ui.get().hover === index && ui.set({ hover: null })}
-      onClick={() => ui.set({ pinned: ui.get().pinned === index ? null : index })}
+      onClick={() => ui.set({ pinned: ui.get().pinned === index && !isPhoneLayout() ? null : index })}
       onKeyDown={onKey}
     >
       {kind === 'corner' && (

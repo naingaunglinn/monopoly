@@ -299,6 +299,8 @@ export function installSkipHandlers(): void {
       if (e.type === 'pointerdown') swallowClick = false;
       return;
     }
+    // Panning or pinching the phone board while a token moves follows it instead of skipping.
+    if (e.type === 'pointerdown' && (e.target as Element | null)?.closest?.('[data-gesture-zone]')) return;
     finishNow();
     // The click that follows this press is swallowed however long the press lasts; after a key,
     // the click a focused button makes from it (Space on key up) within 400 ms.

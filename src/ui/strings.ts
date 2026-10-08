@@ -57,8 +57,6 @@ export const T = {
     },
     startFresh: 'Start a new game',
     back: 'Back',
-    rotate: 'Turn your device sideways to play.',
-    rotateDetail: 'The board is built for landscape screens.',
   },
   setup: {
     title: 'New game',
@@ -204,6 +202,18 @@ export const T = {
       network: 'No connection. Check your internet and try again.',
       server: 'The server had a problem. Please try again.',
     } as Record<string, string>,
+  },
+  phone: {
+    boardLabel: 'Board: drag to move, pinch to zoom, double-tap for the whole board',
+    hintFit: 'Double-tap: whole board',
+    hintFollow: 'Double-tap: follow the token',
+    sheetLabel: 'Game controls',
+    tabsLabel: 'Views',
+    decision: 'Decision',
+    card: 'Card',
+    players: 'Players',
+    log: 'Log',
+    mine: 'Mine',
   },
   confirm: {
     newGameTitle: 'Start a new game?',

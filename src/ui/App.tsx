@@ -4,7 +4,6 @@ import { LobbyScreen, OnlineEntryScreen } from './screens/OnlineScreens';
 import { SetupScreen } from './screens/SetupScreen';
 import { StartScreen } from './screens/StartScreen';
 import { RuleGuide } from './overlays/RuleGuide';
-import { RotateHint } from './components/RotateHint';
 import { usePrefs } from './prefs';
 import { openRoom } from './session/online';
 import { ROOM_PARAM, useAnimationSpeed, useApp, useUi } from './store';
@@ -35,7 +34,6 @@ export function App() {
       {rules.open && <RuleGuide />}
       {/* One toast for every screen (game, lobby, start). */}
       <Toast />
-      <RotateHint />
     </div>
   );
 }

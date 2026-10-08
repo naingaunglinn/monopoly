@@ -81,6 +81,8 @@ export async function playStep(page: Page, opts: PlayOptions = {}): Promise<bool
     return true;
   }
   const s = await gameState(page);
+  // Over (the winner panel may be one frame from showing): nothing left to press.
+  if (s.flow.phase === 'GameOver' && s.flow.notices.length === 0) return false;
   if (s.flow.phase === 'Auction' && s.flow.notices.length === 0) {
     await page.locator('#bid-fold').click();
     return true;

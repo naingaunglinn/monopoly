@@ -24,5 +24,8 @@ export function useMediaQuery(query: string): boolean {
 
 /** 1024 to 1279 px: compact log (last 3 lines, expands on click). */
 export const COMPACT_QUERY = '(max-width: 1279px)';
-/** Under 1024 px or portrait: the HUD moves below the board. */
-export const STACKED_QUERY = '(max-width: 1023px), (orientation: portrait)';
+/**
+ * Phones and other small screens (spec section 17): under 1024 px wide, portrait, or under 540 px
+ * tall (phones in landscape). The board becomes a zoomable viewport with a control sheet.
+ */
+export const PHONE_QUERY = '(max-width: 1023px), (orientation: portrait), (max-height: 539px)';

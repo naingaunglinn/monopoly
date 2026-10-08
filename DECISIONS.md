@@ -391,3 +391,40 @@ The pass-device screen appears online only between two seats on the same device.
 - Anyone with the link can take a disconnected seat back from the join screen ("Take over <name>'s seat").
 
 **D72. Online menus.** The online menu has no Save, New game or Pass-device switch. It offers Copy invite link and Back to start, which keeps the seat. The winner panel and the results also offer Back to start.
+
+**D73. Phones get their own layout (overrides "phones not a target; rotate hint" in spec sections 2 and 14).**
+- It applies when the screen is under 1024 px wide, in portrait, or under 540 px tall (phones in landscape). It replaces the old stacked layout and the rotate hint.
+- The layout: a slim status bar (round, whose turn, my cash, Rules, Menu), the board in a viewport, and a control sheet. The sheet sits at the bottom in portrait and on the side in landscape.
+- The sheet holds the primary button (always visible), the dice, Build when it applies, and tabs: Card, Players, Log and Mine. "Mine" lists my properties with their actions, plus Trade.
+- A decision panel opens in the sheet as its own tab (Decision) and waits for animations, as on large screens.
+- "My cash" is this device's player online, and the player whose turn it is on one shared device.
+- Larger screens are unchanged.
+
+**D74. The board camera.**
+- On phones the board keeps its exact 1280 × 720 desktop layout (1280 × 676 below the top bar) and is scaled as a whole. Every board size is pinned inside it, because media queries see the phone, not the board.
+- While following a token, the scale is at least 0.92, so 11 px tile text shows at 10 px or more. The whole board after a double-tap is an overview, and the one exception.
+- Gestures: one finger pans, two fingers pinch, the mouse wheel zooms, and a double-tap toggles between the whole board and following.
+- The camera follows the moving token step by step. Any move, animated or not, brings it back to following after a pan.
+- The camera lives in a ref and is written straight to the transform, so gestures never re-render the 80 tiles. It glides only when animations are on and reduced motion is off.
+- On phones a tap pins a tile and shows its Focus Card, without toggling it off again, so a double-tap stays harmless. The click that ends a drag is dropped.
+
+**D75. Gestures on the board do not skip animations.** Pointer input that starts on the phone board (`data-gesture-zone`) is exempt from "any input skips an animation", so a player can pan or zoom while a token moves. A tap anywhere else, the Skip button and any key still skip.
+
+**D76. Phone comfort.**
+- `viewport-fit=cover`, with safe-area padding on the status bar, the sheet and the bottom sheets. Page zoom stays available (no `user-scalable=no`), but iOS gesture events are cancelled on the board only.
+- The game screen uses `100dvh` and never scrolls; setup, lobby and sheet content scroll inside themselves.
+- Covering sheets and dialogs (trade, property lists, results, rules, confirmations) become full-width sheets from the bottom.
+- Controls and tabs are at least 44 px. Board tiles grow with zoom; every action also has a full-size button.
+- In landscape on short screens, the start screen drops its board art.
+
+**D77. Screen awake.** During a game the Wake Lock API keeps the screen on where the browser allows it. It is requested again when the tab becomes visible and released when the game screen closes. A refusal is ignored.
+
+**D78. The phone audit.** Every phone capture is checked for:
+- no page scroll in either direction;
+- the primary button fully on screen;
+- board text at 10 px or more after scaling while following (the overview excepted);
+- the usual text-size and clipped-text rules.
+
+Phones are tested at 360 × 800 and 390 × 844 in portrait and 844 × 390 in landscape, with touch emulation. Pinch and pan use real touch events.
+
+**D79. Decision panels on phones keep their buttons in view.** A panel's own buttons (Build, Pass, the bids and Fold, Sell or mortgage) stay pinned at the bottom of the sheet, and the details scroll under them with a short fade. In the Buy panel the price and the cash after buying come before the deed. Reviewing the phone captures showed the Build button below the fold, so a player could press Done without seeing it.

@@ -1,7 +1,7 @@
 // Screenshot review (spec section 15): start, setup, a mid-game board, every decision panel, the
 // rule guide, pass-device, winner and results at 1280 × 720, 1024 × 768 and 1920 × 1080.
 // Images go to reports/screenshots/<size>/ for a person to open and look at.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout } from './audit';
 import { loadState, panelStates } from './fixtures';
 import { trackErrors } from './helpers';
@@ -14,10 +14,33 @@ const SIZES = [
 
 let problems: string[] = [];
 
-async function shot(page: Page, size: { width: number; height: number }, name: string) {
-  await page.waitForTimeout(120);
+async function shot(page: Page, size: { width: number; height: number }, name: string, phone = false) {
+  await page.waitForTimeout(phone ? 450 : 120);
   await page.screenshot({ path: `reports/screenshots/${size.width}x${size.height}/${name}.png` });
-  for (const p of await auditLayout(page)) problems.push(`${size.width}x${size.height} ${name}: ${p}`);
+  for (const p of await auditLayout(page, { phone })) problems.push(`${size.width}x${size.height} ${name}: ${p}`);
+}
+
+const PHONES = [
+  { width: 360, height: 800 },
+  { width: 390, height: 844 },
+  { width: 844, height: 390 },
+];
+
+const ONLINE = 'http://localhost:4175';
+
+async function onlineDevice(browser: Browser, phone: { width: number; height: number } | null) {
+  const context = await browser.newContext(
+    phone ? { viewport: phone, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 720 } },
+  );
+  await context.addInitScript(() => window.localStorage.setItem('global-monopoly/prefs/v1', JSON.stringify({ onlineSpeed: 'off' })));
+  const page = await context.newPage();
+  return { context, page, log: trackErrors(page) };
+}
+
+async function doubleTapBoard(page: Page) {
+  const box = (await page.locator('.board-viewport').boundingBox())!;
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 for (const size of SIZES) {
@@ -71,6 +94,139 @@ for (const size of SIZES) {
       }
       expect(log.errors).toEqual([]);
       expect(problems).toEqual([]);
+    });
+  });
+}
+
+test.describe('online 1280 x 720', () => {
+  test('create, join, lobby (host and guest), your turn and waiting', async ({ browser }) => {
+    problems = [];
+    const size = { width: 1280, height: 720 };
+    const host = await onlineDevice(browser, null);
+    const guest = await onlineDevice(browser, null);
+    await host.page.goto(`${ONLINE}/`);
+    await host.page.locator('#start-create').click();
+    await host.page.locator('#online-name').fill('Mia');
+    await shot(host.page, size, 'online-01-create');
+    await host.page.locator('#online-submit').click();
+    await expect(host.page.locator('.lobby-code')).toBeVisible();
+    const code = (await host.page.locator('.lobby-code').innerText()).trim();
+    await guest.page.goto(`${ONLINE}/`);
+    await guest.page.locator('#start-join').click();
+    await guest.page.locator('#online-code').fill(code);
+    await guest.page.locator('#online-name').fill('Leo');
+    await shot(guest.page, size, 'online-02-join');
+    await guest.page.locator('#online-submit').click();
+    await expect(host.page.locator('.lobby-seat')).toHaveCount(2);
+    await shot(host.page, size, 'online-03-lobby-host');
+    await shot(guest.page, size, 'online-04-lobby-guest');
+    await host.page.locator('#lobby-start').click();
+    await expect(host.page.locator('.turn-banner')).toBeVisible();
+    await shot(host.page, size, 'online-05-your-turn');
+    await expect(guest.page.locator('#primary')).toContainText('Waiting for Mia');
+    await shot(guest.page, size, 'online-06-waiting');
+    expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
+    expect(problems).toEqual([]);
+    await host.context.close();
+    await guest.context.close();
+  });
+});
+
+for (const size of PHONES) {
+  test.describe(`phone ${size.width} x ${size.height}`, () => {
+    test.use({ viewport: size, isMobile: true, hasTouch: true });
+
+    test('phone screens and panels', async ({ page }) => {
+      problems = [];
+      const log = trackErrors(page);
+      await page.goto('/?seed=42');
+      await page.evaluate(() => window.localStorage.clear());
+      await page.reload();
+      await shot(page, size, 'phone-01-start', true);
+      await page.locator('#start-new').click();
+      await shot(page, size, 'phone-02-setup', true);
+      await page.locator('#back, .setup-footer .btn').first().click();
+      await page.locator('#start-create').click();
+      await shot(page, size, 'phone-03-online-create', true);
+      await page.locator('.online-card .setup-footer .btn').first().click();
+      await page.locator('#start-join').click();
+      await shot(page, size, 'phone-04-online-join', true);
+
+      const states = panelStates();
+      for (const [name, state] of Object.entries(states)) {
+        await loadState(page, state, '?seed=42');
+        await expect(page.locator('.game-screen.is-phone')).toBeVisible();
+        if (name === 'trade') {
+          await shot(page, size, `phone-panel-${name}-handover`, true);
+          await page.locator('#handover-ready').click();
+        }
+        await shot(page, size, `phone-${name}`, true);
+        if (name === 'winner') {
+          await page.locator('#winner-results').click();
+          await shot(page, size, 'phone-results', true);
+        }
+        if (name === 'mid-game') {
+          await doubleTapBoard(page);
+          await expect(page.locator('.board-viewport')).toHaveAttribute('data-mode', 'fit');
+          await shot(page, size, 'phone-mid-game-whole-board', true);
+          await doubleTapBoard(page);
+          for (const tab of ['players', 'log', 'mine']) {
+            await page.locator(`#tab-${tab}`).click();
+            await shot(page, size, `phone-mid-game-tab-${tab}`, true);
+          }
+          await page.locator('#mine-trade').click();
+          await shot(page, size, 'phone-trade-builder', true);
+          await page.keyboard.press('Escape');
+          await page.locator('#tab-players').click();
+          await page.locator('.player-card').nth(1).click();
+          await shot(page, size, 'phone-property-list', true);
+          await page.keyboard.press('Escape');
+          await page.locator('#tb-rules').click();
+          await shot(page, size, 'phone-rule-guide', true);
+          await page.keyboard.press('Escape');
+          await page.locator('#tb-menu').click();
+          await shot(page, size, 'phone-menu', true);
+          await page.keyboard.press('Escape');
+        }
+      }
+      expect(log.errors).toEqual([]);
+      expect(problems).toEqual([]);
+    });
+
+    test('phone online: lobby, waiting and your turn', async ({ browser }) => {
+      problems = [];
+      const host = await onlineDevice(browser, size);
+      const guest = await onlineDevice(browser, null);
+      await host.page.goto(`${ONLINE}/`);
+      await host.page.locator('#start-create').click();
+      await host.page.locator('#online-name').fill('Mia');
+      await host.page.locator('#online-submit').click();
+      await expect(host.page.locator('.lobby-code')).toBeVisible();
+      const code = (await host.page.locator('.lobby-code').innerText()).trim();
+      await guest.page.goto(`${ONLINE}/?room=${code}`);
+      await guest.page.locator('#online-name').fill('Leo');
+      await guest.page.locator('#online-submit').click();
+      await expect(host.page.locator('.lobby-seat')).toHaveCount(2);
+      await shot(host.page, size, 'phone-online-lobby-host', true);
+      await guest.page.locator('#lobby-leave').isVisible();
+      await host.page.locator('#lobby-start').click();
+      await expect(host.page.locator('.game-screen.is-phone')).toBeVisible();
+      await expect(host.page.locator('.turn-banner')).toBeVisible();
+      await shot(host.page, size, 'phone-online-your-turn', true);
+      // Mia rolls and finishes her turn; then she waits for Leo.
+      for (let i = 0; i < 12; i++) {
+        const s = await host.page.evaluate(() => (window as any).__GM__.getState());
+        if (s.turn.currentPlayerIndex !== 0) break;
+        if (s.flow.phase === 'Auction') await host.page.locator('#bid-fold').click();
+        else await host.page.locator('#primary').click();
+        await host.page.waitForTimeout(300);
+      }
+      await expect(host.page.locator('#primary')).toContainText('Waiting for Leo');
+      await shot(host.page, size, 'phone-online-waiting', true);
+      expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
+      expect(problems).toEqual([]);
+      await host.context.close();
+      await guest.context.close();
     });
   });
 }

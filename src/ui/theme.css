@@ -3401,103 +3401,8 @@ ol.rules-lines {
 }
 
 /* Under 1024px or portrait: a rotate hint; the HUD moves below the board; the game stays playable */
-.rotate-hint {
-  display: none;
-}
 
 @media (max-width: 1023px), (orientation: portrait) {
-  .rotate-hint {
-    position: fixed;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    max-width: calc(100vw - 16px);
-    border-radius: 999px;
-    background: var(--ink);
-    color: #fff;
-    font-size: var(--fs-small);
-  }
-
-  :root {
-    --corner-w: clamp(64px, 15vw, 150px);
-    --corner-h: clamp(48px, 9vw, 78px);
-  }
-
-  .game-screen.is-stacked {
-    display: block;
-    height: auto;
-    min-height: 100%;
-    overflow: visible;
-  }
-
-  .game-screen.is-stacked .topbar {
-    flex-wrap: wrap;
-    height: auto;
-    min-height: var(--topbar-h);
-    padding: 4px 8px;
-  }
-
-  .game-screen.is-stacked .tb-modifiers {
-    display: none;
-  }
-
-  .game-screen.is-stacked .board {
-    height: min(118vw, 760px);
-  }
-
-  .game-screen.is-stacked .tile-value,
-  .game-screen.is-stacked .tile-row .tile-name {
-    font-size: 10px;
-  }
-
-  .game-screen.is-stacked > .hud {
-    position: static;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    padding: 12px;
-    background: var(--ocean);
-  }
-
-  .game-screen.is-stacked .players-col {
-    overflow: visible;
-  }
-
-  .game-screen.is-stacked .player-list {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-
-  .game-screen.is-stacked .stage {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-  }
-
-  .game-screen.is-stacked .stage-main {
-    flex-wrap: wrap;
-  }
-
-  .game-screen.is-stacked .stage .log {
-    grid-row: 2;
-    grid-column: 1;
-    max-height: 220px;
-  }
-
-  .game-screen.is-stacked .panel-layer {
-    grid-row: 1 / 3;
-    grid-column: 1;
-    position: relative;
-  }
-
-  .game-screen.is-stacked .action-bar {
-    grid-row: 3;
-    grid-column: 1;
-  }
-
   .setup-grid,
   .trade-cols,
   .rules-body {
@@ -3939,5 +3844,491 @@ ol.rules-lines {
 
   .lobby-header {
     gap: 18px;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Phones and small screens (spec section 17): a status bar, the board in a zoomable viewport and a
+   control sheet (bottom in portrait, side in landscape). Safe areas are respected. */
+
+.game-screen.is-phone {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.phone-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: max(4px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 4px max(8px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--tile-line);
+  background: var(--tile);
+}
+
+.ps-round {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ps-round svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ps-turn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 10px 2px 2px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px var(--player);
+}
+
+.ps-name {
+  min-width: 0;
+  max-width: 8em;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ps-cash {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.phone-status .tb-spacer {
+  min-width: 0;
+}
+
+.ps-icon,
+.phone-status .menu-wrap > .btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+}
+
+.phone-status .menu {
+  position: fixed;
+  top: calc(52px + env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  width: min(320px, calc(100vw - 16px));
+  max-height: calc(100dvh - 64px);
+  overflow: auto;
+}
+
+.phone-main {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.board-viewport {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--chart-paper);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* The desktop board at a fixed size, whatever the screen (its media queries see the phone). */
+.board-canvas {
+  --corner-w: 150px;
+  --corner-h: 78px;
+  --lane-w: 64px;
+  --lane-h: 28px;
+  --token: 18px;
+  --token-current: 24px;
+  --owner-card: 14px;
+  --owner-row: 13px;
+  --flag-card: 16px;
+  --flag-row: 14px;
+  --pip: 8px;
+  --fs-tile: 11px;
+  --gap: 2px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 676px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.board-canvas .board {
+  height: 100%;
+}
+
+.game-screen.is-phone .board-canvas .tile-card .tile-name {
+  display: -webkit-box;
+}
+
+.game-screen.is-phone .board-canvas .tile-card .tile-text {
+  padding-top: 3px;
+}
+
+.viewport-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.phone-sheet {
+  display: flex;
+  flex-direction: column;
+  height: clamp(300px, 47dvh, 470px);
+  min-height: 0;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border-top: 1px solid var(--ocean-line);
+  background: var(--ocean);
+}
+
+.phone-sheet-body {
+  /* Positioned, so absolutely placed helpers inside (screen-reader labels) stay in its scroll box. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px 10px 4px;
+}
+
+.phone-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 2px 8px;
+}
+
+.phone-tab {
+  flex: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  min-height: 48px;
+  padding: 2px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--on-ocean-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.phone-tab svg {
+  width: 20px;
+  height: 20px;
+}
+
+.phone-tab.is-on {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.phone-tab.is-alert {
+  box-shadow: inset 0 -3px 0 #fff;
+  color: #fff;
+}
+
+.phone-tab:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+.phone-hint,
+.phone-refusal {
+  margin: 2px 12px 0;
+  color: var(--on-ocean-soft);
+  font-size: var(--fs-small);
+}
+
+.phone-refusal {
+  color: #fff;
+}
+
+.phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 10px;
+}
+
+.phone-actions .primary-slot {
+  flex: 1;
+  min-width: 0;
+}
+
+.phone-actions .btn-big {
+  width: 100%;
+  min-width: 0;
+}
+
+.phone-actions .primary-reason {
+  color: var(--on-ocean-soft);
+}
+
+.mini-dice {
+  --die: 34px;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-dice .die {
+  filter: drop-shadow(0 2px 0 #b8ab88);
+}
+
+.mini-dice.is-idle .die {
+  opacity: 0.5;
+}
+
+.mini-total {
+  min-width: 1.4em;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.phone-panel {
+  position: static;
+  display: block;
+}
+
+.phone-panel .panel {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  overflow: visible;
+}
+
+/* The sheet scrolls the panel's details; its own buttons (Build, Pass, Fold) stay in view at the bottom. */
+.phone-panel .panel-actions {
+  position: sticky;
+  bottom: -4px;
+  z-index: 1;
+  border-radius: 0 0 var(--r-panel) var(--r-panel);
+  background: var(--tile);
+}
+
+/* Details scrolling under the buttons fade out instead of ending in a hard cut. */
+.phone-panel .panel-actions::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 16px;
+  background: linear-gradient(to bottom, transparent, var(--tile));
+  pointer-events: none;
+}
+
+.phone-panel .panel-split,
+.phone-panel .auction-controls {
+  grid-template-columns: minmax(0, 1fr);
+  flex-wrap: wrap;
+}
+
+/* One column: the numbers that decide (price, cash after) come before the deed. */
+.phone-panel .panel-split > .facts {
+  order: -1;
+}
+
+.phone-card {
+  display: flex;
+  justify-content: center;
+}
+
+.phone-card .deed {
+  flex: 0 1 420px;
+  width: 100%;
+}
+
+.phone-sheet .players-col {
+  overflow: visible;
+}
+
+.phone-sheet .player-list {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.phone-sheet .log {
+  height: auto;
+  max-height: none;
+}
+
+.phone-mine {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--chart-paper);
+}
+
+.phone-build {
+  flex: none;
+}
+
+@media (orientation: landscape) {
+  .phone-main {
+    grid-template-columns: minmax(0, 1fr) min(340px, 44vw);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .phone-sheet {
+    height: auto;
+    border-top: none;
+    border-left: 1px solid var(--ocean-line);
+  }
+}
+
+/* Covering screens and dialogs fit a phone: full width sheets from the bottom. */
+@media (max-width: 1023px), (orientation: portrait), (max-height: 539px) {
+  .sheet-backdrop,
+  .modal-backdrop {
+    padding: env(safe-area-inset-top) 0 0;
+    place-items: end stretch;
+  }
+
+  .sheet,
+  .sheet.is-wide {
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 8px);
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+  }
+
+  .sheet-foot {
+    flex-wrap: wrap;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .dialog {
+    width: 100%;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .pass-device {
+    padding: 16px;
+  }
+
+  .pass-card {
+    width: min(420px, 100%);
+    padding: 28px 20px 24px;
+  }
+
+  .pass-name {
+    font-size: 36px;
+  }
+
+  .rule-guide {
+    height: calc(100dvh - env(safe-area-inset-top) - 8px);
+  }
+
+  .toast {
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 24px);
+  }
+
+  .turn-banner {
+    top: calc(58px + env(safe-area-inset-top));
+    max-width: calc(100vw - 24px);
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .trade-waiting {
+    top: calc(58px + env(safe-area-inset-top));
+    bottom: auto;
+    max-width: calc(100vw - 24px);
+  }
+
+  .lobby-header {
+    flex-wrap: wrap;
+  }
+
+  .lobby-seat {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 4px;
+  }
+
+  .lobby-seat > .icon-btn {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .lobby-badges {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .lobby-badges:empty {
+    display: none;
+  }
+
+  .online-card,
+  .setup-card {
+    max-height: calc(100dvh - 24px);
+  }
+
+  .btn,
+  .segment,
+  .phone-tab {
+    min-height: 44px;
+  }
+}
+
+@media (max-height: 539px) {
+  .start-screen {
+    overflow: auto;
+    place-items: start center;
+  }
+
+  .start-ring {
+    display: none;
+  }
+
+  .start-content {
+    padding: 16px 20px;
+  }
+
+  .start-title {
+    font-size: 48px;
+  }
+
+  .start-groups {
+    margin-top: 14px;
+    gap: 10px;
   }
 }

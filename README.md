@@ -41,6 +41,14 @@ picks the settings and starts with 2 to 6 players. One device can hold several s
 - Deployed on Vercel with Upstash Redis: see [DEPLOY.md](DEPLOY.md), then check the deployment with
   `npm run smoke -- https://your-game.vercel.app`.
 
+## On a phone
+
+The game works on phones in portrait and landscape, on one device or online. The board sits in the
+middle: drag to move it, pinch to zoom, and double-tap to see the whole board (double-tap again to
+follow the token). It follows the moving token by itself. The controls sit in a sheet at the bottom
+(on the side in landscape): the yellow button, the dice, and tabs for the tapped tile's card, the
+players, the log and your properties. Decisions open there too.
+
 ## How to play
 
 1. Press **New game**, set the players (or keep the defaults) and press **Start game**. Press a

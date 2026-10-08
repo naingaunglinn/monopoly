@@ -31,7 +31,7 @@ import { PlayersColumn } from '../components/PlayersColumn';
 import { Tile } from '../components/Tile';
 import { TokenLayer } from '../components/TokenLayer';
 import { shownCash, shownDice, shownPosition, useDisplay } from '../display';
-import { COMPACT_QUERY, STACKED_QUERY, useMediaQuery } from '../hooks';
+import { COMPACT_QUERY, PHONE_QUERY, useMediaQuery } from '../hooks';
 import {
   ConfirmDialog,
   PassDevice,
@@ -44,6 +44,7 @@ import {
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
 import { inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
+import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
 import {
   app,
@@ -68,58 +69,20 @@ import {
 import { GAME_TITLE, modifierLabel, money, recapLine, T } from '../strings';
 import { legalTypes, names, playerName, primarySpec } from '../view';
 
-function TopBar({ s }: { s: GameState }) {
+/** The Menu button and its popover: settings, then Save and New game (local) or invite and leave (online). */
+export function GameMenu({ s, compact = false }: { s: GameState; compact?: boolean }) {
   const { menuOpen } = useUi();
   const online = useOnline();
-  const display = useDisplay();
-  const current = s.players[s.turn.currentPlayerIndex] as Player;
-  const quick = s.meta.settings.mode === 'quick';
   const menuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!menuOpen) return;
-    const close = (e: MouseEvent) => {
+    const close = (e: PointerEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) ui.set({ menuOpen: false });
     };
-    window.addEventListener('mousedown', close);
-    return () => window.removeEventListener('mousedown', close);
+    window.addEventListener('pointerdown', close);
+    return () => window.removeEventListener('pointerdown', close);
   }, [menuOpen]);
   return (
-    <header className="topbar">
-      <span className="tb-title">{GAME_TITLE}</span>
-      <span className="tb-stat">
-        {quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}
-      </span>
-      <span className="tb-stat">{T.top.turn(s.turn.turnNumber)}</span>
-      {s.flow.phase !== 'GameOver' && (
-        <span className="tb-player" style={{ ['--player' as string]: current.color }}>
-          <TokenChip token={current.token} color={current.color} size={22} />
-          <span className="tb-player-name">{current.name}</span>
-          <span className="tb-cash money">{money(shownCash(s, display, current.id))}</span>
-        </span>
-      )}
-      <ul className="tb-modifiers" aria-label={T.top.modifiersLabel}>
-        {s.flow.modifiers.map((m) => (
-          <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
-            <Layers size={13} aria-hidden="true" />
-            {modifierLabel(m.type, m.factor)}
-          </li>
-        ))}
-      </ul>
-      <span className="tb-spacer" />
-      {online && (
-        <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
-          {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
-          {T.online.room(online.code)}
-        </span>
-      )}
-      <Button
-        id="tb-rules"
-        variant="ghost"
-        label={T.top.rules}
-        keyHint="R"
-        icon={<BookOpen size={16} aria-hidden="true" />}
-        onClick={() => openRules()}
-      />
       <div className="menu-wrap" ref={menuRef}>
         <button
           type="button"
@@ -130,7 +93,7 @@ function TopBar({ s }: { s: GameState }) {
           onClick={() => ui.set({ menuOpen: !menuOpen })}
         >
           <MenuIcon size={16} aria-hidden="true" />
-          <span className="btn-label">{T.top.menu}</span>
+          <span className={compact ? 'sr-only' : 'btn-label'}>{T.top.menu}</span>
         </button>
         {menuOpen && (
           <div className="menu" role="dialog" aria-label={T.top.menu}>
@@ -179,11 +142,57 @@ function TopBar({ s }: { s: GameState }) {
           </div>
         )}
       </div>
+  );
+}
+
+function TopBar({ s }: { s: GameState }) {
+  const online = useOnline();
+  const display = useDisplay();
+  const current = s.players[s.turn.currentPlayerIndex] as Player;
+  const quick = s.meta.settings.mode === 'quick';
+  return (
+    <header className="topbar">
+      <span className="tb-title">{GAME_TITLE}</span>
+      <span className="tb-stat">
+        {quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}
+      </span>
+      <span className="tb-stat">{T.top.turn(s.turn.turnNumber)}</span>
+      {s.flow.phase !== 'GameOver' && (
+        <span className="tb-player" style={{ ['--player' as string]: current.color }}>
+          <TokenChip token={current.token} color={current.color} size={22} />
+          <span className="tb-player-name">{current.name}</span>
+          <span className="tb-cash money">{money(shownCash(s, display, current.id))}</span>
+        </span>
+      )}
+      <ul className="tb-modifiers" aria-label={T.top.modifiersLabel}>
+        {s.flow.modifiers.map((m) => (
+          <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
+            <Layers size={13} aria-hidden="true" />
+            {modifierLabel(m.type, m.factor)}
+          </li>
+        ))}
+      </ul>
+      <span className="tb-spacer" />
+      {online && (
+        <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
+          {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
+          {T.online.room(online.code)}
+        </span>
+      )}
+      <Button
+        id="tb-rules"
+        variant="ghost"
+        label={T.top.rules}
+        keyHint="R"
+        icon={<BookOpen size={16} aria-hidden="true" />}
+        onClick={() => openRules()}
+      />
+      <GameMenu s={s} />
     </header>
   );
 }
 
-function PrimaryButton({ s }: { s: GameState }) {
+export function PrimaryButton({ s }: { s: GameState }) {
   const spec = primarySpec(s);
   const shaking = useShake('primary');
   const { busy } = useDisplay();
@@ -333,7 +342,8 @@ function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   );
 }
 
-function Board({ s, stacked, compactLog }: { s: GameState; stacked: boolean; compactLog: boolean }) {
+/** The ring of tiles with the ocean, tokens and (on large screens) the HUD inside it. */
+export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; compactLog: boolean }) {
   const display = useDisplay();
   const current = s.players[s.turn.currentPlayerIndex];
   const currentPos = shownPosition(s, display, s.turn.currentPlayerIndex);
@@ -359,7 +369,7 @@ function Board({ s, stacked, compactLog }: { s: GameState; stacked: boolean; com
       <div className="ocean">
         <OceanArt />
         <TokenLayer s={s} />
-        {!stacked && <Hud s={s} compactLog={compactLog} />}
+        {hud && <Hud s={s} compactLog={compactLog} />}
       </div>
     </main>
   );
@@ -446,7 +456,8 @@ function useHandover(s: GameState, online: OnlineState | null): { player: number
 function useYourTurn(s: GameState, online: OnlineState | null): string | null {
   const decider = decisionMaker(s);
   const mine = online !== null && decider !== null && online.mine.includes(decider);
-  const was = useRef(mine);
+  // Starts false: opening the game (or rejoining) on one's own decision shows the banner too.
+  const was = useRef(false);
   const [banner, setBanner] = useState<string | null>(null);
   useEffect(() => {
     if (!online) return;
@@ -478,6 +489,38 @@ function useYourTurn(s: GameState, online: OnlineState | null): string | null {
   return banner;
 }
 
+/** Keeps the screen awake during a game where the browser allows it (Wake Lock API). */
+function useWakeLock(): void {
+  useEffect(() => {
+    type Lock = { release: () => Promise<void> };
+    const wake = (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<Lock> } }).wakeLock;
+    if (!wake) return;
+    let lock: Lock | null = null;
+    let alive = true;
+    const request = () => {
+      if (document.visibilityState !== 'visible') return;
+      // The request is refused when hidden or not allowed: that is fine, the screen may then sleep.
+      wake
+        .request('screen')
+        .then((l) => {
+          if (alive) lock = l;
+          else void l.release().catch(() => undefined);
+        })
+        .catch(() => undefined);
+    };
+    request();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') request();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      alive = false;
+      document.removeEventListener('visibilitychange', onVisible);
+      void lock?.release().catch(() => undefined);
+    };
+  }, []);
+}
+
 function LinkBar({ online }: { online: OnlineState }) {
   if (online.link === 'gone') {
     return (
@@ -504,23 +547,29 @@ export function GameScreen() {
   const online = useOnline();
   const { mode } = useApp();
   const animationSpeed = useAnimationSpeed();
-  const stacked = useMediaQuery(STACKED_QUERY);
+  const phone = useMediaQuery(PHONE_QUERY);
   const compactLog = useMediaQuery(COMPACT_QUERY);
   const handover = useHandover(s, online);
   const banner = useYourTurn(s, online);
   useKeyboard();
+  useWakeLock();
   useEffect(() => () => closeRules(), []);
   const showPass = s.flow.phase === 'PassDevice' && s.flow.notices.length === 0 && !s.flow.trade;
   return (
     <div
-      className={`game-screen ${display.busy ? 'is-animating' : ''} ${stacked ? 'is-stacked' : ''} ${online ? 'is-online' : ''}`}
+      className={`game-screen ${display.busy ? 'is-animating' : ''} ${phone ? 'is-phone' : ''} ${online ? 'is-online' : ''}`}
       data-phase={s.flow.phase}
       data-speed={animationSpeed}
     >
       {online && <LinkBar online={online} />}
-      <TopBar s={s} />
-      <Board s={s} stacked={stacked} compactLog={compactLog} />
-      {stacked && <Hud s={s} compactLog={false} />}
+      {phone ? (
+        <PhoneGame s={s} />
+      ) : (
+        <>
+          <TopBar s={s} />
+          <Board s={s} hud compactLog={compactLog} />
+        </>
+      )}
       {showPass && <PassDevice key={s.turn.turnNumber} s={s} />}
       {handover && !s.flow.trade && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
       {banner && !handover && (

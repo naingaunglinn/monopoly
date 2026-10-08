@@ -74,13 +74,19 @@ docs/       SPEC.md (source of truth)
 - The save has a `schemaVersion` (now 2). A change to the state's shape bumps it and adds a migration
   in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
 - After UI changes run `npm run test:e2e`: the screenshot spec audits every capture (text under 10px,
-  page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080.
+  page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080, plus the
+  phone sizes. Playwright clears `test-results/` when it starts: keep logs elsewhere.
 - Online (spec section 17): the server is authoritative; never keep room state in function memory.
   Every relative import reachable from `api/` needs an explicit `.js` extension (Vercel runs the
   compiled files as native ES modules); `src/ui` never imports runtime code from `server/` or
   `@upstash/redis` (shared wire types live in `src/online/`).
 - The client never runs `reduce`, `parseSave` or `checkInvariants` on an online view (decks are
   hidden), and an online game never touches the local save.
+- Phones (`PHONE_QUERY` in `ui/hooks.ts`, `screens/PhoneGame.tsx`): the board is the 1280 x 676
+  desktop board scaled inside `.board-canvas`, whose CSS pins every board size (media queries see the
+  phone). Nothing inside the canvas may use `position: fixed`. The camera lives in a ref, not state.
+  Pointer input on `[data-gesture-zone]` does not skip animations. Phone screenshots run at 360x800,
+  390x844 and 844x390 with `isMobile` and `hasTouch`; the audit adds phone rules (`{ phone: true }`).
 
 ## Testing UpstashStore against a real Redis
 

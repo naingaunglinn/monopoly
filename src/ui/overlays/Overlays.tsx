@@ -211,8 +211,8 @@ function PropertyRow({ s, space, actor }: { s: GameState; space: number; actor: 
   );
 }
 
-export function PropertyList({ s, player }: { s: GameState; player: number }) {
-  const p = s.players[player] as Player;
+/** A player's properties grouped by country, with sell and mortgage buttons for the free actor. */
+export function PropertyGroups({ s, player }: { s: GameState; player: number }) {
   const actor = freeActor(s);
   const owned = s.properties.map((ps, i) => (ps && ps.owner === player ? i : -1)).filter((i) => i >= 0);
   const groups = COUNTRIES.map((c) => ({ country: c, spaces: COUNTRY_CITIES[c.id].filter((sp) => owned.includes(sp)) })).filter(
@@ -221,17 +221,7 @@ export function PropertyList({ s, player }: { s: GameState; player: number }) {
   const airports = owned.filter((sp) => AIRPORT_BY_SPACE.has(sp));
   const companies = owned.filter((sp) => COMPANY_BY_SPACE.has(sp));
   return (
-    <Sheet
-      id="properties"
-      title={
-        <span className="sheet-title-row">
-          <TokenChip token={p.token} color={p.color} size={24} />
-          {T.properties.title(p.name)}
-        </span>
-      }
-      onClose={closeSheet}
-      wide
-    >
+    <>
       {actor !== player && owned.length > 0 && <p className="muted">{T.properties.viewOnly}</p>}
       {owned.length === 0 && <p className="muted">{T.properties.none}</p>}
       <div className="prop-groups">
@@ -272,6 +262,25 @@ export function PropertyList({ s, player }: { s: GameState; player: number }) {
           </section>
         )}
       </div>
+    </>
+  );
+}
+
+export function PropertyList({ s, player }: { s: GameState; player: number }) {
+  const p = s.players[player] as Player;
+  return (
+    <Sheet
+      id="properties"
+      title={
+        <span className="sheet-title-row">
+          <TokenChip token={p.token} color={p.color} size={24} />
+          {T.properties.title(p.name)}
+        </span>
+      }
+      onClose={closeSheet}
+      wide
+    >
+      <PropertyGroups s={s} player={player} />
       {(p.jailCards.length > 0 || p.houseVouchers.length > 0) && (
         <p className="muted">
           {T.properties.held}: {p.jailCards.length > 0 ? `${p.jailCards.length} × ${T.players.jailCard}` : ''}
