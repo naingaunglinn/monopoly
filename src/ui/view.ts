@@ -172,6 +172,8 @@ export function primarySpec(s: GameState): PrimarySpec | null {
     case 'AwaitRoll':
       return spec(s, s.turn.dice && s.turn.rollsLeft > 0 ? T.play.extraRoll : T.play.rollDice, { type: 'roll' });
     case 'BuyDecision':
+      // Too little cash to buy: the big button passes, so the game always has a way on (D95).
+      if (validateAction(s, { type: 'buy' }) !== null) return spec(s, T.play.pass, { type: 'decline' });
       return spec(s, T.play.buy, { type: 'buy' });
     case 'Auction': {
       if (pending?.kind !== 'auction') return null;

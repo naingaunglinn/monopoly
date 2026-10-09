@@ -371,6 +371,7 @@ export const T = {
       cashAfter: 'Cash after buying',
       passHint: 'If you pass, everyone can bid for it.',
       passHintNoAuction: 'If you pass, it stays for sale.',
+      short: (amount: string) => `You need ${amount} more to buy it.`,
     },
     auction: {
       title: (name: string) => `Auction: ${name}`,
