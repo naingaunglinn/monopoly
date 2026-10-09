@@ -29,9 +29,10 @@ const PHONES = [
 const ONLINE = 'http://localhost:4175';
 
 async function onlineDevice(browser: Browser, phone: { width: number; height: number } | null) {
-  const context = await browser.newContext(
-    phone ? { viewport: phone, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 720 } },
-  );
+  const context = await browser.newContext({
+    ...(phone ? { viewport: phone, isMobile: true, hasTouch: true } : { viewport: { width: 1280, height: 720 } }),
+    permissions: ['microphone'],
+  });
   await context.addInitScript(() => window.localStorage.setItem('global-monopoly/prefs/v1', JSON.stringify({ onlineSpeed: 'off' })));
   const page = await context.newPage();
   return { context, page, log: trackErrors(page) };
@@ -125,6 +126,48 @@ test.describe('online 1280 x 720', () => {
     await shot(host.page, size, 'online-05-your-turn');
     await expect(guest.page.locator('#primary')).toContainText('Waiting for Mia');
     await shot(guest.page, size, 'online-06-waiting');
+
+    // Chat (spec section 18): the Chat tab beside the log, a message preview, stamps on the cards.
+    await host.page.locator('#feed-chat').click();
+    await host.page.locator('#chat-input').fill('Good luck everyone!');
+    await host.page.keyboard.press('Enter');
+    await expect(guest.page.locator('#chat-preview')).toBeVisible();
+    await shot(guest.page, size, 'online-07-chat-preview');
+    await guest.page.locator('#chat-preview').click();
+    await expect(guest.page.locator('.chat-line')).toHaveCount(1);
+    await guest.page.locator('#chat-input').fill('Thanks Mia, you too. Watch out for my hotels.');
+    await guest.page.keyboard.press('Enter');
+    await guest.page.locator('#chat-stamps').click();
+    await shot(guest.page, size, 'online-08-chat-stamps');
+    await guest.page.locator('#stamp-gg').click();
+    await expect(host.page.locator('.stamp-mark')).toBeVisible();
+    await shot(host.page, size, 'online-09-stamp');
+    await expect(host.page.locator('.stamp-mark')).toHaveCount(0, { timeout: 5000 });
+    // With the chat open, a decision panel takes the play area and the chat stays beside it.
+    for (let i = 0; i < 8; i++) {
+      if (await host.page.locator('.stage.has-panel').count()) break;
+      await host.page.locator('#primary').click();
+      await host.page.waitForTimeout(250);
+    }
+    await shot(host.page, size, 'online-10-panel-and-chat');
+    // Voice chat: both join; the top bar has the microphone switch, the cards show who is in voice.
+    await host.page.locator('#voice-join').click();
+    await guest.page.locator('#voice-join').click();
+    await expect(host.page.locator('.player-card .voice-badge')).toHaveCount(2);
+    await guest.page.locator('#voice-mute').click();
+    await expect(host.page.locator('.player-card .voice-badge.is-muted')).toHaveCount(1);
+    await shot(host.page, size, 'online-11-voice');
+    await host.page.setViewportSize({ width: 1024, height: 768 });
+    // Compact screens: with the Chat tab selected, a panel still takes the whole stage...
+    await shot(host.page, { width: 1024, height: 768 }, 'online-12-voice');
+    // ...and without one, the chat opens over the log row, here with the stamp tray.
+    for (let i = 0; i < 8 && (await host.page.locator('.stage.has-panel').count()); i++) {
+      await host.page.locator('#primary').click();
+      await host.page.waitForTimeout(250);
+    }
+    await expect(host.page.locator('.feed.is-expanded')).toBeVisible();
+    await host.page.locator('#chat-stamps').click();
+    await shot(host.page, { width: 1024, height: 768 }, 'online-13-chat-compact');
     expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
     expect(problems).toEqual([]);
     await host.context.close();
@@ -223,6 +266,33 @@ for (const size of PHONES) {
       }
       await expect(host.page.locator('#primary')).toContainText('Waiting for Leo');
       await shot(host.page, size, 'phone-online-waiting', true);
+
+      // Chat on a phone: a message from Leo shows as a preview, then in the Chat tab; a stamp lands.
+      await guest.page.locator('#feed-chat').click();
+      await guest.page.locator('#chat-input').fill('Your move after mine, Mia!');
+      await guest.page.keyboard.press('Enter');
+      await expect(host.page.locator('#chat-preview')).toBeVisible();
+      await shot(host.page, size, 'phone-online-chat-preview', true);
+      await host.page.locator('#tab-chat').click();
+      await expect(host.page.locator('.chat-line')).toHaveCount(1);
+      await host.page.locator('#chat-input').fill('Ready when you are');
+      await host.page.keyboard.press('Enter');
+      await expect(host.page.locator('.chat-line')).toHaveCount(2);
+      await shot(host.page, size, 'phone-online-chat', true);
+      await host.page.locator('#chat-stamps').click();
+      await shot(host.page, size, 'phone-online-chat-stamps', true);
+      await guest.page.locator('#chat-stamps').click();
+      await guest.page.locator('#stamp-haha').click();
+      await expect(host.page.locator('.stamp-mark')).toBeVisible();
+      await shot(host.page, size, 'phone-online-stamp', true);
+      // Voice chat on a phone: the status bar's button joins, then switches the microphone.
+      await guest.page.locator('#voice-join').click();
+      await expect(host.page.locator('#voice-join .voice-count')).toHaveText('1');
+      await host.page.locator('#voice-join').click();
+      await expect(host.page.locator('#voice-mute')).toBeVisible();
+      await host.page.locator('#tab-players').click();
+      await expect(host.page.locator('.player-card .voice-badge')).toHaveCount(2);
+      await shot(host.page, size, 'phone-online-voice', true);
       expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
       expect(problems).toEqual([]);
       await host.context.close();

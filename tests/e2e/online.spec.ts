@@ -1,7 +1,8 @@
 // Online play end to end (spec section 17) against the local server (API on MemoryStore + the
 // built game on port 4175): separate browser contexts are separate devices. A full Quick game to
 // the results with one device closed and reopened mid-game, the same with the stream blocked
-// (polling fallback), the lobby, and the host's controls for a disconnected player.
+// (polling fallback), the lobby, and the host's controls for a disconnected player. Chat and
+// stamps (spec section 18) between devices, desktop and phone.
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { decisionMaker, type GameState } from '../../src/engine';
 import { playStep } from './helpers';
@@ -35,6 +36,8 @@ async function openDevice(
     phone?: boolean;
     storageState?: Awaited<ReturnType<BrowserContext['storageState']>>;
     blockStream?: boolean;
+    /** This device's animation speed online (default Off, so full games run quickly). */
+    speed?: 'normal' | 'fast' | 'off';
   } = {},
 ): Promise<Device> {
   const context = await browser.newContext(
@@ -42,16 +45,16 @@ async function openDevice(
       ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, storageState: opts.storageState }
       : { viewport: opts.viewport ?? { width: 1280, height: 720 }, storageState: opts.storageState },
   );
-  // Animation Off on every device (a per-device preference online).
-  await context.addInitScript(() => {
+  // Animation Off on every device unless asked otherwise (a per-device preference online).
+  await context.addInitScript((speed) => {
     try {
       const prefs = JSON.parse(window.localStorage.getItem('global-monopoly/prefs/v1') ?? '{}');
-      prefs.onlineSpeed = 'off';
+      prefs.onlineSpeed = speed;
       window.localStorage.setItem('global-monopoly/prefs/v1', JSON.stringify(prefs));
     } catch {
       // ignore
     }
-  });
+  }, opts.speed ?? 'off');
   if (opts.blockStream) await context.route('**/api/stream**', (route) => route.abort());
   const page = await context.newPage();
   const errors: string[] = [];
@@ -196,6 +199,13 @@ test.describe('online', () => {
     await joinRoom(b, code);
     await joinRoom(c, code);
     await expect(a.page.locator('.lobby-seat')).toHaveCount(3);
+    // Chat travels by polling too.
+    await a.page.locator('#lobby-chat').click();
+    await a.page.locator('#chat-input').fill('Can you hear me without the stream?');
+    await a.page.keyboard.press('Enter');
+    await expect(b.page.locator('#lobby-chat .chat-badge')).toHaveText('1', { timeout: 15_000 });
+    await expect(c.page.locator('#lobby-chat .chat-badge')).toHaveText('1', { timeout: 15_000 });
+    await a.page.keyboard.press('Escape');
     await a.page.locator('#lobby-start').click();
     for (const d of devices) await expect(d.page.locator('.game-screen')).toBeVisible({ timeout: 15_000 });
     await expect.poll(async () => (await info(b))?.link).toBe('polling');
@@ -234,6 +244,66 @@ test.describe('online', () => {
     await expect(a.page).not.toHaveTitle(/Your turn/);
     await expect(a.page.locator('#primary')).toContainText('Waiting for Leo');
     expect([...a.errors, ...b.errors]).toEqual([]);
+  });
+
+  test('chat and stamps: live between devices, unread and preview; writing during a move neither skips it nor loses a key', async ({ browser }) => {
+    const a = await openDevice(browser, 'Mia');
+    const b = await openDevice(browser, 'Leo', { speed: 'normal' });
+    const c = await openDevice(browser, 'Aung', { phone: true });
+    const code = await createRoom(a, '');
+    await joinRoom(b, code);
+    await joinRoom(c, code);
+    await expect(a.page.locator('.lobby-seat')).toHaveCount(3);
+    // Lobby: Mia writes; Leo sees an unread count and a preview, which opens the chat.
+    await a.page.locator('#lobby-chat').click();
+    await a.page.locator('#chat-input').fill('Hello Leo');
+    await a.page.keyboard.press('Enter');
+    await expect(b.page.locator('#lobby-chat .chat-badge')).toHaveText('1');
+    await expect(b.page.locator('#chat-preview')).toContainText('Hello Leo');
+    await b.page.locator('#chat-preview').click();
+    await expect(b.page.locator('.chat-line .chat-text')).toHaveText(['Hello Leo']);
+    await expect(b.page.locator('#lobby-chat .chat-badge')).toHaveCount(0);
+    // Leo stamps: it lands on Mia's screen, with its sound; a second one at once is refused.
+    await b.page.locator('#chat-stamps').click();
+    await b.page.locator('#stamp-nice').click();
+    await expect(a.page.locator('.stamp-mark')).toContainText('Nice');
+    await expect.poll(async () => (await a.page.evaluate(() => (window as any).__GM__.sounds())).map((x: { cue: string }) => x.cue)).toContain('stamp');
+    await b.page.locator('#stamp-wow').click();
+    await expect(b.page.locator('.toast')).toContainText('Wait a moment');
+    await a.page.keyboard.press('Escape');
+    await b.page.keyboard.press('Escape');
+    await a.page.locator('#lobby-start').click();
+    for (const d of [a, b, c]) await expect(d.page.locator('.game-screen')).toBeVisible();
+
+    // Aung (phone) keeps the Chat tab while Mia decides.
+    await c.page.locator('#tab-chat').click();
+    await expect(c.page.locator('.chat-line')).toHaveCount(2);
+    // Leo keeps the chat open beside the board and writes while Mia's move plays on his screen.
+    await b.page.locator('#feed-chat').click();
+    await a.page.locator('#primary').click(); // Mia rolls
+    await expect(b.page.locator('.game-screen.is-animating')).toHaveCount(1, { timeout: 5000 });
+    await b.page.locator('#chat-input').click();
+    await b.page.keyboard.type('n');
+    await expect(b.page.locator('.game-screen.is-animating')).toHaveCount(1);
+    await b.page.keyboard.type('ice roll');
+    await expect(b.page.locator('#chat-input')).toHaveValue('nice roll');
+    await b.page.keyboard.press('Enter');
+    await expect(b.page.locator('.chat-line .chat-text').last()).toHaveText('nice roll');
+    // Mia's chat is closed: an unread count on the Chat tab and the top bar's Chat button, and a preview.
+    await expect(a.page.locator('#feed-chat .chat-badge')).toHaveText('1');
+    await expect(a.page.locator('#tb-chat .chat-badge')).toHaveText('1');
+    await expect(a.page.locator('#chat-preview')).toContainText('nice roll');
+    // The top bar's Chat button opens the chat, even with a decision panel open, and closes it again.
+    await a.page.locator('#tb-chat').click();
+    await expect(a.page.locator('.feed-chat #chat-input')).toBeVisible();
+    await expect(a.page.locator('#tb-chat')).toHaveAttribute('aria-pressed', 'true');
+    await expect(a.page.locator('#tb-chat .chat-badge')).toHaveCount(0);
+    await a.page.locator('#tb-chat').click();
+    await expect(a.page.locator('.feed-chat')).toHaveCount(0);
+    // Mia's decision (buy, card, rent...) did not pull Aung out of the chat; his own message arrived live.
+    await expect(c.page.locator('#tab-chat')).toHaveAttribute('aria-selected', 'true');
+    await expect(c.page.locator('.chat-line .chat-text').last()).toHaveText('nice roll');
+    expect([...a.errors, ...b.errors, ...c.errors]).toEqual([]);
   });
 
   test('lobby: colours are exclusive, one device takes two seats, only the host sets options and starts', async ({ browser }) => {

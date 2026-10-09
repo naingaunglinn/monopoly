@@ -1,20 +1,25 @@
 // Online play screens (spec section 17): create or join a room, and the lobby where everyone takes a
 // seat, the host chooses the settings and starts the game.
-import { ArrowLeft, Check, Copy, Crown, LogIn, LogOut, Play, Plus, Share2, UserRound, Wifi, WifiOff, X } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { ArrowLeft, Check, Copy, Crown, LogIn, LogOut, MessageCircle, Play, Plus, Share2, UserRound, Wifi, WifiOff, X } from 'lucide-react';
+import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { SETUP } from '../../data/balance';
 import { SEATS } from '../../data/players';
 import { MAX_SEATS, MIN_SEATS, type RoomSettings } from '../../online/protocol';
 import { Button } from '../components/Button';
+import { ChatPanel, ChatPreview, StampLayer, UnreadBadge } from '../components/Chat';
+import { VoiceBadge, VoiceButton } from '../components/Voice';
+import { PHONE_QUERY, useMediaQuery } from '../hooks';
 import { ColorPicker } from '../components/ColorPicker';
 import { ModeFields, RuleToggles, type GameOptions } from '../components/Fields';
 import { TokenChip } from '../components/glyphs';
 import { OceanArt } from '../components/OceanArt';
+import { Sheet } from '../overlays/Overlays';
 import { setPrefs, usePrefs } from '../prefs';
 import {
   addLocalSeat,
   amHost,
   changeRoomSettings,
+  chatRequest,
   createRoom,
   hostControl,
   inviteLink,
@@ -185,7 +190,7 @@ function SeatRow({ st, index }: { st: OnlineState; index: number }) {
     if (name.trim() !== seat.name) void updateSeat(index, { name }).then((err) => err && showToast(err));
   };
   return (
-    <li className={`lobby-seat ${mine ? 'is-mine' : ''}`} data-seat={index}>
+    <li className={`lobby-seat ${mine ? 'is-mine' : ''}`} data-seat={index} data-seat-anchor={index}>
       {mine ? (
         <ColorPicker
           seat={index}
@@ -215,6 +220,7 @@ function SeatRow({ st, index }: { st: OnlineState; index: number }) {
         <span className="lobby-name">{seat.name}</span>
       )}
       <span className="lobby-badges">
+        <VoiceBadge seatId={seat.id} />
         {mine && <span className="badge badge-you">{T.online.you}</span>}
         {st.view.host === index && (
           <span className="badge badge-soft">
@@ -244,9 +250,34 @@ function SeatRow({ st, index }: { st: OnlineState; index: number }) {
   );
 }
 
+/** The lobby's chat: a side sheet (a bottom sheet on phones), opened from the header or a preview. */
+function LobbyChat({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <Sheet id="chat" title={T.chat.title} onClose={onClose}>
+      <ChatPanel className="sheet-chat" />
+    </Sheet>
+  );
+}
+
 export function LobbyScreen() {
   const st = useOnline();
   const [busy, setBusy] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const phone = useMediaQuery(PHONE_QUERY);
+  const request = useSyncExternalStore(chatRequest.subscribe, chatRequest.get, chatRequest.get);
+  const seenRequest = useRef(request);
+  useEffect(() => {
+    if (request === seenRequest.current) return;
+    seenRequest.current = request;
+    setChatOpen(true);
+  }, [request]);
   usePresenceClock();
   if (!st) return null;
   const view = st.view;
@@ -301,8 +332,23 @@ export function LobbyScreen() {
               />
             </div>
           </div>
-          <span className={`link-dot ${st.link === 'offline' ? 'is-off' : ''}`} title={st.link === 'offline' ? T.online.reconnecting : T.online.connected}>
-            {st.link === 'offline' ? <WifiOff aria-hidden="true" /> : <Wifi aria-hidden="true" />}
+          <span className="lobby-tools">
+            <VoiceButton compact={phone} />
+            <button
+              type="button"
+              id="lobby-chat"
+              className="btn btn-secondary lobby-chat-btn"
+              data-no-skip=""
+              aria-label={phone ? T.chat.title : undefined}
+              onClick={() => setChatOpen(true)}
+            >
+              <MessageCircle size={16} aria-hidden="true" />
+              {!phone && <span className="btn-label">{T.chat.title}</span>}
+              <UnreadBadge count={st.unread} />
+            </button>
+            <span className={`link-dot ${st.link === 'offline' ? 'is-off' : ''}`} title={st.link === 'offline' ? T.online.reconnecting : T.online.connected}>
+              {st.link === 'offline' ? <WifiOff aria-hidden="true" /> : <Wifi aria-hidden="true" />}
+            </span>
           </span>
         </header>
         <div className="setup-grid lobby-grid">
@@ -352,6 +398,9 @@ export function LobbyScreen() {
           )}
         </footer>
       </section>
+      <LobbyChat open={chatOpen} onClose={() => setChatOpen(false)} />
+      <StampLayer />
+      {!chatOpen && <ChatPreview />}
     </main>
   );
 }

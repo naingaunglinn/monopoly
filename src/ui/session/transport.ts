@@ -6,7 +6,8 @@
 // - when the stream fails, or ends within seconds of opening, it polls every 2 s and tries the
 //   stream again now and then, so a server that cannot stream is never hit in a loop;
 // - resync() fetches what was missed at once (the tab became visible, a heartbeat saw a newer version).
-import type { RoomUpdate, RoomView } from '../../online/protocol';
+// Chat (spec section 18) rides the same connection with its own cursor, so it is never repeated.
+import type { ChatMessage, RoomUpdate, RoomView, VoicePeer } from '../../online/protocol';
 
 export type LinkStatus = 'connecting' | 'live' | 'polling' | 'offline' | 'gone';
 
@@ -14,6 +15,12 @@ export interface TransportHandlers {
   /** New versions, oldest first, and the room after the last one (entries may be empty: a snapshot). */
   updates(entries: RoomUpdate[], view: RoomView): void;
   status(status: LinkStatus): void;
+  /** New chat messages, oldest first, each once. */
+  chat?(messages: ChatMessage[]): void;
+  /** Who is in voice chat now. */
+  voice?(peers: VoicePeer[]): void;
+  /** A voice set-up message for `to` arrived (its content is fetched by the receiver). */
+  signal?(to: string, id: number): void;
 }
 
 export interface TransportOptions {
@@ -67,6 +74,8 @@ export async function readEvents(
 
 export class RoomTransport {
   private version: number;
+  /** The newest chat message id received. */
+  private chatAfter = 0;
   private running = false;
   private mode: 'stream' | 'poll' = 'stream';
   private streamAbort: AbortController | null = null;
@@ -121,6 +130,18 @@ export class RoomTransport {
     if (version > this.version) this.version = version;
   }
 
+  /** Chat this session already has (messages sent from here arrive in the server's answer). */
+  advanceChat(id: number): void {
+    if (id > this.chatAfter) this.chatAfter = id;
+  }
+
+  private deliverChat(messages: ChatMessage[]): void {
+    const fresh = messages.filter((m) => m.id > this.chatAfter).sort((a, b) => a.id - b.id);
+    if (fresh.length === 0) return;
+    this.chatAfter = (fresh[fresh.length - 1] as ChatMessage).id;
+    this.handlers.chat?.(fresh);
+  }
+
   /** Asks the server for anything missed, now. */
   async resync(): Promise<void> {
     if (!this.running) return;
@@ -156,6 +177,13 @@ export class RoomTransport {
       const snap = JSON.parse(frame.data) as { v: number; view: RoomView };
       this.pending = [];
       this.deliver([], snap.view);
+    } else if (frame.event === 'chat') {
+      this.deliverChat((JSON.parse(frame.data) as { messages: ChatMessage[] }).messages);
+    } else if (frame.event === 'voice') {
+      this.handlers.voice?.((JSON.parse(frame.data) as { peers: VoicePeer[] }).peers);
+    } else if (frame.event === 'signal') {
+      const n = JSON.parse(frame.data) as { to: string; id: number };
+      this.handlers.signal?.(n.to, n.id);
     }
   }
 
@@ -174,7 +202,7 @@ export class RoomTransport {
       }, Math.min(5000, this.silenceMs));
       try {
         this.pending = [];
-        const res = await this.fetchFn(`${this.base}/api/stream?code=${this.code}&since=${this.version}`, {
+        const res = await this.fetchFn(`${this.base}/api/stream?code=${this.code}&since=${this.version}&chat=${this.chatAfter}`, {
           signal: controller.signal,
           headers: { accept: 'text/event-stream' },
           cache: 'no-store',
@@ -230,14 +258,21 @@ export class RoomTransport {
 
   private async pollOnce(): Promise<void> {
     try {
-      const res = await this.fetchFn(`${this.base}/api/room?code=${this.code}&since=${this.version}`, { cache: 'no-store' });
+      const res = await this.fetchFn(`${this.base}/api/room?code=${this.code}&since=${this.version}&chat=${this.chatAfter}&voice=1`, { cache: 'no-store' });
       if (res.status === 404) {
         this.gone();
         return;
       }
       if (!res.ok) throw new Error(`poll HTTP ${res.status}`);
-      const body = (await res.json()) as { view: RoomView; updates: RoomUpdate[] | null };
+      const body = (await res.json()) as {
+        view: RoomView;
+        updates: RoomUpdate[] | null;
+        chat?: { last: number; messages: ChatMessage[] };
+        voice?: VoicePeer[];
+      };
       this.deliver(body.updates ?? [], body.view);
+      if (body.chat) this.deliverChat(body.chat.messages);
+      if (body.voice) this.handlers.voice?.(body.voice);
       if (this.mode === 'poll') this.setStatus('polling');
     } catch {
       if (this.running) this.setStatus('offline');

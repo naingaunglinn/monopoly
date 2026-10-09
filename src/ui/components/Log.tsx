@@ -8,7 +8,31 @@ import { ui, useUi } from '../store';
 import { logPlayer, logText, T } from '../strings';
 import { names } from '../view';
 
+/** The log box on one device: its title, Show more when compact, and the lines. */
 export function Log({ s, compact }: { s: GameState; compact: boolean }) {
+  const { logExpanded } = useUi();
+  return (
+    <section className={`log ${compact ? 'is-compact' : ''} ${logExpanded ? 'is-expanded' : ''}`} aria-label={T.log.title}>
+      <header className="log-head">
+        <h2 className="log-title">{T.log.title}</h2>
+        {compact && <LogMoreButton />}
+      </header>
+      <LogLines s={s} compact={compact} />
+    </section>
+  );
+}
+
+export function LogMoreButton() {
+  const { logExpanded } = useUi();
+  return (
+    <button type="button" className="link-btn" onClick={() => ui.set({ logExpanded: !logExpanded })} aria-expanded={logExpanded}>
+      {logExpanded ? T.log.showLess : T.log.showMore}
+    </button>
+  );
+}
+
+/** The lines of the log (the last three when compact and not expanded), newest at the bottom. */
+export function LogLines({ s, compact }: { s: GameState; compact: boolean }) {
   const { logExpanded } = useUi();
   const { busy, logUntil } = useDisplay();
   const until = busy && logUntil !== null ? logUntil : Infinity;
@@ -31,15 +55,7 @@ export function Log({ s, compact }: { s: GameState; compact: boolean }) {
   }, [shown.length, last?.entry.seq]);
 
   return (
-    <section className={`log ${compact ? 'is-compact' : ''} ${logExpanded ? 'is-expanded' : ''}`} aria-label={T.log.title}>
-      <header className="log-head">
-        <h2 className="log-title">{T.log.title}</h2>
-        {compact && (
-          <button type="button" className="link-btn" onClick={() => ui.set({ logExpanded: !logExpanded })} aria-expanded={logExpanded}>
-            {logExpanded ? T.log.showLess : T.log.showMore}
-          </button>
-        )}
-      </header>
+    <>
       <ol className="log-list" ref={list}>
         {shown.length === 0 && <li className="log-line muted">{T.log.empty}</li>}
         {shown.map(({ entry, text, player }) => (
@@ -56,6 +72,6 @@ export function Log({ s, compact }: { s: GameState; compact: boolean }) {
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {last?.text ?? ''}
       </div>
-    </section>
+    </>
   );
 }

@@ -23,6 +23,7 @@ import { BuildingPips, TokenChip } from '../components/glyphs';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
 import { hostControl, leaveToStart, useOnline } from '../session/online';
+import { playCue } from '../sound';
 import {
   askConfirm,
   canAct,
@@ -697,6 +698,8 @@ export function SettingsFields({ s }: { s: GameState }) {
           ))}
         </div>
       </fieldset>
+      <SoundFields />
+      {online && <VoiceVolume />}
       {reducedMotion && (
         <label className="toggle" htmlFor="set-motion">
           <input
@@ -713,6 +716,71 @@ export function SettingsFields({ s }: { s: GameState }) {
         </label>
       )}
     </div>
+  );
+}
+
+/** How loud the others' voices play on this device (online). */
+function VoiceVolume() {
+  const prefs = usePrefs();
+  const percent = Math.round(prefs.voiceVolume * 100);
+  return (
+    <label className="volume" htmlFor="set-voice-volume">
+      <span className="volume-label">{T.voice.volume}</span>
+      <input
+        id="set-voice-volume"
+        type="range"
+        min={0}
+        max={100}
+        step={5}
+        value={percent}
+        aria-valuetext={T.settings.volumeValue(percent)}
+        onChange={(e) => setPrefs({ voiceVolume: Number(e.target.value) / 100 })}
+      />
+      <span className="volume-value">{T.settings.volumeValue(percent)}</span>
+    </label>
+  );
+}
+
+/** Sound effects on this device: on or off, and how loud (a short tick previews the level). */
+function SoundFields() {
+  const prefs = usePrefs();
+  const percent = Math.round(prefs.soundVolume * 100);
+  return (
+    <>
+      <label className="toggle" htmlFor="set-sound">
+        <input
+          id="set-sound"
+          type="checkbox"
+          role="switch"
+          checked={prefs.soundOn}
+          onChange={(e) => {
+            setPrefs({ soundOn: e.target.checked });
+            if (e.target.checked) playCue('tick');
+          }}
+        />
+        <span className="toggle-track" aria-hidden="true">
+          <span className="toggle-thumb" />
+        </span>
+        <span className="toggle-label">{T.settings.sound}</span>
+      </label>
+      <label className={`volume ${prefs.soundOn ? '' : 'is-disabled'}`} htmlFor="set-volume">
+        <span className="volume-label">{T.settings.volume}</span>
+        <input
+          id="set-volume"
+          type="range"
+          min={0}
+          max={100}
+          step={5}
+          value={percent}
+          disabled={!prefs.soundOn}
+          aria-valuetext={T.settings.volumeValue(percent)}
+          onChange={(e) => setPrefs({ soundVolume: Number(e.target.value) / 100 })}
+          onPointerUp={() => playCue('tick')}
+          onKeyUp={(e) => e.key.startsWith('Arrow') && playCue('tick')}
+        />
+        <span className="volume-value">{T.settings.volumeValue(percent)}</span>
+      </label>
+    </>
   );
 }
 

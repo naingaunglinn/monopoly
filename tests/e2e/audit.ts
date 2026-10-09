@@ -40,6 +40,20 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
         }
       }
     }
+    // Every control in the top bar (and the phone status bar) is fully on screen.
+    for (const el of document.querySelectorAll('.topbar button, .phone-status button')) {
+      if (!visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.right > window.innerWidth + 0.5 || r.left < -0.5) problems.push(`top bar control off screen: ${el.id || el.textContent?.trim() || 'button'}`);
+    }
+    // Popovers (the menu) stay on screen: when there is not room for all of them, they scroll inside.
+    for (const pop of document.querySelectorAll('.menu')) {
+      if (!visible(pop)) continue;
+      const r = pop.getBoundingClientRect();
+      if (r.bottom > window.innerHeight + 0.5 || r.right > window.innerWidth + 0.5 || r.left < -0.5) {
+        problems.push(`the menu runs off screen (bottom ${Math.round(r.bottom)}px of ${window.innerHeight}px)`);
+      }
+    }
     // Containers that must show everything without inner scrolling (on phones they may scroll).
     for (const sel of phone ? [] : ['.players-col', '.setup-card']) {
       const el = document.querySelector<HTMLElement>(sel);
@@ -85,7 +99,8 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
       });
       const covered = document.querySelector('.panel-layer, .sheet-backdrop, .pass-device, .modal-backdrop');
       if (!covered && !phone) {
-        const parts = ['.deed', '.dice-panel', '.log', '.primary-slot', '.secondary-actions', '.players-col']
+        // An expanded log or chat (compact screens) floats over the stage on purpose (D88).
+        const parts = ['.deed', '.dice-panel', '.log:not(.is-expanded)', '.primary-slot', '.secondary-actions', '.players-col']
           .map((sel) => ({ sel, el: document.querySelector(sel) }))
           .filter((p): p is { sel: string; el: Element } => !!p.el && visible(p.el));
         for (let i = 0; i < parts.length; i++) {

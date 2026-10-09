@@ -4,15 +4,18 @@
 // - the board in a viewport that can be pinched, panned (one finger) and double-tapped (whole board
 //   / follow); it centres on the moving token and follows it. Tapping a tile shows its Focus Card;
 // - a sheet (bottom in portrait, side in landscape) with the primary button always visible, the
-//   dice, Build and Trade when they apply, and tabs: Card, Players, Log and Mine. A decision panel
-//   opens in the sheet as its own tab.
+//   dice, Build and Trade when they apply, and tabs: Card, Players, Log, Chat (online) and Mine. A
+//   decision panel opens in the sheet as its own tab; online, someone else's decision does not pull
+//   a player out of the chat, nor does their own while they are writing.
 // The board keeps its desktop layout at a fixed size and is scaled as a whole (camera in a ref,
 // written straight to the transform, so gestures never re-render the tiles).
-import { ArrowLeftRight, BookOpen, Hammer, IdCard, LayoutList, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { freeActor, legalActions, type GameState, type Player } from '../../engine';
+import { ArrowLeftRight, BookOpen, Hammer, IdCard, LayoutList, MessageCircle, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { decisionMaker, freeActor, legalActions, type GameState, type Player } from '../../engine';
 import { prefersReducedMotion } from '../animation';
 import { Button } from '../components/Button';
+import { ChatPanel, isComposing, UnreadBadge } from '../components/Chat';
+import { VoiceButton } from '../components/Voice';
 import { Die } from '../components/Dice';
 import { FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
@@ -21,7 +24,7 @@ import { PlayersColumn } from '../components/PlayersColumn';
 import { shownCash, shownDice, shownPosition, useDisplay } from '../display';
 import { PropertyGroups } from '../overlays/Overlays';
 import { ActivePanel } from '../panels/DecisionPanels';
-import { useOnline } from '../session/online';
+import { chatRequest, useOnline } from '../session/online';
 import { canAct, openRules, openSheet, useAnimationSpeed, useApp, useUi } from '../store';
 import { money, recapLine, T } from '../strings';
 import { names } from '../view';
@@ -66,9 +69,14 @@ function StatusBar({ s }: { s: GameState }) {
         </span>
       )}
       <span className="tb-spacer" />
-      <button type="button" id="tb-rules" className="icon-btn ps-icon" aria-label={T.top.rules} title={T.top.rules} onClick={() => openRules()}>
-        <BookOpen size={20} aria-hidden="true" />
-      </button>
+      {/* Online, the voice switch takes the place of Rules, which moves into the menu (room on 360 px). */}
+      {online ? (
+        <VoiceButton compact />
+      ) : (
+        <button type="button" id="tb-rules" className="icon-btn ps-icon" aria-label={T.top.rules} title={T.top.rules} onClick={() => openRules()}>
+          <BookOpen size={20} aria-hidden="true" />
+        </button>
+      )}
       <GameMenu s={s} compact />
     </header>
   );
@@ -312,7 +320,7 @@ function BoardViewport({ s }: { s: GameState }) {
 // ---------------------------------------------------------------------------------------------
 // The sheet: primary row, tabs, and the decision panel
 
-type Tab = 'decision' | 'card' | 'players' | 'log' | 'mine';
+type Tab = 'decision' | 'card' | 'players' | 'log' | 'chat' | 'mine';
 
 function MiniDice({ s }: { s: GameState }) {
   const display = useDisplay();
@@ -327,7 +335,23 @@ function MiniDice({ s }: { s: GameState }) {
   );
 }
 
-function TabButton({ tab, current, onPick, icon, label, alert }: { tab: Tab; current: Tab; onPick: (t: Tab) => void; icon: ReactNode; label: string; alert?: boolean }) {
+function TabButton({
+  tab,
+  current,
+  onPick,
+  icon,
+  label,
+  alert,
+  badge = 0,
+}: {
+  tab: Tab;
+  current: Tab;
+  onPick: (t: Tab) => void;
+  icon: ReactNode;
+  label: string;
+  alert?: boolean;
+  badge?: number;
+}) {
   return (
     <button
       type="button"
@@ -337,7 +361,10 @@ function TabButton({ tab, current, onPick, icon, label, alert }: { tab: Tab; cur
       className={`phone-tab ${tab === current ? 'is-on' : ''} ${alert ? 'is-alert' : ''}`}
       onClick={() => onPick(tab)}
     >
-      {icon}
+      <span className="phone-tab-icon">
+        {icon}
+        <UnreadBadge count={badge} />
+      </span>
       <span>{label}</span>
     </button>
   );
@@ -356,7 +383,10 @@ function Sheet({ s }: { s: GameState }) {
   const [chosen, setChosen] = useState<Tab>('card');
   const [awayFrom, setAwayFrom] = useState<string | null>(null);
   const decisionKey = `${s.flow.phase}-${s.flow.notices.length}-${s.turn.turnNumber}`;
-  const tab: Tab = showPanel && awayFrom !== decisionKey ? 'decision' : chosen === 'decision' ? 'card' : chosen;
+  // Online, the chat stays open through other players' decisions, and through one's own while writing.
+  const mineToDecide = !online || canAct(decisionMaker(s));
+  const holdChat = chosen === 'chat' && (!mineToDecide || isComposing());
+  const tab: Tab = showPanel && awayFrom !== decisionKey && !holdChat ? 'decision' : chosen === 'decision' ? 'card' : chosen;
   const setTab = (t: Tab) => {
     setChosen(t);
     setAwayFrom(t === 'decision' ? null : decisionKey);
@@ -367,6 +397,15 @@ function Sheet({ s }: { s: GameState }) {
     setChosen('card');
     setAwayFrom(decisionKey);
   }, [pinned]);
+  // A tapped message preview opens the chat.
+  const request = useSyncExternalStore(chatRequest.subscribe, chatRequest.get, chatRequest.get);
+  const seenRequest = useRef(request);
+  useEffect(() => {
+    if (request === seenRequest.current) return;
+    seenRequest.current = request;
+    setChosen('chat');
+    setAwayFrom(decisionKey);
+  }, [request]);
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
   const actor = freeActor(s);
   const legal = new Set(legalActions(s).map((a) => a.type));
@@ -388,6 +427,7 @@ function Sheet({ s }: { s: GameState }) {
         )}
         {tab === 'players' && <PlayersColumn s={s} />}
         {tab === 'log' && <Log s={s} compact={false} />}
+        {tab === 'chat' && online && <ChatPanel className="phone-chat" />}
         {tab === 'mine' && (
           <div className="phone-mine">
             {legal.has('proposeTrade') && s.flow.phase !== 'Debt' && canAct(actor) && (
@@ -402,6 +442,17 @@ function Sheet({ s }: { s: GameState }) {
         <TabButton tab="card" current={tab} onPick={setTab} icon={<IdCard aria-hidden="true" />} label={T.phone.card} />
         <TabButton tab="players" current={tab} onPick={setTab} icon={<Users aria-hidden="true" />} label={T.phone.players} />
         <TabButton tab="log" current={tab} onPick={setTab} icon={<ScrollText aria-hidden="true" />} label={T.phone.log} />
+        {online && (
+          <TabButton
+            tab="chat"
+            current={tab}
+            onPick={setTab}
+            icon={<MessageCircle aria-hidden="true" />}
+            label={T.chat.title}
+            alert={online.unread > 0}
+            badge={online.unread}
+          />
+        )}
         <TabButton tab="mine" current={tab} onPick={setTab} icon={<LayoutList aria-hidden="true" />} label={T.phone.mine} />
       </nav>
       {refusal && (

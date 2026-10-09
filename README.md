@@ -34,7 +34,10 @@ limit for testing. Screenshots from `npm run test:e2e` land in `reports/screensh
 
 Friends can play together from different browsers, phones and computers. Press **Play online >
 Create room**, send the link (or the 4-letter code), and everyone takes a seat in the lobby. The host
-picks the settings and starts with 2 to 6 players. One device can hold several seats.
+picks the settings and starts with 2 to 6 players. One device can hold several seats. Chat with the
+table with the **Chat** button in the top bar (phones: the **Chat** tab; lobby: the **Chat** button), and send stamps (Nice, Ouch, Ha ha,
+Wow, Hurry up, Good game) that land on your card for everyone to see. Press **Join voice** to talk
+(the browser asks for the microphone; headphones avoid echo).
 
 - Locally, with no Vercel and no Redis: `npm run dev:online` (http://localhost:5173), or after a
   build `npm run serve:online` (http://localhost:4175).
@@ -68,7 +71,8 @@ players, the log and your properties. Decisions open there too.
 Press **Rules** (or R) at any time for the full rule guide. Shortcuts: B buys, P passes, T opens
 trade, Esc closes optional panels. Hover or tap a tile to see its details; click a player card to see
 what they own. Any click or key skips an animation (the button reads **Skip** while one plays);
-animation speed and the pass-device screen are in the menu. If your device is set to reduce motion
+animation speed, sound and the pass-device screen are in the menu (larger screens also have a
+speaker switch in the top bar). If your device is set to reduce motion
 (on Windows: Animation effects off), tokens jump instead of moving: turn on **Show movement anyway**
 in setup or in the menu to see them move. The game saves itself after every action; **Continue** on
 the start screen resumes it.

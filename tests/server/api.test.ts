@@ -1,6 +1,7 @@
 // The online API (spec section 17): room lifecycle, the checks before an action is applied,
 // compare-and-set under concurrency, reconnection, host handover and host controls, one device with
-// two seats, and a resumable stream that delivers missed events exactly once.
+// two seats, and a resumable stream that delivers missed events exactly once. Chat and stamps (spec
+// section 18): checks, limits, and delivery by stream and polling beside the game.
 // It always runs on MemoryStore. With UPSTASH_TEST_URL and UPSTASH_TEST_TOKEN set (for example the
 // serverless-redis-http emulator in front of a real Redis, see CLAUDE.md) it also runs on UpstashStore.
 import { Redis } from '@upstash/redis';
@@ -9,6 +10,7 @@ import { decisionMaker, legalActions, type Action, type GameState } from '../../
 import { PLAYER_COLORS } from '../../src/data/players';
 import { createApi } from '../../server/api';
 import { MemoryStore } from '../../server/memoryStore';
+import { CHAT_GAP_MS, CHAT_KEEP, CHAT_MAX_LENGTH, MAX_SDP } from '../../src/online/protocol';
 import { PRESENCE_TIMEOUT_MS, ROOM_TTL_SECONDS, type RoomView } from '../../server/room';
 import type { RoomStore } from '../../server/store';
 import { UpstashStore } from '../../server/upstashStore';
@@ -348,8 +350,11 @@ describe.each(CASES)('$name', (storeCase) => {
   });
 
   describe('the live stream', () => {
-    /** Reads SSE frames from a stream response until `count` update/snapshot frames arrived. */
-    async function readFrames(res: Response, count: number, timeoutMs = 3000) {
+    /**
+     * Reads SSE frames from a stream response until `count` frames arrived (pings never count; the
+     * voice list every stream sends on connect counts only with `withVoice`).
+     */
+    async function readFrames(res: Response, count: number, timeoutMs = 3000, withVoice = false) {
       const reader = (res.body as ReadableStream<Uint8Array>).getReader();
       const decoder = new TextDecoder();
       const frames: { id: number | null; event: string; data: any }[] = [];
@@ -370,6 +375,7 @@ describe.each(CASES)('$name', (storeCase) => {
           const id = /^id: (\d+)$/m.exec(raw)?.[1];
           const event = /^event: (\w+)$/m.exec(raw)?.[1] ?? 'message';
           const data = /^data: (.*)$/m.exec(raw)?.[1];
+          if (event === 'voice' && !withVoice) continue;
           frames.push({ id: id ? Number(id) : null, event, data: data ? JSON.parse(data) : null });
         }
       }
@@ -377,9 +383,9 @@ describe.each(CASES)('$name', (storeCase) => {
       return frames;
     }
 
-    function open(h: Harness, code: string, opts: { since?: number; lastEventId?: number }) {
+    function open(h: Harness, code: string, opts: { since?: number; lastEventId?: number; chat?: number }) {
       const controller = new AbortController();
-      const query = opts.since !== undefined ? `&since=${opts.since}` : '';
+      const query = (opts.since !== undefined ? `&since=${opts.since}` : '') + (opts.chat !== undefined ? `&chat=${opts.chat}` : '');
       const headers: Record<string, string> = opts.lastEventId !== undefined ? { 'last-event-id': String(opts.lastEventId) } : {};
       const res = h.api(new Request(`http://test/api/stream?code=${code}${query}`, { headers, signal: controller.signal }));
       return { res, controller };
@@ -447,6 +453,51 @@ describe.each(CASES)('$name', (storeCase) => {
       expect(frames[0]?.data.view.version).toBe(v.version);
     });
 
+    test('chat arrives on the stream: the backlog, then live messages, each once and without an event id', async () => {
+      const h = harness();
+      const { code, tokens, view: v0 } = await started(h, ['Mia', 'Leo']);
+      for (const text of ['one', 'two']) {
+        expect((await h.call('POST', '/api/room?op=chat', { code, token: tokens[0], text })).status).toBe(200);
+        h.clock.t += CHAT_GAP_MS;
+      }
+      const s = open(h, code, { since: v0.version, chat: 0 });
+      const reading = readFrames(await s.res, 3, 5000);
+      // Once the backlog is out, a stamp and a game action arrive live, in order.
+      await new Promise((r) => setTimeout(r, 300));
+      await h.call('POST', '/api/room?op=chat', { code, token: tokens[1], stamp: 'wow' });
+      await act(h, code, tokens, v0);
+      const frames = await reading;
+      s.controller.abort();
+      expect(frames.map((f) => f.event)).toEqual(['chat', 'chat', 'update']);
+      expect(frames[0]?.id).toBeNull();
+      expect(frames[0]?.data.messages.map((m: { text: string }) => m.text)).toEqual(['one', 'two']);
+      expect(frames[1]?.data.messages).toMatchObject([{ id: 3, stamp: 'wow', name: 'Leo' }]);
+      // Reconnecting with the last chat id brings nothing old again.
+      const again = open(h, code, { since: v0.version + 1, chat: 3 });
+      const none = await readFrames(await again.res, 1, 400);
+      again.controller.abort();
+      expect(none).toEqual([]);
+    });
+
+    test('a voice signal is announced to every stream by receiver and id only, never with its content', async () => {
+      const h = harness();
+      const { code, tokens, view: v0 } = await started(h, ['Mia', 'Leo']);
+      const a = (await h.call('POST', '/api/room?op=voice', { code, tokens: [tokens[0]], state: 'join' })).body.peer;
+      const b = (await h.call('POST', '/api/room?op=voice', { code, tokens: [tokens[1]], state: 'join' })).body.peer;
+      const s = open(h, code, { since: v0.version });
+      const reading = readFrames(await s.res, 3, 5000, true);
+      await new Promise((r) => setTimeout(r, 300));
+      await h.call('POST', '/api/room?op=signal', { code, tokens: [tokens[0]], to: b, kind: 'offer', sdp: 'v=0 secret' });
+      await h.call('POST', '/api/room?op=voice', { code, tokens: [tokens[0]], state: 'mute' });
+      const frames = await reading;
+      s.controller.abort();
+      expect(frames.map((f) => f.event)).toEqual(['voice', 'signal', 'voice']);
+      expect(frames[0]?.data.peers.map((p: { id: string }) => p.id).sort()).toEqual([a, b].sort());
+      expect(frames[1]?.data).toEqual({ to: b, id: expect.any(Number) });
+      expect(JSON.stringify(frames[1]?.data)).not.toContain('secret');
+      expect(frames[2]?.data.peers.find((p: { id: string }) => p.id === a).muted).toBe(true);
+    });
+
     test('polling: the room with the events after a version, as a fallback for a failed stream', async () => {
       const h = harness();
       const { code, tokens, view: v0 } = await started(h, ['Mia', 'Leo']);
@@ -457,6 +508,129 @@ describe.each(CASES)('$name', (storeCase) => {
       expect(poll.body.updates.map((u: { v: number }) => u.v)).toEqual([v0.version + 1, v0.version + 2, v0.version + 3]);
       expect(poll.body.updates[0].view).toBeUndefined();
       expect((await h.call('GET', `/api/room?code=${code}`)).body.presence).toBeTruthy();
+    });
+  });
+
+  describe('chat and stamps', () => {
+    test('a seat sends a message or a stamp; it is numbered and cleaned, and the game version stays', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia', 'Leo']);
+      const before = (await view(h, code)).version;
+      const sent = await h.call('POST', '/api/room?op=chat', { code, token: tokens[0], text: '  hello\n\t everyone\u202e  ' });
+      expect(sent.status).toBe(200);
+      expect(sent.body.message).toMatchObject({ id: 1, text: 'hello everyone', stamp: null, name: 'Mia' });
+      const stamp = await h.call('POST', '/api/room?op=chat', { code, token: tokens[1], stamp: 'gg' });
+      expect(stamp.body.message).toMatchObject({ id: 2, text: null, stamp: 'gg', name: 'Leo' });
+      expect((await view(h, code)).version).toBe(before);
+      // Polling brings chat after an id, with the newest id.
+      const all = await h.call('GET', `/api/room?code=${code}&since=${before}&chat=0`);
+      expect(all.body.chat.last).toBe(2);
+      expect(all.body.chat.messages.map((m: { id: number }) => m.id)).toEqual([1, 2]);
+      const newer = await h.call('GET', `/api/room?code=${code}&since=${before}&chat=1`);
+      expect(newer.body.chat.messages.map((m: { id: number }) => m.id)).toEqual([2]);
+    });
+
+    test('the sender and the message are checked; too fast is refused; long text is cut', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia', 'Leo']);
+      const post = (body: Record<string, unknown>) => h.call('POST', '/api/room?op=chat', { code, ...body });
+      expect((await post({ token: 'f'.repeat(64), text: 'hi' })).status).toBe(403);
+      expect((await post({ token: tokens[0], text: '   ' })).status).toBe(400);
+      expect((await post({ token: tokens[0] })).status).toBe(400);
+      expect((await post({ token: tokens[0], stamp: 'party' })).status).toBe(400);
+      const long = await post({ token: tokens[0], text: 'x'.repeat(CHAT_MAX_LENGTH * 3) });
+      expect(long.body.message.text).toHaveLength(CHAT_MAX_LENGTH);
+      // A second message at once is refused; a stamp has its own limit; later it goes through.
+      const fast = await post({ token: tokens[0], text: 'again' });
+      expect(fast.status).toBe(429);
+      expect(fast.body.error).toBe('slowDown');
+      expect((await post({ token: tokens[0], stamp: 'nice' })).status).toBe(200);
+      expect((await post({ token: tokens[1], text: 'other seat' })).status).toBe(200);
+      h.clock.t += CHAT_GAP_MS;
+      expect((await post({ token: tokens[0], text: 'again' })).status).toBe(200);
+      expect((await h.call('POST', '/api/room?op=chat', { code: 'ZZZZ', token: tokens[0], text: 'hi' })).status).toBe(404);
+    });
+
+    test('voice: devices join, mute and leave; everyone sees the list; the game version stays', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia', 'Leo']);
+      const before = (await view(h, code)).version;
+      const voice = (seat: number, state: string) => h.call('POST', '/api/room?op=voice', { code, tokens: [tokens[seat]], state });
+      const a = await voice(0, 'join');
+      expect(a.status).toBe(200);
+      expect(a.body.iceServers).toEqual([]);
+      expect(a.body.peers).toEqual([{ id: a.body.peer, seats: [expect.any(String)], muted: false, at: h.clock.t }]);
+      const b = await voice(1, 'join');
+      expect(b.body.peers.map((p: { id: string }) => p.id).sort()).toEqual([a.body.peer, b.body.peer].sort());
+      const muted = await voice(0, 'mute');
+      expect(muted.body.peers.find((p: { id: string }) => p.id === a.body.peer).muted).toBe(true);
+      expect(muted.body.iceServers).toBeUndefined();
+      const left = await voice(1, 'leave');
+      expect(left.body.peers.map((p: { id: string }) => p.id)).toEqual([a.body.peer]);
+      // Polling brings the list too.
+      const poll = await h.call('GET', `/api/room?code=${code}&since=${before}&voice=1`);
+      expect(poll.body.voice.map((p: { id: string }) => p.id)).toEqual([a.body.peer]);
+      expect((await view(h, code)).version).toBe(before);
+      expect((await h.call('POST', '/api/room?op=voice', { code, tokens: ['f'.repeat(64)], state: 'join' })).status).toBe(403);
+      expect((await voice(0, 'shout')).status).toBe(400);
+    });
+
+    test('one device with two seats is one voice peer; one that stops its heartbeats is dropped', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia']);
+      // Leo sits at Mia's laptop.
+      const leo = await h.call('POST', '/api/room?op=join', { code, name: 'Leo', tokens: [tokens[0]] });
+      const laptop = [tokens[0] as string, leo.body.token as string];
+      const sofia = (await h.call('POST', '/api/room?op=join', { code, name: 'Sofia' })).body.token as string;
+      const joined = await h.call('POST', '/api/room?op=voice', { code, tokens: laptop, state: 'join' });
+      expect(joined.body.peers).toHaveLength(1);
+      expect(joined.body.peers[0].seats).toHaveLength(2);
+      await h.call('POST', '/api/room?op=voice', { code, tokens: [sofia], state: 'join' });
+      // The laptop keeps beating; Sofia's phone goes quiet and is dropped after the presence timeout.
+      h.clock.t += PRESENCE_TIMEOUT_MS / 2;
+      await h.call('POST', '/api/room?op=heartbeat', { code, tokens: laptop, voice: { muted: false } });
+      h.clock.t += PRESENCE_TIMEOUT_MS / 2 + 1000;
+      await h.call('POST', '/api/room?op=heartbeat', { code, tokens: laptop, voice: { muted: true } });
+      const poll = await h.call('GET', `/api/room?code=${code}&since=0&voice=1`);
+      expect(poll.body.voice).toEqual([expect.objectContaining({ id: joined.body.peer, muted: true })]);
+    });
+
+    test('voice set-up messages reach only their receiver, and only between devices in voice', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia', 'Leo', 'Sofia']);
+      const join = async (seat: number) => (await h.call('POST', '/api/room?op=voice', { code, tokens: [tokens[seat]], state: 'join' })).body.peer as string;
+      const a = await join(0);
+      const b = await join(1);
+      const send = (seat: number, body: Record<string, unknown>) => h.call('POST', '/api/room?op=signal', { code, tokens: [tokens[seat]], ...body });
+      const sent = await send(0, { to: b, kind: 'offer', sdp: 'v=0 offer' });
+      expect(sent.status).toBe(200);
+      const fetch = (seat: number, after = 0) => h.call('POST', '/api/room?op=signals', { code, tokens: [tokens[seat]], after });
+      expect((await fetch(1)).body.signals).toEqual([{ id: sent.body.id, from: a, to: b, kind: 'offer', sdp: 'v=0 offer', at: h.clock.t }]);
+      expect((await fetch(0)).body.signals).toEqual([]);
+      expect((await fetch(1, sent.body.id)).body.signals).toEqual([]);
+      await send(1, { to: a, kind: 'answer', sdp: 'v=0 answer' });
+      expect((await fetch(0)).body.signals.map((x: { kind: string }) => x.kind)).toEqual(['answer']);
+      // Sofia is not in voice: she can neither send nor be sent to. Bad messages are refused.
+      expect((await send(2, { to: a, kind: 'offer', sdp: 'v=0' })).status).toBe(400);
+      expect((await send(0, { to: 'v-nobody', kind: 'offer', sdp: 'v=0' })).status).toBe(400);
+      expect((await send(0, { to: a, kind: 'offer', sdp: 'v=0' })).status).toBe(400);
+      expect((await send(0, { to: b, kind: 'hello', sdp: 'v=0' })).status).toBe(400);
+      expect((await send(0, { to: b, kind: 'offer', sdp: 'x'.repeat(MAX_SDP + 1) })).status).toBe(400);
+      expect((await h.call('POST', '/api/room?op=signals', { code, tokens: ['f'.repeat(64)], after: 0 })).status).toBe(403);
+    });
+
+    test(`a room keeps the newest ${CHAT_KEEP} messages`, async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Mia', 'Leo']);
+      for (let i = 1; i <= CHAT_KEEP + 5; i++) {
+        expect((await h.call('POST', '/api/room?op=chat', { code, token: tokens[0], text: `m${i}` })).status).toBe(200);
+        h.clock.t += CHAT_GAP_MS;
+      }
+      const poll = await h.call('GET', `/api/room?code=${code}&since=0&chat=0`);
+      const ids = poll.body.chat.messages.map((m: { id: number }) => m.id);
+      expect(ids).toHaveLength(CHAT_KEEP);
+      expect(ids[0]).toBe(6);
+      expect(ids[ids.length - 1]).toBe(CHAT_KEEP + 5);
     });
   });
 });

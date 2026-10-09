@@ -123,6 +123,66 @@ If someone's browser closes, they open the same link again and are back in their
 switch devices, the join screen offers to take over their (disconnected) seat. The host can also
 **Play for them** or **Remove** them.
 
+Chat from the **Chat** tab (in the lobby, the **Chat** button), and press **Join voice** to talk. The
+browser asks for the microphone; headphones avoid echo.
+
+## 7. Optional: a relay for voice chat
+
+Voice chat connects the devices directly. On most home and office networks that just works, with
+the help of Cloudflare's free public server for finding the way (STUN). Some networks, many mobile
+ones among them, also need a relay (TURN) that carries the audio. If someone joins voice but nobody
+hears them, add one:
+
+1. Sign in to the Cloudflare dashboard, open **Realtime** (earlier called **Calls**), then its
+   **TURN** section, and create a TURN key, named for example `global-monopoly`. The labels in the
+   dashboard may differ slightly from these.
+2. Copy the key's **Turn Token ID** and its **API token**. The token is shown only once.
+3. In Vercel, open **Settings → Environment Variables** and add:
+   - `CLOUDFLARE_TURN_KEY_ID`: the Turn Token ID
+   - `CLOUDFLARE_TURN_KEY_API_TOKEN`: the API token
+4. Redeploy (step 4).
+
+Any other TURN service works too: set `TURN_URLS` (comma-separated `turn:` addresses),
+`TURN_USERNAME` and `TURN_CREDENTIAL` instead. Cloudflare charges $0.05 per GB its relay sends,
+after a free 1,000 GB a month. Voice is light: six people talking for an hour, all through the relay,
+is about half a gigabyte.
+
+## 8. Putting a new version live
+
+New work arrives on its own branch first (for sound, chat and voice: `sound-chat-voice`). Vercel
+builds every branch it sees as a private preview. A preview uses the same Upstash database as your
+live site, so it is a real test before your friends see anything.
+
+1. **Try the preview.** In Vercel, open your project, then **Deployments** in the sidebar. The
+   newest row says **Preview** and shows the branch name; press it, then **Visit**. You have to be
+   signed in to Vercel to open it. To let a friend try it too, press **Share** on that deployment
+   and choose **Anyone with the link**; switch it back to **Only people with access** afterwards
+   (the Hobby plan allows one such link at a time).
+
+   To check it with the smoke test instead, create a bypass secret (the end of step 5) and run:
+
+   ```bash
+   VERCEL_AUTOMATION_BYPASS_SECRET=<the secret> npm run smoke -- https://<preview-address>
+   ```
+2. **Go live.** On GitHub, open your repository. A banner offers **Compare & pull request** for the
+   branch (or open `https://github.com/<you>/<repository>/pull/new/<branch>`). Press **Create pull
+   request**, then **Merge pull request** and **Confirm merge**. Vercel builds `main`, and your
+   address serves the new version a minute or two later. From the project folder, this does the same:
+
+   ```bash
+   git checkout main
+   git pull
+   git merge sound-chat-voice
+   git push
+   ```
+3. **Check it:** `npm run smoke -- https://<your-address>`. It checks the game, the chat and the voice
+   set-up; the last line should say `Smoke test passed`.
+4. **If something is wrong, roll back.** On the project's **Overview**, the production deployment
+   tile has **Instant Rollback**: choose the previous deployment, press **Continue**, then
+   **Confirm Rollback**. Your address serves the previous version at once. While rolled back, new
+   pushes to `main` do not go live; **Undo Rollback** on the same tile turns that on again. (On the
+   Hobby plan only the version just before can be restored.)
+
 ## Limits and costs
 
 Checked in October 2026; the providers' pricing pages have the current numbers.
@@ -135,7 +195,14 @@ Checked in October 2026; the providers' pricing pages have the current numbers.
   ([pricing](https://upstash.com/pricing/redis)). Measured against a real Redis, a move costs about 6
   commands with three players connected, and each connected device costs about 7 commands a minute
   while idle (heartbeats). One hour of a three-player game is about 4,000 commands, so the free plan
-  covers roughly 125 such hours a month. Pay-as-you-go costs $0.20 per 100,000 commands.
+  covers roughly 125 such hours a month. By the requests the code makes (not measured), chat adds
+  about 3 commands a message; each device in voice about 3 a minute, and setting up a voice
+  connection about 10. Pay-as-you-go costs $0.20 per
+  100,000 commands. These counts take each script (EVAL) as one command, as it is sent; Upstash does
+  not say whether the commands inside a script are billed separately, so the **Usage** page of your
+  database in the Upstash console shows the real figure.
+- **Voice audio never passes through Vercel or Upstash.** It goes from device to device (or through
+  the optional relay in step 7). Devices in a voice chat learn each other's network addresses.
 - **Vercel Hobby plan:** 360 GB-hours of function memory, 4 hours of active CPU and 1,000,000
   function calls a month ([pricing](https://vercel.com/docs/functions/usage-and-pricing)). Memory is
   the one that matters here: an open live-update connection keeps a 2 GB function instance running,

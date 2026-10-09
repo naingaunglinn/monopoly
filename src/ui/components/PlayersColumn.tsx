@@ -9,6 +9,7 @@ import { amHost, hostControl, isSeatConnected, useOnline, usePresenceClock, type
 import { askConfirm, openSheet, showToast } from '../store';
 import { money, signedMoney, T } from '../strings';
 import { TokenChip } from './glyphs';
+import { VoiceBadge } from './Voice';
 
 interface SeatNet {
   seatId: string;
@@ -74,9 +75,13 @@ function PlayerCard({
         }${p.skipNextTurn ? `, ${T.players.onVacation}` : ''}${p.bankrupt ? `, ${T.players.bankrupt}` : ''}`}
         aria-current={isCurrent ? 'true' : undefined}
         data-player={p.id}
+        data-seat-anchor={p.id}
       >
         <span className="pc-head">
-          <TokenChip token={p.token} color={p.color} size={isCurrent ? 'var(--pc-token-current)' : 'var(--pc-token)'} />
+          <span className="pc-token">
+            <TokenChip token={p.token} color={p.color} size={isCurrent ? 'var(--pc-token-current)' : 'var(--pc-token)'} />
+            {net && <VoiceBadge seatId={net.seatId} />}
+          </span>
           <span className="pc-name">{p.name}</span>
           <span className="pc-cash money">{p.bankrupt ? T.players.bankrupt : money(cash)}</span>
         </span>

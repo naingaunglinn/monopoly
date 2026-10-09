@@ -946,6 +946,10 @@ select {
   top: calc(100% + 6px);
   z-index: 60;
   width: 300px;
+  /* Short screens (a phone on its side): the menu scrolls inside rather than running off screen. */
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 10px;
   background: var(--tile);
   border-radius: 12px;
@@ -965,6 +969,44 @@ select {
 .menu .segment {
   min-height: 40px;
   padding: 6px 12px;
+}
+
+.volume {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3.2em;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.volume input {
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  accent-color: var(--ocean);
+  cursor: pointer;
+}
+
+.volume input:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 2px;
+}
+
+.volume-value {
+  color: var(--muted-ink);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.volume.is-disabled {
+  color: var(--muted-ink);
+}
+
+.volume.is-disabled input {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .menu-sep {
@@ -4331,4 +4373,614 @@ ol.rules-lines {
     margin-top: 14px;
     gap: 10px;
   }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Chat and stamps (spec section 18). The chat sits beside the log on large screens, in its own
+   tab on phones and in a sheet in the lobby. Stamps are rubber stamps: a double border, condensed
+   capitals and a slight tilt, inked in the sender's colour; the big one thuds onto their card. */
+
+.feed-head {
+  padding: 4px 6px 0 6px;
+  gap: 6px;
+}
+
+.feed-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.feed-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--muted-ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feed-tab:hover {
+  color: var(--ink);
+}
+
+.feed-tab.is-on {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--ocean);
+}
+
+.feed-tab:focus-visible,
+.chat-preview:focus-visible,
+.stamp-btn:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 1px;
+}
+
+.chat-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--info);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* An open decision panel takes the play area only while the chat is open (large screens). */
+.stage.has-panel.has-chat > .log {
+  visibility: visible;
+}
+
+.stage.has-chat > .panel-layer {
+  grid-column: 1;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.feed-chat {
+  padding: 0 8px 8px;
+}
+
+.chat-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  font-size: var(--fs-small);
+}
+
+.chat-empty {
+  flex: 1;
+  margin: 0;
+  padding: 8px 4px;
+  color: var(--muted-ink);
+  font-size: var(--fs-small);
+}
+
+.chat-line {
+  display: grid;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: 10px;
+}
+
+.chat-line.is-own {
+  background: var(--ocean-tint);
+}
+
+.chat-line.is-joined {
+  padding-top: 0;
+}
+
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.chat-time {
+  flex: none;
+  margin-left: auto;
+  color: var(--muted-ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-text {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.chat-stamp {
+  padding: 3px 0 1px;
+}
+
+.chat-form {
+  display: grid;
+  /* A track that can shrink below the text box's natural width (the log column is narrow). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--tile-line);
+}
+
+.chat-as {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.chat-as select {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+}
+
+.chat-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.chat-send,
+.chat-stamps {
+  flex: none;
+  border-color: var(--tile-line);
+  color: var(--ocean);
+}
+
+.chat-stamps.is-on {
+  background: var(--info-tint);
+  border-color: var(--ocean);
+}
+
+.chat-send[aria-disabled='true'] {
+  color: var(--muted-ink);
+  cursor: default;
+}
+
+.stamp-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 4px;
+}
+
+.stamp-btn {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 2px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+
+.stamp-btn:hover {
+  background: var(--chart-paper);
+}
+
+.stamp-btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.stamp-mini {
+  --stamp-ink: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 2px solid var(--stamp-ink);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px var(--tile), inset 0 0 0 2px var(--stamp-ink);
+  color: var(--stamp-ink);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-2deg);
+  transition: transform 120ms ease;
+}
+
+.stamp-btn:nth-child(even) .stamp-mini {
+  transform: rotate(2deg);
+}
+
+.stamp-btn:hover .stamp-mini {
+  transform: rotate(0deg) scale(1.05);
+}
+
+.stamp-mini svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+}
+
+.stamp-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+
+.stamp-mark {
+  position: absolute;
+  transform: translate(-50%, -50%) rotate(var(--tilt, -6deg));
+}
+
+.stamp-face {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 9px 18px 8px;
+  border: 3px solid var(--stamp-ink);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    inset 0 0 0 2px #fff,
+    inset 0 0 0 4px var(--stamp-ink),
+    0 10px 24px rgba(6, 24, 42, 0.28);
+  color: var(--stamp-ink);
+  animation: stamp-thud 2600ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.stamp-word {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.stamp-word svg {
+  width: 26px;
+  height: 26px;
+}
+
+.stamp-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes stamp-thud {
+  0% {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(0.94);
+  }
+  12% {
+    transform: scale(1);
+  }
+  84% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* A new message while the chat is closed: under the turn banner, with the sender's colour band. */
+.chat-preview {
+  position: fixed;
+  top: calc(var(--topbar-h) + 66px);
+  left: 50%;
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 24px));
+  min-height: 44px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--tile-line);
+  border-left: 6px solid var(--sender, var(--ocean));
+  border-radius: 12px;
+  background: var(--tile);
+  box-shadow: var(--shadow-panel);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  text-align: left;
+  cursor: pointer;
+  transform: translateX(-50%);
+  animation: preview-in 220ms ease-out;
+}
+
+.chat-preview-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-preview .chat-name {
+  margin-right: 4px;
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+}
+
+/* The lobby: a Chat button beside the connection dot, and the chat in a sheet. */
+.lobby-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.lobby-chat-btn {
+  min-height: 40px;
+}
+
+.sheet-chat {
+  height: min(60vh, 520px);
+}
+
+/* Compact layouts: the chat opens over the log row, like an expanded log, and a decision panel
+   still takes the whole stage. */
+/* The top bar's Chat button, pressed while the chat is open. */
+.tb-chat.is-on {
+  background: var(--info-tint);
+  box-shadow: inset 0 0 0 1px var(--ocean);
+}
+
+/* Compact screens: the open chat floats over the stage, above a decision panel, until the player
+   goes back to the log (the Log tab or the Chat button). The top bar's Chat and voice buttons show
+   their icons only (their names stay for screen readers and in the tooltip), so the bar fits. */
+@media (max-width: 1279px) {
+  .topbar .tb-label {
+    display: none;
+  }
+
+  .stage.has-chat > .panel-layer {
+    grid-column: 1;
+  }
+
+  .feed.is-compact.is-expanded {
+    min-height: 300px;
+  }
+}
+
+/* Phones: the chat fills its tab as a paper card; the stamps and buttons are full-size targets. */
+.phone-sheet-body:has(> .phone-chat) {
+  display: flex;
+  overflow: hidden;
+}
+
+.phone-chat {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 10px 10px;
+  border-radius: var(--r-panel);
+  background: var(--tile);
+}
+
+.phone-tab-icon {
+  position: relative;
+  display: inline-grid;
+}
+
+.phone-tab-icon .chat-badge {
+  position: absolute;
+  top: -6px;
+  right: -12px;
+}
+
+@media (max-width: 1023px), (orientation: portrait), (max-height: 539px) {
+  .chat-preview {
+    top: calc(58px + 52px + env(safe-area-inset-top));
+  }
+
+  .stamp-btn,
+  .chat-input {
+    min-height: 44px;
+  }
+
+  .chat-send,
+  .chat-stamps,
+  .lobby-chat-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .sheet-chat {
+    height: min(70dvh, 520px);
+  }
+
+  /* The lobby header: the room code and the Chat button on top, the invite below at full width. */
+  .lobby-tools {
+    order: 2;
+  }
+
+  .lobby-invite {
+    order: 3;
+    flex: 1 1 100%;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Voice chat (spec section 18): Join voice, then the microphone switch (green ring while you
+   talk, red when muted) and Leave; badges on cards and lobby rows show who listens, talks or is
+   muted. */
+
+.voice-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.voice-btn {
+  position: relative;
+}
+
+.voice-btn.is-compact {
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+}
+
+.voice-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--gain-ink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.voice-btn.is-compact .voice-count {
+  position: absolute;
+  top: 2px;
+  right: 0;
+}
+
+.voice-btn.is-muted {
+  color: var(--loss-ink);
+}
+
+.voice-btn.is-talking::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px var(--gain);
+  pointer-events: none;
+  animation: talk-pulse 900ms ease-in-out infinite;
+}
+
+.voice-leave {
+  color: var(--loss-ink);
+}
+
+.voice-badge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--info-tint);
+  color: var(--ocean);
+}
+
+.voice-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.voice-badge.is-muted {
+  background: #fbe3e1;
+  color: var(--loss-ink);
+}
+
+.voice-badge.is-talking {
+  background: var(--gain-ink);
+  color: #fff;
+  animation: talk-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes talk-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* On a player card the voice badge sits on the token's corner, so the name keeps its room. */
+.pc-token {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+}
+
+.pc-token .voice-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -5px;
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 0 2px var(--tile);
+}
+
+.pc-token .voice-badge svg {
+  width: 10px;
+  height: 10px;
 }

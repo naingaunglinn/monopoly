@@ -31,8 +31,8 @@ src/
   data/     board, countries, cities, airports, companies, chance, events, players, balance (every number)
   ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch),
             session/ (GameSession: LocalSession runs the engine and autosaves; OnlineSession talks to
-            the server), display.ts + animation.ts (event player), strings.ts (every UI string),
-            theme.css, hooks.ts
+            the server), display.ts + animation.ts (event player), sound/ (synthesised effects:
+            synth, cues, engine, plan), strings.ts (every UI string), theme.css, hooks.ts
   sim/      bots.ts, runner.ts, cli.ts (`npm run sim`)
 server/     online API: room.ts (pure room rules), api.ts (web-standard handlers), store.ts
             (RoomStore), memoryStore.ts, upstashStore.ts, vercel.ts, local.ts (local server)
@@ -60,6 +60,8 @@ docs/       SPEC.md (source of truth)
   Card text, city, airport and company names are data in `src/data/`.
 - State must be plain JSON: no `undefined`, no class instances, no Maps. Use `null`.
 - No network calls, CDNs or remote assets. Fonts and flags are bundled and inlined at build time.
+  Online play talks to the game's own server (section 17); online voice also asks a public STUN
+  server for the device's address after the player presses Join voice (D93). Nothing else.
 - No emoji anywhere in the interface. Flags are bundled SVGs, icons come from lucide-react,
   tokens, houses and hotels are original inline SVG.
 - CSS: plain CSS with custom properties in `src/ui/theme.css`. Animate only transform and opacity.
@@ -69,6 +71,9 @@ docs/       SPEC.md (source of truth)
   show the engine's reason. Animations replay engine events in `ui/animation.ts`; game state is final
   before they play, and any input finishes them.
 - Signal yellow is for the primary button only. Small text uses the AA text shades in `theme.css`.
+- Sounds are synthesised in `ui/sound/` (no audio files). Game events get their cue in `plan.ts`
+  and play on the animation timeline; a new cue gets a loudness trim in `cues.ts`, measured with
+  `renderCue` (the sound spec keeps every cue between -36 and -18 dBFS).
 - Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
   both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
 - The save has a `schemaVersion` (now 2). A change to the state's shape bumps it and adds a migration
@@ -82,6 +87,12 @@ docs/       SPEC.md (source of truth)
   `@upstash/redis` (shared wire types live in `src/online/`).
 - The client never runs `reduce`, `parseSave` or `checkInvariants` on an online view (decks are
   hidden), and an online game never touches the local save.
+- Chat (spec section 18) never changes a room's version: it has its own store keys and stream
+  events (no `id:` line; the event id is always a version). Controls that take input during online
+  play (chat, stamps, voice) carry `data-no-skip`, so they never skip the animation that is playing.
+- Voice (`session/voice.ts`) is peer to peer; the server only lists peers and passes set-up messages,
+  which only their receiver can read. Playwright runs Chromium with a fake microphone
+  (`playwright.config.ts`); the local server hands out no ICE servers, so tests stay offline.
 - Phones (`PHONE_QUERY` in `ui/hooks.ts`, `screens/PhoneGame.tsx`): the board is the 1280 x 676
   desktop board scaled inside `.board-canvas`, whose CSS pins every board size (media queries see the
   phone). Nothing inside the canvas may use `position: fixed`. The camera lives in a ref, not state.
