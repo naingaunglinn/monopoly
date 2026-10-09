@@ -147,6 +147,42 @@ Any other TURN service works too: set `TURN_URLS` (comma-separated `turn:` addre
 after a free 1,000 GB a month. Voice is light: six people talking for an hour, all through the relay,
 is about half a gigabyte.
 
+## 8. Putting a new version live
+
+New work arrives on its own branch first (for sound, chat and voice: `sound-chat-voice`). Vercel
+builds every branch it sees as a private preview. A preview uses the same Upstash database as your
+live site, so it is a real test before your friends see anything.
+
+1. **Try the preview.** In Vercel, open your project, then **Deployments** in the sidebar. The
+   newest row says **Preview** and shows the branch name; press it, then **Visit**. You have to be
+   signed in to Vercel to open it. To let a friend try it too, press **Share** on that deployment
+   and choose **Anyone with the link**; switch it back to **Only people with access** afterwards
+   (the Hobby plan allows one such link at a time).
+
+   To check it with the smoke test instead, create a bypass secret (the end of step 5) and run:
+
+   ```bash
+   VERCEL_AUTOMATION_BYPASS_SECRET=<the secret> npm run smoke -- https://<preview-address>
+   ```
+2. **Go live.** On GitHub, open your repository. A banner offers **Compare & pull request** for the
+   branch (or open `https://github.com/<you>/<repository>/pull/new/<branch>`). Press **Create pull
+   request**, then **Merge pull request** and **Confirm merge**. Vercel builds `main`, and your
+   address serves the new version a minute or two later. From the project folder, this does the same:
+
+   ```bash
+   git checkout main
+   git pull
+   git merge sound-chat-voice
+   git push
+   ```
+3. **Check it:** `npm run smoke -- https://<your-address>`. It checks the game, the chat and the voice
+   set-up; the last line should say `Smoke test passed`.
+4. **If something is wrong, roll back.** On the project's **Overview**, the production deployment
+   tile has **Instant Rollback**: choose the previous deployment, press **Continue**, then
+   **Confirm Rollback**. Your address serves the previous version at once. While rolled back, new
+   pushes to `main` do not go live; **Undo Rollback** on the same tile turns that on again. (On the
+   Hobby plan only the version just before can be restored.)
+
 ## Limits and costs
 
 Checked in October 2026; the providers' pricing pages have the current numbers.
