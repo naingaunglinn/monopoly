@@ -56,7 +56,7 @@ test('build: Build house spends the house cost; Done continues the turn', async 
   const log = trackErrors(page);
   await loadState(page, panelStates().build as never);
   const before = await gameState(page);
-  await page.locator('#build-btn').click();
+  await page.locator(`#build-${CAIRO}`).click();
   let s = await gameState(page);
   expect(s.properties[CAIRO].level).toBe(1);
   expect(s.players[0].cash).toBe(before.players[0].cash - 50);

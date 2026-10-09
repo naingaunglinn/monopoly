@@ -351,11 +351,11 @@ A country is complete when one player owns every city in it. Airports and compan
 
 ### 5.8 Building: the house rule (implement exactly)
 
-A player may build only on the city they have just landed on.
+A player may build in the country of the city they have just landed on, on any of its cities (owner change, D98; until then it was the landed city only).
 
 - The player must own every city in that country, and none of them may be mortgaged.
-- The player must be standing on that exact city, having arrived on this move by dice or by card.
-- The permission lasts from landing until the player rolls again or ends the turn. It never covers another city, even in the same country.
+- The player must be standing on a city of that country, having arrived on this move by dice or by card.
+- The permission lasts from landing until the player rolls again or ends the turn. It covers every city of that country and never another country.
 - Even building: after any build, no city in the country may be more than one level above another.
 - Levels are 0, 1, 2, 3 and 4 houses, then a hotel (level 5). One hotel at most.
 - A house costs the city's house cost. A hotel needs 4 houses, costs house cost × 2 and replaces the 4 houses.
@@ -363,7 +363,9 @@ A player may build only on the city they have just landed on.
 - Houses and hotels are unlimited in supply.
 - Airports and companies never have buildings.
 
-Example: a player owns Brasília and Rio de Janeiro and lands on Brasília. They may build on Brasília only, never on Rio this move. With Brasília at 2 houses and Rio at 1, a third house on Brasília is refused until Rio reaches 2.
+Example: a player owns Brasília and Rio de Janeiro and lands on Brasília. They may build on both this move. With Brasília at 1 house and Rio at none, Brasília's second house waits until Rio has 1; with both at 1, either may get a second; with Brasília at 2 and Rio at 1, a third house on Brasília is refused until Rio reaches 2. In the owner's words: p1 → 1 house, p2 → 1 house, p3 → 1 house, then the next houses can be built.
+
+The build panel lists every city of the country with its buildings, its rent now and its own Build button.
 
 ### 5.9 Selling buildings
 

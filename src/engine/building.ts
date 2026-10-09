@@ -1,4 +1,4 @@
-// Building (5.8, the landing-only house rule), selling (5.9) and mortgages (5.14).
+// Building (5.8, the house rule: in the country you land in, D98), selling (5.9) and mortgages (5.14).
 import { BALANCE, mortgageValue, unmortgageCost } from '../data/balance.js';
 import { CITY_BY_SPACE, propertyName, propertyPrice } from '../data/board.js';
 import { COUNTRY_BY_ID } from '../data/countries.js';
@@ -48,8 +48,15 @@ export function buildBlocker(s: GameState, playerId: number, space: number): Eng
   const country = COUNTRY_BY_ID[city.country];
   if (ps.owner !== playerId) return makeError('notOwner', { name: city.name });
   const player = playerById(s, playerId);
-  if (s.turn.currentPlayerIndex !== playerId || s.turn.landedCity !== space || player.position !== space) {
-    return makeError('notLandedHere', { name: city.name });
+  // Only during the move that landed on a city of this country, and then on any of its cities (D98).
+  const landed = s.turn.landedCity;
+  if (
+    s.turn.currentPlayerIndex !== playerId ||
+    landed === null ||
+    player.position !== landed ||
+    CITY_BY_SPACE.get(landed)?.country !== city.country
+  ) {
+    return makeError('notLandedHere', { country: country.name });
   }
   if (!ownsCountry(s, playerId, city.country)) return makeError('countryIncomplete', { country: country.name });
   const mortgaged = firstMortgagedCity(s, city.country);

@@ -409,14 +409,18 @@ export const T = {
       roll: 'Roll',
     },
     build: {
-      title: (name: string) => `Build on ${name}`,
+      title: (country: string) => `Build in ${country}`,
       current: 'Now',
       house: (cost: number) => `Build house · ${money(cost)}`,
       houseFree: 'Build house · free with Free House card',
       hotel: (cost: number) => `Build hotel · ${money(cost)}`,
       done: 'Done',
       maxed: 'This city has a hotel. Nothing more can be built.',
-      landingRule: 'You can build only on the city you have just landed on, during this move.',
+      /** A city row with a hotel already. */
+      maxedShort: 'Hotel built',
+      /** Marks the city the player is standing on. */
+      here: 'You are here',
+      landingRule: 'You can build on any city of this country during this move. Build evenly: a city gets its next house only when every city here has as many.',
       rentNow: 'Rent now',
       rentNext: 'Rent after building',
     },
@@ -698,7 +702,10 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   countryHasBuildings: (x) => `Sell the buildings in ${p(x, 'country')} first.`,
   countryIncomplete: (x) => `You need every city in ${p(x, 'country')} before building.`,
   countryMortgaged: (x) => `Unmortgage ${p(x, 'name')} before building in ${p(x, 'country')}.`,
-  notLandedHere: () => 'You can build only on the city you have just landed on, during that move.',
+  notLandedHere: (x) =>
+    p(x, 'country')
+      ? `You can build in ${p(x, 'country')} only during a move that lands on one of its cities.`
+      : 'You can build only during a move that lands on a city of that country.',
   evenBuild: (x) => `Your other ${p(x, 'country')} cities must have the same number of houses first.`,
   hasHotel: (x) => `${p(x, 'name')} already has a hotel.`,
   noBuildings: (x) => `${p(x, 'name')} has no buildings to sell.`,
@@ -1009,7 +1016,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'Roll the dice and move clockwise.',
       'Land on a property nobody owns: buy it, or let everyone bid for it.',
       'Land on someone else’s property: pay rent.',
-      'Own every city of a country and its rent doubles. Then you can build houses, but only on the city you land on.',
+      'Own every city of a country and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
       'Pass World Start and collect $500.',
       'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
       'The yellow button always shows your next step.',
@@ -1069,8 +1076,8 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
     title: 'Houses and hotels',
     lines: [
       'You need the whole country, with none of its cities mortgaged.',
-      'You can build only on the city you have just landed on, and only during that move.',
-      'Build evenly: no city may be more than one house ahead of the others in its country.',
+      'Land on any city of the country, and during that move you can build on every city of it.',
+      'Build evenly: a city gets its next house only when every city in the country has as many. With one house on each, any of them can get a second.',
       'You may build several houses in one landing if the even rule and your cash allow it.',
       'After 4 houses you can build a hotel. A hotel costs twice the house cost.',
     ],
@@ -1103,7 +1110,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'Land on Chance or Event to draw a card, then do what it says.',
       'Chance mostly affects you: money, movement, Jail and bonus cards.',
       'Events are world news. They can affect everyone, and some change rents or building costs for one round. Active events show at the top of the screen.',
-      'Free House: your next house is free, still only on a city you land on.',
+      'Free House: your next house is free, in a country you land in.',
       'Get Out of Jail: keep it until you need it. You can trade it.',
     ],
   },
@@ -1222,7 +1229,7 @@ export const QUICK_HELP: Readonly<Record<'freeStay' | 'companies' | 'airports' |
     topic: 'airports',
   },
   building: {
-    lines: ['Own the whole country, then build on the city you just landed on.', 'Build evenly; after 4 houses comes a hotel.'],
+    lines: ['Own the whole country, then land on any of its cities to build on all of them.', 'Build evenly; after 4 houses comes a hotel.'],
     topic: 'houses',
   },
 };
