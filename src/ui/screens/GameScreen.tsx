@@ -13,6 +13,7 @@ import {
   Menu as MenuIcon,
   MessageCircle,
   Plus,
+  Repeat,
   Save,
   Volume2,
   VolumeX,
@@ -29,15 +30,16 @@ import { ChatPanel, ChatPreview, StampLayer, UnreadBadge } from '../components/C
 import { LeaveVoiceItem, VoiceButton } from '../components/Voice';
 import { DicePanel } from '../components/Dice';
 import { CoinFlight, Confetti } from '../components/Effects';
-import { FocusCard } from '../components/FocusCard';
+import { FloatingFocusCard, FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
 import { Log, LogLines, LogMoreButton } from '../components/Log';
 import { OceanArt } from '../components/OceanArt';
 import { PlayersColumn } from '../components/PlayersColumn';
+import { RoomPlayers } from '../components/RoomBar';
 import { Tile } from '../components/Tile';
 import { TokenLayer } from '../components/TokenLayer';
 import { shownCash, shownDice, shownPosition, useDisplay } from '../display';
-import { COMPACT_QUERY, PHONE_QUERY, useMediaQuery } from '../hooks';
+import { COMPACT_QUERY, FINE_POINTER_QUERY, PHONE_QUERY, useMediaQuery } from '../hooks';
 import {
   ConfirmDialog,
   PassDevice,
@@ -96,6 +98,7 @@ export function GameMenu({ s, compact = false }: { s: GameState; compact?: boole
           type="button"
           id="tb-menu"
           className="btn btn-ghost"
+          aria-label={T.top.menu}
           aria-haspopup="true"
           aria-expanded={menuOpen}
           onClick={() => ui.set({ menuOpen: !menuOpen })}
@@ -183,8 +186,11 @@ export function SoundToggle({ className = '' }: { className?: string }) {
 
 type FeedTab = 'log' | 'chat';
 
-/** Which tab the log box shows online: the log, or the chat (the top bar's Chat button switches it). */
-const feedTab = new Box<FeedTab>('log');
+/**
+ * Which tab the log box shows online: the chat (from the start, D97) or the log (the top bar's Chat
+ * button switches between them).
+ */
+const feedTab = new Box<FeedTab>('chat');
 
 function useFeedTab(): FeedTab {
   return useSyncExternalStore(feedTab.subscribe, feedTab.get, feedTab.get);
@@ -214,24 +220,46 @@ function ChatButton() {
   );
 }
 
+/** Room play: the round as a small counter (the players take the room the title and turn had). */
+function RoundCounter({ s }: { s: GameState }) {
+  const quick = s.meta.settings.mode === 'quick';
+  const round = quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber);
+  return (
+    <span className="tb-round" title={round}>
+      <Repeat aria-hidden="true" />
+      <span aria-hidden="true">{quick ? `${s.turn.roundNumber}/${s.meta.settings.roundLimit}` : s.turn.roundNumber}</span>
+      <span className="sr-only">{round}</span>
+    </span>
+  );
+}
+
 function TopBar({ s }: { s: GameState }) {
   const online = useOnline();
   const display = useDisplay();
+  // Room play below 1280 px: Rules and the sound switch move into the menu, so the players fit.
+  const narrow = useMediaQuery(COMPACT_QUERY);
   const current = s.players[s.turn.currentPlayerIndex] as Player;
   const quick = s.meta.settings.mode === 'quick';
+  const roomy = !(online && narrow);
   return (
-    <header className="topbar">
-      <span className="tb-title">{GAME_TITLE}</span>
-      <span className="tb-stat">
-        {quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}
-      </span>
-      <span className="tb-stat">{T.top.turn(s.turn.turnNumber)}</span>
-      {s.flow.phase !== 'GameOver' && (
-        <span className="tb-player" style={{ ['--player' as string]: current.color }}>
-          <TokenChip token={current.token} color={current.color} size={22} />
-          <span className="tb-player-name">{current.name}</span>
-          <span className="tb-cash money">{money(shownCash(s, display, current.id))}</span>
-        </span>
+    <header className={`topbar ${online ? 'is-room' : ''}`}>
+      {online ? (
+        <RoomPlayers s={s} online={online} />
+      ) : (
+        <>
+          <span className="tb-title">{GAME_TITLE}</span>
+          <span className="tb-stat">
+            {quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber)}
+          </span>
+          <span className="tb-stat">{T.top.turn(s.turn.turnNumber)}</span>
+          {s.flow.phase !== 'GameOver' && (
+            <span className="tb-player" style={{ ['--player' as string]: current.color }}>
+              <TokenChip token={current.token} color={current.color} size={22} />
+              <span className="tb-player-name">{current.name}</span>
+              <span className="tb-cash money">{money(shownCash(s, display, current.id))}</span>
+            </span>
+          )}
+        </>
       )}
       <ul className="tb-modifiers" aria-label={T.top.modifiersLabel}>
         {s.flow.modifiers.map((m) => (
@@ -242,24 +270,28 @@ function TopBar({ s }: { s: GameState }) {
         ))}
       </ul>
       <span className="tb-spacer" />
+      {online && <RoundCounter s={s} />}
       {online && <ChatButton />}
       {online && <VoiceButton />}
       {online && (
         <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
           {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
-          {T.online.room(online.code)}
+          <span className="tb-room-word">{T.online.roomWord}</span> {online.code}
         </span>
       )}
-      <SoundToggle />
-      <Button
-        id="tb-rules"
-        variant="ghost"
-        label={T.top.rules}
-        keyHint="R"
-        icon={<BookOpen size={16} aria-hidden="true" />}
-        onClick={() => openRules()}
-      />
-      <GameMenu s={s} />
+      {roomy && <SoundToggle />}
+      {roomy && (
+        <Button
+          id="tb-rules"
+          variant="ghost"
+          label={T.top.rules}
+          ariaLabel={T.top.rules}
+          keyHint="R"
+          icon={<BookOpen size={16} aria-hidden="true" />}
+          onClick={() => openRules()}
+        />
+      )}
+      <GameMenu s={s} compact={!roomy} />
     </header>
   );
 }
@@ -374,6 +406,8 @@ function ActionBar({ s }: { s: GameState }) {
 function Feed({ s, compact, tab, onTab }: { s: GameState; compact: boolean; tab: FeedTab; onTab: (t: FeedTab) => void }) {
   const online = useOnline();
   const { logExpanded } = useUi();
+  // With a mouse the message box keeps the cursor (D97); never on touch, where it opens the keyboard.
+  const mouse = useMediaQuery(FINE_POINTER_QUERY);
   if (!online) return <Log s={s} compact={compact} />;
   const expanded = compact && (tab === 'chat' || logExpanded);
   return (
@@ -390,7 +424,7 @@ function Feed({ s, compact, tab, onTab }: { s: GameState; compact: boolean; tab:
         </div>
         {compact && tab === 'log' && <LogMoreButton />}
       </header>
-      {tab === 'log' ? <LogLines s={s} compact={compact} /> : <ChatPanel className="feed-chat" />}
+      {tab === 'log' ? <LogLines s={s} compact={compact} /> : <ChatPanel className="feed-chat" keepFocus={mouse} />}
     </section>
   );
 }
@@ -408,8 +442,8 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
     seen.current = request;
     setFeed('chat');
   }, [request]);
-  // The next game starts on the log.
-  useEffect(() => () => feedTab.set('log'), []);
+  // The next game starts on the chat again.
+  useEffect(() => () => feedTab.set('chat'), []);
   const chatOpen = online !== null && feed === 'chat';
   const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
@@ -427,9 +461,10 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   const doublesAgain =
     s.turn.rollsLeft > 0 && !!s.turn.dice && s.turn.dice[0] === s.turn.dice[1] && s.flow.phase === 'AwaitRoll' && !display.busy;
   return (
-    <div className={`stage ${showPanel ? 'has-panel' : ''} ${compactLog ? 'is-compact' : ''} ${chatOpen ? 'has-chat' : ''}`}>
+    <div className={`stage ${showPanel ? 'has-panel' : ''} ${compactLog ? 'is-compact' : ''} ${chatOpen ? 'has-chat' : ''} ${online ? 'is-room' : ''}`}>
       <div className="stage-main">
-        <FocusCard s={s} fallback={position} />
+        {/* Room play: the card floats beside a hovered tile instead (D97). */}
+        {!online && <FocusCard s={s} fallback={position} />}
         <div className="stage-side">
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
@@ -448,6 +483,15 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
 }
 
 function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
+  const online = useOnline();
+  // Room play: the players are in the top bar, and coins fly between them over the whole screen.
+  if (online) {
+    return (
+      <div className="hud is-room">
+        <Stage s={s} compactLog={false} />
+      </div>
+    );
+  }
   return (
     <div className="hud">
       <PlayersColumn s={s} />
@@ -465,6 +509,7 @@ const ROOMY_ROWS = LAYOUT.down <= 18;
 /** The ring of tiles with the ocean, tokens and (on large screens) the HUD inside it. */
 export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; compactLog: boolean }) {
   const display = useDisplay();
+  const online = useOnline();
   const current = s.players[s.turn.currentPlayerIndex];
   const currentPos = shownPosition(s, display, s.turn.currentPlayerIndex);
   const over = s.flow.phase === 'GameOver';
@@ -490,6 +535,7 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
         <OceanArt />
         <TokenLayer s={s} />
         {hud && <Hud s={s} compactLog={compactLog} />}
+        {hud && online && <FloatingFocusCard s={s} />}
       </div>
     </main>
   );
@@ -706,6 +752,11 @@ export function GameScreen() {
       <QuickHelpPopover />
       <ConfirmDialog s={s} />
       <Confetti />
+      {online && !phone && (
+        <div className="coin-overlay">
+          <CoinFlight />
+        </div>
+      )}
       {online && <StampLayer />}
       {online && <ChatPreview />}
       {DEBUG && mode === 'local' && <DebugPanel s={s} />}

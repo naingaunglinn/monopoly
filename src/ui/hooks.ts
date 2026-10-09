@@ -24,6 +24,8 @@ export function useMediaQuery(query: string): boolean {
 
 /** 1024 to 1279 px: compact log (last 3 lines, expands on click). */
 export const COMPACT_QUERY = '(max-width: 1279px)';
+/** A mouse or trackpad (not touch): the room chat keeps the cursor only then (D97). */
+export const FINE_POINTER_QUERY = '(pointer: fine)';
 /**
  * Phones and other small screens (spec section 17): under 1024 px wide, portrait, or under 540 px
  * tall (phones in landscape). The board becomes a zoomable viewport with a control sheet.

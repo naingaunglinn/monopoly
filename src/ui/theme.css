@@ -4995,3 +4995,384 @@ ol.rules-lines {
   width: 10px;
   height: 10px;
 }
+
+/* ------------------------------------------------------------------------------------------ */
+/* Room play on large screens (owner request, D97): the players in the top bar (this device's
+   player in full, the others as money), the chat beside the play area from the start, small dice,
+   and the Focus Card only beside a hovered, focused or pinned tile. */
+
+.topbar.is-room {
+  /* Above the board, so money changes can drop below the chips. */
+  position: relative;
+  z-index: 20;
+  gap: 10px;
+  padding-left: 8px;
+  --me-token: 26px;
+  --chip-token: 22px;
+}
+
+.tb-players {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tb-slot {
+  position: relative;
+  flex: none;
+  min-width: 0;
+}
+
+.tb-me,
+.tb-other {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--tile-line);
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* This device's player wears their colour; the player whose turn it is has a ring in theirs. */
+.tb-me {
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px 0 5px;
+  border-color: var(--player);
+  background: var(--me-tint, var(--tile));
+}
+
+.tb-me.is-current,
+.tb-other.is-current {
+  box-shadow: 0 0 0 2px var(--player);
+}
+
+.tb-me:hover,
+.tb-other:hover {
+  filter: brightness(0.97);
+}
+
+.tb-me:focus-visible,
+.tb-other:focus-visible {
+  outline: 3px solid var(--info);
+  outline-offset: 2px;
+}
+
+.tb-me-name {
+  min-width: 0;
+  max-width: 9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-me-cash {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.tb-me.is-bankrupt .tb-me-cash {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--loss-ink);
+}
+
+.tb-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tb-count svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tb-badge {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.tb-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.tb-others {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tb-other {
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 4px;
+}
+
+.tb-other-cash {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-other.is-bankrupt {
+  background: #e4e9ee;
+}
+
+.tb-other.is-bankrupt .tb-other-cash {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--loss-ink);
+}
+
+/* One sign on a token's top corner: disconnected, played by someone else, in Jail, on Vacation. */
+.tb-sign {
+  position: absolute;
+  right: -5px;
+  top: -4px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--tile);
+}
+
+.tb-sign svg {
+  width: 9px;
+  height: 9px;
+}
+
+.sign-offline {
+  background: #5c6670;
+}
+
+.sign-proxy {
+  background: var(--info);
+}
+
+.sign-jail {
+  background: #8f1d14;
+}
+
+.sign-vacation {
+  background: #137a43;
+}
+
+/* Money changes drop just below the chip, over the board. */
+.tb-slot .money-float {
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  width: max-content;
+  margin: 0 auto;
+  font-size: 16px;
+}
+
+.tb-round {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tb-round svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* The players take the room: the bar's buttons show icons only, with their names as tooltips. */
+@media (max-width: 1899px) {
+  .topbar.is-room .tb-label,
+  .topbar.is-room #tb-rules .btn-label,
+  .topbar.is-room #tb-rules .key-hint,
+  .topbar.is-room #tb-menu .btn-label {
+    display: none;
+  }
+}
+
+/* Five or six players on a narrower screen: this device's player drops the name (it is in the
+   tooltip and on the token), the room chip keeps only its code. */
+@media (max-width: 1599px) {
+  .tb-players.is-crowded .tb-me-name {
+    display: none;
+  }
+}
+
+@media (max-width: 1279px) {
+  .topbar.is-room {
+    gap: 8px;
+  }
+
+  .tb-counts {
+    gap: 7px;
+    font-size: 12px;
+  }
+
+  .tb-count svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .topbar.is-room .tb-room-word,
+  .topbar.is-room .tb-badge-label {
+    display: none;
+  }
+}
+
+/* The play area and the chat side by side; no player column. */
+.hud.is-room {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.stage.is-room {
+  --chat-w: clamp(260px, 40%, 460px);
+  grid-template-columns: minmax(0, 1fr) var(--chat-w);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.stage.is-room > .stage-main {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.stage.is-room > .log {
+  grid-row: 1 / 3;
+  grid-column: 2;
+}
+
+.stage.is-room > .panel-layer {
+  grid-row: 1;
+  grid-column: 1 / 3;
+}
+
+.stage.is-room.has-chat > .panel-layer {
+  grid-column: 1;
+}
+
+.stage.is-room > .action-bar {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+/* Below 1280 px the buttons need the whole width; the chat keeps the row above them. */
+@media (max-width: 1279px) {
+  .stage.is-room > .log {
+    grid-row: 1;
+  }
+
+  .stage.is-room > .action-bar {
+    grid-column: 1 / 3;
+  }
+}
+
+/* Small dice and recap just above the buttons, where the eye already is. */
+.stage.is-room > .stage-main {
+  align-items: flex-end;
+}
+
+.stage.is-room .stage-side {
+  flex: 0 1 auto;
+  width: min(100%, 360px);
+  gap: 6px;
+}
+
+.stage.is-room .dice-panel {
+  --die: 36px;
+  align-self: flex-start;
+  gap: 10px;
+  padding: 6px 12px 6px 8px;
+}
+
+.stage.is-room .dice-pair {
+  gap: 6px;
+}
+
+.stage.is-room .dice-sum {
+  font-size: 26px;
+}
+
+.stage.is-room .recap-line,
+.stage.is-room .hint-line {
+  padding: 5px 10px;
+}
+
+@media (min-width: 1600px) {
+  .stage.is-room .dice-panel {
+    --die: 44px;
+  }
+
+  .stage.is-room .dice-sum {
+    font-size: 30px;
+  }
+}
+
+/* The Focus Card beside a hovered, focused or pinned tile (FloatingFocusCard). */
+.deed-float {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  width: var(--deed-w);
+  max-height: calc(100% - 16px);
+  pointer-events: none;
+  animation: deed-in calc(var(--t) * 140ms) ease-out;
+}
+
+.deed-float.is-pinned {
+  pointer-events: auto;
+}
+
+.deed-float .deed {
+  flex: 1 1 auto;
+}
+
+@keyframes deed-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Coins fly between the top bar's chips, over the whole screen. */
+.coin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* The host's controls for a player, at the top of their property list (room play). */
+.sheet-host {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}

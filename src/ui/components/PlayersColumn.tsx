@@ -11,7 +11,7 @@ import { money, signedMoney, T } from '../strings';
 import { TokenChip } from './glyphs';
 import { VoiceBadge } from './Voice';
 
-interface SeatNet {
+export interface SeatNet {
   seatId: string;
   offline: boolean;
   proxyName: string | null;
@@ -19,7 +19,8 @@ interface SeatNet {
   hostControls: boolean;
 }
 
-function seatNet(online: OnlineState | null, s: GameState, p: Player): SeatNet | null {
+/** Online: a player's connection, who plays for them, and whether this device's host may step in. */
+export function seatNet(online: OnlineState | null, s: GameState, p: Player): SeatNet | null {
   const seat = online?.view.seats[p.id];
   if (!online || !seat) return null;
   const mine = online.mine.includes(p.id);
@@ -76,6 +77,7 @@ function PlayerCard({
         aria-current={isCurrent ? 'true' : undefined}
         data-player={p.id}
         data-seat-anchor={p.id}
+        data-money-anchor={p.id}
       >
         <span className="pc-head">
           <span className="pc-token">
@@ -170,30 +172,39 @@ function PlayerCard({
           {signedMoney(f.amount)}
         </span>
       ))}
-      {net?.hostControls && (
-        <span className="pc-host">
-          {net.proxyMine ? (
-            <button type="button" className="btn btn-chip" id={`stop-play-${p.id}`} onClick={() => void hostControl('stopPlayingFor', net.seatId).then(report)}>
-              {T.online.stopPlayingFor}
-            </button>
-          ) : (
-            <button type="button" className="btn btn-chip" id={`play-for-${p.id}`} onClick={() => void hostControl('playFor', net.seatId).then(report)}>
-              <Gamepad2 size={15} aria-hidden="true" />
-              {T.online.playFor}
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-chip btn-chip-danger"
-            id={`remove-${p.id}`}
-            onClick={() => askConfirm({ kind: 'removePlayer', seatId: net.seatId, name: p.name })}
-          >
-            <UserX size={15} aria-hidden="true" />
-            {T.online.remove}
-          </button>
-        </span>
-      )}
+      {net?.hostControls && <HostControls p={p} net={net} />}
     </li>
+  );
+}
+
+/**
+ * The host's controls for a disconnected player (or one they play for): Play for them (or Stop
+ * playing for them) and Remove. On player cards, and in the property list when the cards are not
+ * on screen (room play on large screens, D97), with ids prefixed there.
+ */
+export function HostControls({ p, net, idPrefix = '' }: { p: Player; net: SeatNet; idPrefix?: string }) {
+  return (
+    <span className="pc-host">
+      {net.proxyMine ? (
+        <button type="button" className="btn btn-chip" id={`${idPrefix}stop-play-${p.id}`} onClick={() => void hostControl('stopPlayingFor', net.seatId).then(report)}>
+          {T.online.stopPlayingFor}
+        </button>
+      ) : (
+        <button type="button" className="btn btn-chip" id={`${idPrefix}play-for-${p.id}`} onClick={() => void hostControl('playFor', net.seatId).then(report)}>
+          <Gamepad2 size={15} aria-hidden="true" />
+          {T.online.playFor}
+        </button>
+      )}
+      <button
+        type="button"
+        className="btn btn-chip btn-chip-danger"
+        id={`${idPrefix}remove-${p.id}`}
+        onClick={() => askConfirm({ kind: 'removePlayer', seatId: net.seatId, name: p.name })}
+      >
+        <UserX size={15} aria-hidden="true" />
+        {T.online.remove}
+      </button>
+    </span>
   );
 }
 
