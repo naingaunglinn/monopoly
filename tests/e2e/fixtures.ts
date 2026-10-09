@@ -15,6 +15,20 @@ import {
   type Settings,
 } from '../../src/engine';
 import { BotRandom, sensibleBot } from '../../src/sim/bots';
+import { BOARD_SIZE } from '../../src/data/balance';
+import { AIRPORT_SPACES, BOARD, COMPANY_SPACES, COUNTRIES, COUNTRY_CITIES, PROPERTY_SPACES, propertyName, SPACES } from '../../src/data/board';
+
+/** The index of the city, airport or company with this name on the board in play. */
+export function sp(name: string): number {
+  const space = PROPERTY_SPACES.find((i) => propertyName(i) === name);
+  if (space === undefined) throw new Error(`No space named ${name} on this board`);
+  return space;
+}
+
+/** A Chance space reached by a 3 and a 4 without passing World Start. */
+export const CHANCE = BOARD.find((s) => s.type === 'chance' && s.index >= 7)?.index as number;
+export const EVENT = BOARD.find((s) => s.type === 'event' && s.index >= 7)?.index as number;
+export const LUXURY_TAX = BOARD.find((s) => s.type === 'tax' && s.tax === 'luxury')?.index as number;
 
 export function act(s: GameState, ...actions: Action[]): GameState {
   let state = s;
@@ -47,7 +61,7 @@ export function cash(s: GameState, player: number, amount: number): GameState {
 }
 
 export function rollTo(s: GameState, target: number, dice: [number, number] = [3, 4]): GameState {
-  const from = (target - dice[0] - dice[1] + 80) % 80;
+  const from = (target - dice[0] - dice[1] + BOARD_SIZE) % BOARD_SIZE;
   let st = dbg(s, { op: 'movePlayer', player: s.turn.currentPlayerIndex, space: from });
   st = dbg(st, { op: 'setNextDice', dice });
   return act(st, { type: 'roll' });
@@ -61,16 +75,25 @@ export function base(settings: Partial<Settings> = {}, seed = 7): GameState {
   );
 }
 
-/** A believable mid-game: sensible bots play a while, then it is someone's turn to roll. */
-export function midGame(seed = 11, steps = 900): GameState {
+/**
+ * A believable mid-game: sensible bots play a while, then it is someone's turn to roll. If the game
+ * ends first (more likely on a small board), it is the last turn start before the end.
+ */
+export function midGame(seed = 11, steps = 500): GameState {
   let s = base({}, seed);
   const rnd = new BotRandom(seed);
+  const atTurnStart = (st: GameState) => st.flow.phase === 'AwaitRoll' && st.turn.dice === null && st.flow.notices.length === 0;
+  let lastStart: GameState | null = null;
   for (let i = 0; i < steps; i++) {
     const legal = legalActions(s);
     const actor = decisionMaker(s);
     if (actor === null || legal.length === 0) break;
     s = act(s, sensibleBot({ state: s, legal, actor, rnd, freeActionsTaken: 0 }));
-    if (s.flow.phase === 'GameOver') throw new Error('mid-game ended');
+    if (s.flow.phase === 'GameOver') {
+      if (!lastStart) throw new Error('mid-game ended');
+      return lastStart;
+    }
+    if (atTurnStart(s)) lastStart = s;
   }
   // Stop at the start of a turn.
   for (let i = 0; i < 200 && !(s.flow.phase === 'AwaitRoll' && s.turn.dice === null && s.flow.notices.length === 0); i++) {
@@ -84,18 +107,15 @@ export function midGame(seed = 11, steps = 900): GameState {
 /** Worst case for tile text: everything owned, full sets with 4 houses or hotels, mortgages. */
 export function crowdedBoard(): GameState {
   let s = base();
-  const countries: number[][] = [
-    [1, 3], [6, 8, 10], [12, 14], [18, 20, 21], [22, 24], [26, 28, 30], [32, 33, 36], [38, 41],
-    [43, 44], [46, 49, 50], [52, 54, 56], [58, 60, 61], [63, 64], [66, 68, 69], [71, 72], [74, 76, 78, 79],
-  ];
+  const countries: number[][] = COUNTRIES.map((c) => [...COUNTRY_CITIES[c.id]]);
   countries.forEach((cities, i) => {
     s = own(s, cities, i % 4);
     if (i % 3 === 0) s = level(s, cities.map((sp): [number, number] => [sp, 5]));
     else if (i % 3 === 1) s = level(s, cities.map((sp): [number, number] => [sp, 4]));
     else s = act(s, ...cities.map((space) => ({ type: 'debug', op: 'setMortgaged', space, mortgaged: true }) as Action));
   });
-  s = own(s, [4, 9, 15, 27, 35, 39, 48, 55, 67, 77], 1);
-  s = own(s, [11, 16, 25, 31, 37, 45, 51, 73], 2);
+  s = own(s, [...AIRPORT_SPACES], 1);
+  s = own(s, [...COMPANY_SPACES], 2);
   return s;
 }
 
@@ -105,44 +125,49 @@ export function sixTokens(): GameState {
     { playerCount: 6, passDevice: false, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia', 'Kenji', 'Nadia'] },
     3,
   );
-  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: p < 3 ? 21 : 21 });
+  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: sp('Haifa') });
   return s;
 }
 
 export function sixTokensTop(): GameState {
   let s = sixTokens();
-  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: 8 });
+  for (let p = 0; p < 6; p++) s = dbg(s, { op: 'movePlayer', player: p, space: sp('Guadalajara') });
   return s;
 }
 
 /** Every panel and screen the review needs, keyed by name. */
 export function panelStates(): Record<string, GameState> {
   const mid = midGame();
-  const egypt = own(base(), [12, 14], 0);
-  const bankrupt = act(rollTo(cash(own(base({ mode: 'quick' }), [12], 1), 0, 10), 12), { type: 'payRent' });
+  const [cairo, alexandria, mexicoCity, guadalajara] = [sp('Cairo'), sp('Alexandria'), sp('Mexico City'), sp('Guadalajara')];
+  const [egyptAirport, brazilAirport, tokyo, osaka, transport] = [sp('Egypt Airport'), sp('Brazil Airport'), sp('Tokyo'), sp('Osaka'), sp('Transportation Company')];
+  const egypt = own(base(), [cairo, alexandria], 0);
+  const bankrupt = act(rollTo(cash(own(base({ mode: 'quick' }), [cairo], 1), 0, 10), cairo), { type: 'payRent' });
+  // Visiting the Jail: a landing where nothing happens.
+  const rest = SPACES.jail;
   const jail = (() => {
-    let s = rollTo(base({ playerCount: 2, auction: false }), 57);
+    let s = rollTo(base({ playerCount: 2, auction: false }), SPACES.goToJail);
     s = act(s, { type: 'endTurn' });
-    s = act(rollTo(s, 34), { type: 'endTurn' });
+    s = act(rollTo(s, rest), { type: 'endTurn' });
     return s;
   })();
-  const vacation = rollTo(base(), 40);
+  const vacation = rollTo(base(), SPACES.vacation);
   const vacationSkip = (() => {
-    let s = act(rollTo(base({ playerCount: 2 }), 40), { type: 'acknowledge' }, { type: 'endTurn' });
-    s = act(rollTo(s, 34), { type: 'endTurn' });
+    let s = act(rollTo(base({ playerCount: 2 }), SPACES.vacation), { type: 'acknowledge' }, { type: 'endTurn' });
+    s = act(rollTo(s, rest), { type: 'endTurn' });
     return s;
   })();
-  const auction = act(rollTo(base(), 9), { type: 'decline' }, { type: 'bid', amount: 60 });
-  const debt = act(rollTo(cash(level(own(own(base(), [9, 4], 0), [12, 14], 1), [[12, 2], [14, 2]]), 0, 40), 12), {
-    type: 'payRent',
-  });
-  const trade = act(own(own(base(), [12, 6], 0), [14, 8], 1), {
+  const auction = act(rollTo(base(), egyptAirport), { type: 'decline' }, { type: 'bid', amount: 60 });
+  const debt = act(
+    rollTo(cash(level(own(own(base(), [egyptAirport, brazilAirport], 0), [cairo, alexandria], 1), [[cairo, 2], [alexandria, 2]]), 0, 40), cairo),
+    { type: 'payRent' },
+  );
+  const trade = act(own(own(base(), [cairo, mexicoCity], 0), [alexandria, guadalajara], 1), {
     type: 'proposeTrade',
     offer: {
       from: 0,
       to: 1,
-      give: { properties: [6], cash: 150, jailCards: 0 },
-      get: { properties: [14], cash: 0, jailCards: 0 },
+      give: { properties: [mexicoCity], cash: 150, jailCards: 0 },
+      get: { properties: [alexandria], cash: 0, jailCards: 0 },
     },
   });
   const over = act(bankrupt, { type: 'acknowledge' });
@@ -152,18 +177,18 @@ export function panelStates(): Record<string, GameState> {
     'six-tokens': sixTokens(),
     'six-tokens-top': sixTokensTop(),
     'pass-device': createGame({ playerCount: 4, animationSpeed: 'off', playerNames: ['Mia', 'Leo', 'Aung', 'Sofia'] }, 7),
-    buy: rollTo(base(), 9),
+    buy: rollTo(base(), egyptAirport),
     auction,
-    rent: rollTo(level(own(base(), [38, 41], 1), [[38, 2], [41, 2]]), 38),
-    'rent-airport': rollTo(own(base(), [15, 4, 9], 1), 15),
-    tax: rollTo(base(), 65),
-    company: rollTo(own(base(), [11], 1), 11),
-    'company-rent': act(dbg(rollTo(own(base(), [11], 1), 11), { op: 'setNextDice', dice: [4, 3] }), {
+    rent: rollTo(level(own(base(), [tokyo, osaka], 1), [[tokyo, 2], [osaka, 2]]), tokyo),
+    'rent-airport': rollTo(own(base(), [egyptAirport, ...AIRPORT_SPACES.filter((a) => a !== egyptAirport).slice(0, 2)], 1), egyptAirport),
+    tax: rollTo(base(), LUXURY_TAX),
+    company: rollTo(own(base(), [transport], 1), transport),
+    'company-rent': act(dbg(rollTo(own(base(), [transport], 1), transport), { op: 'setNextDice', dice: [4, 3] }), {
       type: 'rollCompanyDice',
     }),
-    build: rollTo(level(egypt, [[14, 1]]), 12),
-    chance: rollTo(dbg(base(), { op: 'forceCard', deck: 'chance', cardId: 'chance-lost-luggage' }), 13),
-    event: rollTo(dbg(base(), { op: 'forceCard', deck: 'event', cardId: 'event-tourism-boom' }), 19),
+    build: rollTo(level(egypt, [[alexandria, 1]]), cairo),
+    chance: rollTo(dbg(base(), { op: 'forceCard', deck: 'chance', cardId: 'chance-lost-luggage' }), CHANCE),
+    event: rollTo(dbg(base(), { op: 'forceCard', deck: 'event', cardId: 'event-tourism-boom' }), EVENT),
     jail,
     vacation,
     'vacation-skip': vacationSkip,

@@ -71,6 +71,10 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
       '.deed-name',
       '.sheet-title',
       '.tb-player-name',
+      '.tb-me-name',
+      '.tb-me-cash',
+      '.tb-other-name',
+      '.tb-other-cash',
       '.winner-title',
       '.pass-name',
       '.color-pop-title',
@@ -99,8 +103,9 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
       });
       const covered = document.querySelector('.panel-layer, .sheet-backdrop, .pass-device, .modal-backdrop');
       if (!covered && !phone) {
-        // An expanded log or chat (compact screens) floats over the stage on purpose (D88).
-        const parts = ['.deed', '.dice-panel', '.log:not(.is-expanded)', '.primary-slot', '.secondary-actions', '.players-col']
+        // An expanded log or chat (compact screens) floats over the stage on purpose (D88), and so
+        // does the Focus Card beside a hovered tile in room play (D97): only the stage's own card counts.
+        const parts = ['.stage .deed', '.dice-panel', '.log:not(.is-expanded)', '.primary-slot', '.secondary-actions', '.players-col']
           .map((sel) => ({ sel, el: document.querySelector(sel) }))
           .filter((p): p is { sel: string; el: Element } => !!p.el && visible(p.el));
         for (let i = 0; i < parts.length; i++) {

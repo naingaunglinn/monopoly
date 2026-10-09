@@ -1,25 +1,29 @@
 import { describe, expect, test } from 'vitest';
-import { COUNTRIES } from '../../src/data/countries';
+import { buildBoard, validBoards } from '../../src/data/board';
+import { ALL_COUNTRIES } from '../../src/data/countries';
 import { PLAYER_COLORS, SEATS } from '../../src/data/players';
 import { contrastRatio, inkOnPaper, MORTGAGED_TINT, OWNED_TINT, ownedTileColor, PATH_TINT, readableInk, tint } from '../../src/ui/contrast';
 
 describe('band text contrast (WCAG AA)', () => {
   test('every country band gets white or Ink text at 4.5:1 or better', () => {
-    for (const country of COUNTRIES) {
+    for (const country of ALL_COUNTRIES) {
       const ink = readableInk(country.color);
       expect(contrastRatio(country.color, ink), country.name).toBeGreaterThanOrEqual(4.5);
     }
   });
 
-  test('neighbouring countries are clearly different colours', () => {
-    for (let i = 0; i < COUNTRIES.length; i++) {
-      const a = COUNTRIES[i] as (typeof COUNTRIES)[number];
-      const b = COUNTRIES[(i + 1) % COUNTRIES.length] as (typeof COUNTRIES)[number];
-      const diff = [1, 3, 5].reduce(
-        (sum, k) => sum + Math.abs(parseInt(a.color.slice(k, k + 2), 16) - parseInt(b.color.slice(k, k + 2), 16)),
-        0,
-      );
-      expect(diff, `${a.name} / ${b.name}`).toBeGreaterThan(90);
+  test('neighbouring countries are clearly different colours, on every board size (D96)', () => {
+    for (const { size, shape } of validBoards()) {
+      const countries = buildBoard(size, shape).countries;
+      for (let i = 0; i < countries.length; i++) {
+        const a = countries[i] as (typeof countries)[number];
+        const b = countries[(i + 1) % countries.length] as (typeof countries)[number];
+        const diff = [1, 3, 5].reduce(
+          (sum, k) => sum + Math.abs(parseInt(a.color.slice(k, k + 2), 16) - parseInt(b.color.slice(k, k + 2), 16)),
+          0,
+        );
+        expect(diff, `${size} ${shape}: ${a.name} / ${b.name}`).toBeGreaterThan(90);
+      }
     }
   });
 

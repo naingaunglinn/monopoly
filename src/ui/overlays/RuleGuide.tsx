@@ -4,7 +4,7 @@
 import { Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BALANCE } from '../../data/balance';
-import { COMPANIES } from '../../data/companies';
+import { AIRPORTS, COMPANIES } from '../../data/board';
 import { closeRules, useApp, useUi } from '../store';
 import { money, RULE_TOPICS, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
 import { useFocusTrap } from './Overlays';
@@ -20,7 +20,8 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
         ]),
       ];
     case 'airportRent':
-      return BALANCE.airportRent.map((rent, i): [string, string] => [T.focus.airportsOwned(i + 1), money(rent)]);
+      // Up to the number of airports on the board.
+      return BALANCE.airportRent.slice(0, AIRPORTS.length).map((rent, i): [string, string] => [T.focus.airportsOwned(i + 1), money(rent)]);
     case 'companies':
       return COMPANIES.map((c): [string, string] => [c.name, `${money(c.price)} · ${T.focus.companyFormula(c.multiplier)}`]);
     default:

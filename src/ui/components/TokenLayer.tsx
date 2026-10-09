@@ -4,7 +4,7 @@
 // A moving token hops once per space and squashes as it lands (D51).
 import { Lock, TreePalm } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { gridPosition } from '../../data/board';
+import { CORNERS, gridPosition, LAYOUT } from '../../data/board';
 import type { GameState } from '../../engine';
 import { shownPosition, useDisplay } from '../display';
 import { T, TOKEN_NAMES } from '../strings';
@@ -17,14 +17,15 @@ export function laneSlot(index: number, w: number, h: number, laneW: number, lan
   const right = w - laneW / 2;
   const top = laneH / 2;
   const bottom = h - laneH / 2;
-  if (index === 0) return { x: left, y: top };
-  if (index === 17) return { x: right, y: top };
-  if (index === 40) return { x: right, y: bottom };
-  if (index === 57) return { x: left, y: bottom };
-  if (pos.side === 'top') return { x: ((pos.col - 0.5) / 16) * w, y: top };
-  if (pos.side === 'bottom') return { x: ((pos.col - 0.5) / 16) * w, y: bottom };
-  if (pos.side === 'right') return { x: right, y: ((pos.row - 0.5) / 22) * h };
-  return { x: left, y: ((pos.row - 0.5) / 22) * h };
+  const [start, jail, vacation, goToJail] = CORNERS;
+  if (index === start) return { x: left, y: top };
+  if (index === jail) return { x: right, y: top };
+  if (index === vacation) return { x: right, y: bottom };
+  if (index === goToJail) return { x: left, y: bottom };
+  if (pos.side === 'top') return { x: ((pos.col - 0.5) / LAYOUT.across) * w, y: top };
+  if (pos.side === 'bottom') return { x: ((pos.col - 0.5) / LAYOUT.across) * w, y: bottom };
+  if (pos.side === 'right') return { x: right, y: ((pos.row - 0.5) / LAYOUT.down) * h };
+  return { x: left, y: ((pos.row - 0.5) / LAYOUT.down) * h };
 }
 
 /** Tokens that make room on a shared space slide this long (ms). */

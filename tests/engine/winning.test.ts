@@ -1,9 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import { computeWinners, legalActions, netWorth, ranking } from '../../src/engine';
-import { act, dbg, edit, game, levels, own, rollTo, run, setCash } from './helpers';
+import { SPACES } from '../../src/data/board';
+import { act, dbg, edit, game, levels, own, rollTo, run, setCash, spaceOf } from './helpers';
 
-const CAIRO = 12;
-const ALEXANDRIA = 14;
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+/** $110. */
+const MEXICO_CITY = spaceOf('Mexico City');
+/** Visiting the Jail: a landing where nothing happens. */
+const REST = SPACES.jail;
 
 describe('winning', () => {
   test('Normal: the last player left wins', () => {
@@ -18,13 +23,13 @@ describe('winning', () => {
   });
 
   test('Quick: the game ends when the round limit is completed', () => {
-    let s = edit(own(game({ mode: 'quick', roundLimit: 30 }), 9, 0), (d) => {
+    let s = edit(own(game({ mode: 'quick', roundLimit: 30 }), MEXICO_CITY, 0), (d) => {
       d.turn.roundNumber = 30;
     });
-    s = act(rollTo(s, 34).state, { type: 'endTurn' });
+    s = act(rollTo(s, REST).state, { type: 'endTurn' });
     expect(s.flow.phase).toBe('AwaitRoll');
     expect(s.turn.currentPlayerIndex).toBe(1);
-    const { state, events } = run(rollTo(s, 34).state, { type: 'endTurn' });
+    const { state, events } = run(rollTo(s, REST).state, { type: 'endTurn' });
     expect(state.flow.phase).toBe('GameOver');
     expect(state.meta.endReason).toBe('roundLimit');
     expect(state.meta.winner).toEqual([0]);
@@ -34,7 +39,7 @@ describe('winning', () => {
   test('rounds advance each time the turn order wraps to the first player', () => {
     let s = game({ playerCount: 3 });
     expect(s.turn.roundNumber).toBe(1);
-    for (let i = 0; i < 3; i++) s = act(rollTo(s, 34).state, { type: 'endTurn' });
+    for (let i = 0; i < 3; i++) s = act(rollTo(s, REST).state, { type: 'endTurn' });
     expect(s.turn.roundNumber).toBe(2);
     expect(s.turn.currentPlayerIndex).toBe(0);
   });
@@ -65,12 +70,14 @@ describe('winning', () => {
       [ALEXANDRIA, 5],
     ]);
     expect(netWorth(s, 0).buildings).toBe(600);
-    s = dbg(own(s, [9, 11], 0), { op: 'setMortgaged', space: 9, mortgaged: true });
-    expect(netWorth(s, 0)).toMatchObject({ airports: 55, companies: 200, total: 1000 + 360 + 600 + 55 + 200 });
+    // Egypt Airport ($120) mortgaged counts $60; the Transportation Company $200.
+    const egyptAirport = spaceOf('Egypt Airport');
+    s = dbg(own(s, [egyptAirport, spaceOf('Transportation Company')], 0), { op: 'setMortgaged', space: egyptAirport, mortgaged: true });
+    expect(netWorth(s, 0)).toMatchObject({ airports: 60, companies: 200, total: 1000 + 360 + 600 + 60 + 200 });
   });
 
   test('ties: more cash wins; still tied, the win is shared', () => {
-    let s = setCash(own(game(), 9, 0), 0, 3890);
+    let s = setCash(own(game(), MEXICO_CITY, 0), 0, 3890);
     expect(netWorth(s, 0).total).toBe(4000);
     expect(netWorth(s, 1).total).toBe(4000);
     expect(computeWinners(s)).toEqual([1]);

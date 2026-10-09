@@ -34,6 +34,7 @@ import {
   hostControl,
   isError,
   newRoom,
+  playable,
   playAction,
   reclaimSeat,
   removeSeat,
@@ -48,7 +49,7 @@ import {
   type RoomUpdate,
   type UpdateKind,
 } from './room.js';
-import type { RoomStore } from './store.js';
+import type { RoomStore, Since } from './store.js';
 
 export interface ApiConfig {
   store: RoomStore;
@@ -162,6 +163,13 @@ const entryOf = (room: Room, kind: UpdateKind, seat: number | null, events: Game
 
 export function createApi(config: ApiConfig): Api {
   const store = config.store;
+  // Every read of a room goes through these two: a room whose game began on another board reads as
+  // closed (D96).
+  const loadRoom = async (code: string): Promise<Room | null> => playable(await store.load(code));
+  const roomSince = async (code: string, since: number): Promise<Since> => {
+    const found = await store.since(code, since);
+    return found.room && !playable(found.room) ? { room: null, entries: [] } : found;
+  };
   const now = config.now ?? Date.now;
   const streamMs = config.streamMs ?? 270_000;
   const pingMs = config.pingMs ?? 20_000;
@@ -178,7 +186,7 @@ export function createApi(config: ApiConfig): Api {
     change: (room: Room) => Promise<{ room: Room; events?: GameEvent[]; seat?: number | null } | OpError>,
   ): Promise<{ room: Room; entry: LogEntry } | OpError> {
     for (let attempt = 0; attempt < 5; attempt++) {
-      const room = await store.load(code);
+      const room = await loadRoom(code);
       if (!room) return fail('roomNotFound', 404);
       const changed = await change(room);
       if (isError(changed)) return changed;
@@ -271,7 +279,7 @@ export function createApi(config: ApiConfig): Api {
 
   // op=action {code, token, action, expectedVersion}: one game action, checked and applied.
   async function action(code: string, body: Record<string, unknown>): Promise<Response> {
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const s = await callerSeat(room, body.token);
     if (isError(s)) return errorResponse(s);
@@ -288,7 +296,7 @@ export function createApi(config: ApiConfig): Api {
   // op=heartbeat {code, tokens}: presence. Returning players take their seat back from the host, and
   // a disconnected host hands over to the next connected player.
   async function heartbeat(code: string, body: Record<string, unknown>): Promise<Response> {
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const mine = await seatsOf(room, tokensOf(body.tokens));
     if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
@@ -326,7 +334,7 @@ export function createApi(config: ApiConfig): Api {
   async function voice(code: string, body: Record<string, unknown>): Promise<Response> {
     const state = body.state;
     if (state !== 'join' && state !== 'mute' && state !== 'unmute' && state !== 'leave') return errorResponse(fail('badRequest', 400));
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const mine = await seatsOf(room, tokensOf(body.tokens));
     if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
@@ -349,7 +357,7 @@ export function createApi(config: ApiConfig): Api {
     if ((kind !== 'offer' && kind !== 'answer') || typeof sdp !== 'string' || sdp.length === 0 || sdp.length > MAX_SDP || typeof body.to !== 'string') {
       return errorResponse(fail('badRequest', 400));
     }
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const mine = await seatsOf(room, tokensOf(body.tokens));
     if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
@@ -364,7 +372,7 @@ export function createApi(config: ApiConfig): Api {
 
   // op=signals {code, tokens, after}: the set-up messages sent to this device after id `after`.
   async function signals(code: string, body: Record<string, unknown>): Promise<Response> {
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const mine = await seatsOf(room, tokensOf(body.tokens));
     if (mine.length === 0) return errorResponse(fail('notInRoom', 403));
@@ -411,7 +419,7 @@ export function createApi(config: ApiConfig): Api {
   // op=chat {code, token, text | stamp}: a chat message or a stamp from the caller's seat (spec
   // section 18). It is kept beside the game and never changes the room's version.
   async function chat(code: string, body: Record<string, unknown>): Promise<Response> {
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     if (!room) return errorResponse(fail('roomNotFound', 404));
     const s = await callerSeat(room, body.token);
     if (isError(s)) return errorResponse(s);
@@ -434,7 +442,7 @@ export function createApi(config: ApiConfig): Api {
     const sinceRaw = url.searchParams.get('since');
     if (sinceRaw !== null) {
       const since = Number(sinceRaw);
-      const found = await store.since(code, Number.isInteger(since) ? since : -1);
+      const found = await roomSince(code, Number.isInteger(since) ? since : -1);
       if (!found.room) return errorResponse(fail('roomNotFound', 404));
       const chatAfter = url.searchParams.get('chat');
       const chat = chatAfter !== null ? await store.chatSince(code, cursorOf(chatAfter, 0)) : undefined;
@@ -447,7 +455,7 @@ export function createApi(config: ApiConfig): Api {
         now: now(),
       });
     }
-    const room = await store.load(code);
+    const room = await loadRoom(code);
     // probe=1 (the start screen's rejoin check) answers a missing room with 200 and no view, so an
     // expired room is not an error in the browser's console.
     if (!room) return url.searchParams.get('probe') === '1' ? json({ view: null, now: now() }) : errorResponse(fail('roomNotFound', 404));
@@ -508,7 +516,7 @@ export function createApi(config: ApiConfig): Api {
     const fromQuery = Number(url.searchParams.get('since') ?? NaN);
     let since = Number.isInteger(fromHeader) ? fromHeader : Number.isInteger(fromQuery) ? fromQuery : 0;
     let chatAfter = cursorOf(url.searchParams.get('chat'), 0);
-    if (!(await store.load(code))) return errorResponse(fail('roomNotFound', 404));
+    if (!(await loadRoom(code))) return errorResponse(fail('roomNotFound', 404));
     const abort = new AbortController();
     req.signal?.addEventListener('abort', () => abort.abort());
     const encoder = new TextEncoder();
@@ -586,7 +594,7 @@ export function createApi(config: ApiConfig): Api {
               }
               dirty = false;
               lastRead = now();
-              const found = await store.since(code, since);
+              const found = await roomSince(code, since);
               if (!found.room) break;
               if (found.entries === 'gap') {
                 // Too far behind (or the room was replaced): one snapshot of the latest version.

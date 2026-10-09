@@ -5,6 +5,7 @@
 // stamps (spec section 18) between devices, desktop and phone.
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { decisionMaker, type GameState } from '../../src/engine';
+import { sp } from './fixtures';
 import { playStep } from './helpers';
 
 const ONLINE = 'http://localhost:4175';
@@ -278,8 +279,10 @@ test.describe('online', () => {
     // Aung (phone) keeps the Chat tab while Mia decides.
     await c.page.locator('#tab-chat').click();
     await expect(c.page.locator('.chat-line')).toHaveCount(2);
-    // Leo keeps the chat open beside the board and writes while Mia's move plays on his screen.
-    await b.page.locator('#feed-chat').click();
+    // On large screens the chat is open from the start (D97). Mia goes to the log for now.
+    await expect(b.page.locator('#feed-chat')).toHaveAttribute('aria-selected', 'true');
+    await a.page.locator('#feed-log').click();
+    // Leo writes while Mia's move plays on his screen.
     await a.page.locator('#primary').click(); // Mia rolls
     await expect(b.page.locator('.game-screen.is-animating')).toHaveCount(1, { timeout: 5000 });
     await b.page.locator('#chat-input').click();
@@ -304,6 +307,58 @@ test.describe('online', () => {
     await expect(c.page.locator('#tab-chat')).toHaveAttribute('aria-selected', 'true');
     await expect(c.page.locator('.chat-line .chat-text').last()).toHaveText('nice roll');
     expect([...a.errors, ...b.errors, ...c.errors]).toEqual([]);
+  });
+
+  test('room play on a large screen: players in the top bar, the chat open with the cursor kept in it, the card only on hover', async ({ browser }) => {
+    const a = await openDevice(browser, 'Mia');
+    const b = await openDevice(browser, 'Leo');
+    const code = await createRoom(a, '');
+    await joinRoom(b, code);
+    await a.page.locator('#lobby-start').click();
+    for (const d of [a, b]) await expect(d.page.locator('.game-screen')).toBeVisible();
+    // Mia's own player in full (D97): name, cash, cities, airports, companies, Free Stay; Leo as name and money.
+    await expect(a.page.locator('.players-col')).toHaveCount(0);
+    await expect(a.page.locator('#tb-me')).toContainText('Mia');
+    await expect(a.page.locator('#tb-me .tb-me-cash')).toHaveText('$4,000');
+    await expect(a.page.locator('#tb-me .tb-count')).toHaveCount(4);
+    await expect(a.page.locator('#tb-player-1 .tb-other-name')).toHaveText('Leo');
+    await expect(a.page.locator('#tb-player-1 .tb-other-cash')).toHaveText('$4,000');
+    await expect(b.page.locator('#tb-me')).toContainText('Leo');
+    // Whose turn it is: Mia's chip wears the ring on both screens.
+    await expect(a.page.locator('#tb-me')).toHaveAttribute('aria-current', 'true');
+    await expect(b.page.locator('#tb-player-0')).toHaveAttribute('aria-current', 'true');
+    // The chat is open with the cursor in the message box; typing and Enter send.
+    await expect(a.page.locator('#feed-chat')).toHaveAttribute('aria-selected', 'true');
+    await expect(a.page.locator('#chat-input')).toBeFocused();
+    await a.page.keyboard.type('Hi Leo');
+    await a.page.keyboard.press('Enter');
+    await expect(b.page.locator('.chat-line .chat-text')).toHaveText(['Hi Leo']);
+    // A click on a game button brings the cursor back to the message box.
+    await a.page.locator('#primary').click();
+    await expect(a.page.locator('#chat-input')).toBeFocused();
+    // No Focus Card until a tile is hovered; then it shows beside the tile, and goes again.
+    await expect(a.page.locator('.deed')).toHaveCount(0);
+    await a.page.locator(`.board .tile[data-space="${sp('Guadalajara')}"]`).hover();
+    await expect(a.page.locator('.deed-float .deed-name')).toHaveText('Guadalajara');
+    await a.page.mouse.move(640, 400);
+    await expect(a.page.locator('.deed')).toHaveCount(0);
+    // A sheet keeps the keyboard; closing it gives the cursor back.
+    await a.page.locator('#tb-player-1').click();
+    await expect(a.page.locator('[data-sheet="properties"]')).toBeVisible();
+    await expect(a.page.locator('#chat-input')).not.toBeFocused();
+    await a.page.keyboard.press('Escape');
+    await expect(a.page.locator('#chat-input')).toBeFocused();
+    // Another text field keeps the cursor (a field added here stands in for the auction's bid box).
+    await a.page.evaluate(() => {
+      const field = document.createElement('input');
+      field.id = 'other-field';
+      field.setAttribute('style', 'position:fixed;left:300px;top:300px;z-index:99');
+      document.body.appendChild(field);
+    });
+    await a.page.locator('#other-field').click();
+    await a.page.waitForTimeout(150);
+    await expect(a.page.locator('#other-field')).toBeFocused();
+    expect([...a.errors, ...b.errors]).toEqual([]);
   });
 
   test('lobby: colours are exclusive, one device takes two seats, only the host sets options and starts', async ({ browser }) => {
@@ -350,10 +405,17 @@ test.describe('online', () => {
     await a.page.locator('#lobby-start').click();
     await expect(c.page.locator('.game-screen')).toBeVisible();
     await c.context.close();
-    // 45 seconds without a heartbeat: Aung shows as disconnected and the host gets controls.
-    await expect(a.page.locator('.player-card[data-player="2"] .badge-offline')).toBeVisible({ timeout: 80_000 });
-    await a.page.locator('#play-for-2').click();
-    await expect(a.page.locator('.player-card[data-player="2"]')).toContainText('You play for them');
+    // 45 seconds without a heartbeat: Aung shows as disconnected, and the host finds Play for them
+    // and Remove in Aung's property list (his chip in the top bar opens it, D97).
+    await expect(a.page.locator('#tb-player-2 .sign-offline')).toBeVisible({ timeout: 80_000 });
+    await expect(a.page.locator('#tb-player-2')).toHaveAttribute('aria-label', /Disconnected/);
+    await a.page.locator('#tb-player-2').click();
+    await expect(a.page.locator('[data-sheet="properties"] .sheet-host')).toContainText('Disconnected');
+    await a.page.locator('#sheet-play-for-2').click();
+    await expect(a.page.locator('[data-sheet="properties"] .sheet-host')).toContainText('You play for them');
+    await a.page.keyboard.press('Escape');
+    await expect(a.page.locator('#tb-player-2 .sign-proxy')).toBeVisible();
+    await expect(a.page.locator('#tb-player-2')).toHaveAttribute('aria-label', /You play for them/);
     // Play until it is Aung's decision: the host's device acts for Aung.
     for (let i = 0; i < 60; i++) {
       const s = await stateOf(a);
@@ -370,12 +432,13 @@ test.describe('online', () => {
     await d.page.locator('#reclaim-2').click();
     await expect(d.page.locator('.game-screen')).toBeVisible();
     expect((await info(d))?.mine).toEqual([2]);
-    await expect(a.page.locator('.player-card[data-player="2"]')).not.toContainText('You play for them', { timeout: 30_000 });
+    await expect(a.page.locator('#tb-player-2 .sign-proxy')).toHaveCount(0, { timeout: 30_000 });
 
     // Aung leaves for good: the host removes the seat, bankrupt to the bank.
     await d.context.close();
-    await expect(a.page.locator('.player-card[data-player="2"] .badge-offline')).toBeVisible({ timeout: 80_000 });
-    await a.page.locator('#remove-2').click();
+    await expect(a.page.locator('#tb-player-2 .sign-offline')).toBeVisible({ timeout: 80_000 });
+    await a.page.locator('#tb-player-2').click();
+    await a.page.locator('#sheet-remove-2').click();
     await expect(a.page.locator('[data-sheet="confirm"]')).toContainText('Remove Aung?');
     await a.page.locator('#confirm-yes').click();
     await everyoneSees([a, b], (s) => s.players[2]?.bankrupt === true && s.flow.phase !== 'GameOver');

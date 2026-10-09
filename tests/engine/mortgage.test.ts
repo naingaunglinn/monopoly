@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'vitest';
+import { AIRPORT_SPACES } from '../../src/data/board';
 import { airportRent, ownsCountry } from '../../src/engine';
-import { act, cashOf, dbg, eventsOf, fail, game, levels, own, rollTo, run } from './helpers';
+import { act, cashOf, dbg, eventsOf, fail, game, levels, own, rollTo, run, spaceOf } from './helpers';
 
-const CAIRO = 12;
-const ALEXANDRIA = 14;
-const TOKYO = 38;
-const OSAKA = 41;
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+const TOKYO = spaceOf('Tokyo');
+const OSAKA = spaceOf('Osaka');
 
 describe('mortgage', () => {
   test('mortgaging pays half the price', () => {
@@ -36,9 +37,10 @@ describe('mortgage', () => {
   test('still counts as owned for a country and for the airport count', () => {
     let s = dbg(own(game(), [CAIRO, ALEXANDRIA], 1), { op: 'setMortgaged', space: ALEXANDRIA, mortgaged: true });
     expect(ownsCountry(s, 1, 'egypt')).toBe(true);
-    s = own(s, [4, 9, 15], 1);
-    s = dbg(s, { op: 'setMortgaged', space: 4, mortgaged: true });
-    expect(airportRent(s, 15).amount).toBe(160);
+    const [first, second, third] = AIRPORT_SPACES as [number, number, number];
+    s = own(s, [first, second, third], 1);
+    s = dbg(s, { op: 'setMortgaged', space: first, mortgaged: true });
+    expect(airportRent(s, third).amount).toBe(160);
   });
 
   test('blocks building in the country', () => {
@@ -53,10 +55,11 @@ describe('mortgage', () => {
     expect(eventsOf(events, 'unmortgaged')[0]?.cost).toBe(237);
     expect(cashOf(state, 0)).toBe(4215 - 237);
     // Brasília: $70 → $35 → $38.50 → $39. United States Airport: $200 → $100 → $110.
-    s = act(own(game(), [1, 77], 0), { type: 'mortgage', space: 1 }, { type: 'mortgage', space: 77 });
-    const a = run(s, { type: 'unmortgage', space: 1 });
+    const [brasilia, usAirport] = [spaceOf('Brasília'), spaceOf('United States Airport')];
+    s = act(own(game(), [brasilia, usAirport], 0), { type: 'mortgage', space: brasilia }, { type: 'mortgage', space: usAirport });
+    const a = run(s, { type: 'unmortgage', space: brasilia });
     expect(eventsOf(a.events, 'unmortgaged')[0]?.cost).toBe(39);
-    const b = run(a.state, { type: 'unmortgage', space: 77 });
+    const b = run(a.state, { type: 'unmortgage', space: usAirport });
     expect(eventsOf(b.events, 'unmortgaged')[0]?.cost).toBe(110);
   });
 

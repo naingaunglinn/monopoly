@@ -1,32 +1,35 @@
 import { describe, expect, test } from 'vitest';
+import { isProperty, SPACES } from '../../src/data/board';
 import { decisionMaker, legalActions, type GameState } from '../../src/engine';
-import { act, cashOf, edit, endTurn, eventsOf, fail, forceCard, game, nextDice, own, rollTo, rollWith, run } from './helpers';
+import { act, cashOf, edit, endTurn, eventsOf, fail, firstOf, forceCard, game, nextDice, own, rollTo, rollWith, run, spaceOf } from './helpers';
 
-const GO_TO_JAIL = 57;
-const FREE_PARKING = 34;
-const VACATION = 40;
+const JAIL = SPACES.jail;
+const GO_TO_JAIL = SPACES.goToJail;
+const VACATION = SPACES.vacation;
+/** Visiting the Jail: a landing where nothing happens. */
+const REST = SPACES.jail;
 
 /** Player 0 goes to Jail, player 1 rests; returns player 0's next turn start. */
 function jailedAtTurnStart(settings = {}): GameState {
   let s = rollTo(game({ auction: false, ...settings }), GO_TO_JAIL).state;
   s = endTurn(s);
-  s = endTurn(rollTo(s, FREE_PARKING).state);
+  s = endTurn(rollTo(s, REST).state);
   return s;
 }
 
 describe('Jail', () => {
-  test('landing on Go To Jail: straight to space 17, no World Start money, the turn ends', () => {
+  test('landing on Go To Jail: straight to the Jail, no World Start money, the turn ends', () => {
     const { state, events } = rollTo(game(), GO_TO_JAIL);
-    expect(state.players[0]).toMatchObject({ position: 17, inJail: true, jailAttempts: 0 });
+    expect(state.players[0]).toMatchObject({ position: JAIL, inJail: true, jailAttempts: 0 });
     expect(eventsOf(events, 'jailed')[0]?.reason).toBe('space');
     expect(cashOf(state, 0)).toBe(4000);
     expect(state.flow.phase).toBe('AwaitEndTurn');
   });
 
   test('a Go To Jail card', () => {
-    let s = rollTo(forceCard(game(), 'chance-customs-trouble'), 13).state;
+    let s = rollTo(forceCard(game(), 'chance-customs-trouble'), firstOf('chance')).state;
     s = act(s, { type: 'confirmCard' });
-    expect(s.players[0]).toMatchObject({ position: 17, inJail: true });
+    expect(s.players[0]).toMatchObject({ position: JAIL, inJail: true });
   });
 
   test('doubles before going to Jail are ignored', () => {
@@ -36,7 +39,7 @@ describe('Jail', () => {
   });
 
   test('landing on the Jail space by a normal move is just visiting', () => {
-    const s = rollTo(game(), 17).state;
+    const s = rollTo(game(), JAIL).state;
     expect(s.players[0]?.inJail).toBe(false);
     expect(s.flow.phase).toBe('AwaitEndTurn');
   });
@@ -59,7 +62,7 @@ describe('Jail', () => {
     expect(s.players[0]?.inJail).toBe(false);
     expect(s.flow.phase).toBe('AwaitRoll');
     s = rollWith(s, 1, 2).state;
-    expect(s.players[0]?.position).toBe(20);
+    expect(s.players[0]?.position).toBe(JAIL + 3);
   });
 
   test('paying is refused without $300', () => {
@@ -83,9 +86,11 @@ describe('Jail', () => {
   });
 
   test('rolling doubles leaves Jail and moves that total, with no extra roll', () => {
-    const { state, events } = run(nextDice(jailedAtTurnStart(), 2, 2), { type: 'rollForDoubles' });
+    // The smallest doubles that land on a property.
+    const d = [1, 2, 3, 4, 5, 6].find((n) => isProperty(JAIL + 2 * n)) as number;
+    const { state, events } = run(nextDice(jailedAtTurnStart(), d, d), { type: 'rollForDoubles' });
     expect(eventsOf(events, 'leftJail')[0]?.how).toBe('doubles');
-    expect(state.players[0]?.position).toBe(21);
+    expect(state.players[0]?.position).toBe(JAIL + 2 * d);
     expect(state.flow.phase).toBe('BuyDecision');
     const after = act(state, { type: 'decline' });
     expect(after.flow.phase).toBe('AwaitEndTurn');
@@ -93,7 +98,7 @@ describe('Jail', () => {
 
   test('a failed roll stays in Jail and ends the turn', () => {
     const s = run(nextDice(jailedAtTurnStart(), 1, 2), { type: 'rollForDoubles' }).state;
-    expect(s.players[0]).toMatchObject({ position: 17, inJail: true, jailAttempts: 1 });
+    expect(s.players[0]).toMatchObject({ position: JAIL, inJail: true, jailAttempts: 1 });
     expect(s.flow.phase).toBe('AwaitEndTurn');
   });
 
@@ -104,31 +109,36 @@ describe('Jail', () => {
     const { state, events } = run(nextDice(s, 1, 2), { type: 'rollForDoubles' });
     expect(eventsOf(events, 'feePaid')[0]).toMatchObject({ amount: 300, reason: 'jailFine' });
     expect(eventsOf(events, 'leftJail')[0]?.how).toBe('forcedFine');
-    expect(state.players[0]).toMatchObject({ position: 20, inJail: false });
+    expect(state.players[0]).toMatchObject({ position: JAIL + 3, inJail: false });
     expect(cashOf(state, 0)).toBe(3700);
   });
 
   test('the forced fine follows the debt rules when cash is short', () => {
-    let s = edit(own(jailedAtTurnStart(), [9, 15, 12], 0), (d) => {
+    const [mexicoCity, egyptAirport, cairo] = [spaceOf('Mexico City'), spaceOf('Egypt Airport'), spaceOf('Cairo')];
+    // A failed (not doubles) roll that then lands on a property nobody owns.
+    const [a, b] = ([[1, 2], [1, 3], [2, 3], [1, 4], [2, 4], [1, 5], [3, 4]] as const).find(
+      ([x, y]) => isProperty(JAIL + x + y) && ![mexicoCity, egyptAirport, cairo].includes(JAIL + x + y),
+    ) as readonly [number, number];
+    let s = edit(own(jailedAtTurnStart(), [mexicoCity, egyptAirport, cairo], 0), (d) => {
       const p = d.players[0] as { jailAttempts: number; cash: number };
       p.jailAttempts = 2;
       p.cash = 100;
     });
-    s = run(nextDice(s, 1, 2), { type: 'rollForDoubles' }).state;
+    s = run(nextDice(s, a, b), { type: 'rollForDoubles' }).state;
     expect(s.flow.phase).toBe('Debt');
     expect(s.flow.debts[0]).toMatchObject({ debtor: 0, creditor: null, amount: 300 });
-    expect(s.players[0]?.position).toBe(17);
-    s = act(s, { type: 'mortgage', space: 9 }); // $155
+    expect(s.players[0]?.position).toBe(JAIL);
+    s = act(s, { type: 'mortgage', space: mexicoCity }); // $155
     expect(fail(s, { type: 'payDebt' }).code).toBe('debtNotCovered');
-    s = act(s, { type: 'mortgage', space: 15 }, { type: 'mortgage', space: 12 }, { type: 'payDebt' }); // $300
+    s = act(s, { type: 'mortgage', space: egyptAirport }, { type: 'mortgage', space: cairo }, { type: 'payDebt' }); // $300
     expect(cashOf(s, 0)).toBe(0);
-    // Paid: leave Jail and move the rolled total (17 + 3 = Tel Aviv).
-    expect(s.players[0]).toMatchObject({ position: 20, inJail: false });
+    // Paid: leave Jail and move the rolled total, onto the property.
+    expect(s.players[0]).toMatchObject({ position: JAIL + a + b, inJail: false });
     expect(s.flow.phase).toBe('BuyDecision');
   });
 
   test('jailed players may mortgage and trade before choosing', () => {
-    const s = own(jailedAtTurnStart(), 9, 0);
+    const s = own(jailedAtTurnStart(), spaceOf('Mexico City'), 0);
     const types = legalActions(s).map((a) => a.type);
     expect(types).toContain('mortgage');
     expect(types).toContain('proposeTrade');
@@ -141,7 +151,7 @@ describe('Vacation', () => {
     expect(s.players[0]?.skipNextTurn).toBe(true);
     expect(s.flow.notices).toEqual([{ kind: 'vacation', player: 0 }]);
     s = endTurn(s);
-    s = endTurn(rollTo(s, FREE_PARKING).state); // player 1
+    s = endTurn(rollTo(s, REST).state); // player 1
     expect(s.turn.currentPlayerIndex).toBe(0);
     expect(s.flow.phase).toBe('TurnStart');
     expect(s.flow.pending).toEqual({ kind: 'vacationSkip' });
@@ -149,7 +159,7 @@ describe('Vacation', () => {
     s = act(s, { type: 'acknowledge' });
     expect(s.turn.currentPlayerIndex).toBe(1);
     expect(s.players[0]?.skipNextTurn).toBe(false);
-    s = endTurn(rollTo(s, FREE_PARKING).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.turn.currentPlayerIndex).toBe(0);
     expect(s.flow.phase).toBe('AwaitRoll');
   });
@@ -161,9 +171,10 @@ describe('Vacation', () => {
   });
 
   test('ownership and rent income continue while on vacation', () => {
-    let s = own(game(), 12, 0);
+    const cairo = spaceOf('Cairo');
+    let s = own(game(), cairo, 0);
     s = endTurn(rollTo(s, VACATION).state);
-    s = act(rollTo(s, 12).state, { type: 'payRent' }); // player 1 pays player 0
+    s = act(rollTo(s, cairo).state, { type: 'payRent' }); // player 1 pays player 0
     expect(cashOf(s, 0)).toBe(4017);
   });
 
@@ -171,13 +182,13 @@ describe('Vacation', () => {
     let s = edit(game(), (d) => {
       const p = d.players[1] as { inJail: boolean; position: number; skipNextTurn: boolean };
       p.inJail = true;
-      p.position = 17;
+      p.position = JAIL;
       p.skipNextTurn = true;
     });
-    s = endTurn(rollTo(s, FREE_PARKING).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.flow.pending).toEqual({ kind: 'vacationSkip' });
     s = act(s, { type: 'acknowledge' });
-    s = endTurn(rollTo(s, FREE_PARKING).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.turn.currentPlayerIndex).toBe(1);
     expect(s.flow.pending).toEqual({ kind: 'jailChoice' });
     expect(s.players[1]?.jailAttempts).toBe(0);

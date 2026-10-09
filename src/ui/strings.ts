@@ -1,6 +1,7 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import type { SpecialType } from '../data/board.js';
+import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { AIRPORTS, type SpecialType } from '../data/board.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
   ErrorCode,
@@ -37,6 +38,9 @@ export function signedMoney(amount: number): string {
   return `${amount > 0 ? '+' : MINUS}$${Math.abs(Math.round(amount)).toLocaleString('en-US')}`;
 }
 
+/** Small counts in words ("all seven"). */
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -54,6 +58,7 @@ export const T = {
     saveProblem: {
       corrupt: 'The saved game is damaged and can’t be loaded.',
       older: 'The saved game comes from an older version of the game and can’t be loaded.',
+      otherBoard: `The saved game was played on a different board. This version of the game has a ${BOARD_SIZE}-space board, so the save can’t be loaded.`,
       newer: 'The saved game comes from a newer version of the game and can’t be loaded.',
     },
     startFresh: 'Start a new game',
@@ -139,6 +144,7 @@ export const T = {
     back: 'Back',
     roomLabel: 'Room',
     room: (code: string) => `Room ${code}`,
+    roomWord: 'Room',
     invite: 'Invite friends',
     inviteHint: 'Send this link. Anyone with it can join.',
     share: 'Share link',
@@ -190,7 +196,7 @@ export const T = {
     leftGame: 'Your seat was taken over on another device.',
     errors: {
       badRequest: 'That did not work. Please try again.',
-      roomNotFound: 'No room has this code. Check it with the host.',
+      roomNotFound: 'No room has this code, or it has closed. Check it with the host.',
       notInRoom: 'This device has no seat in the room.',
       notHost: 'Only the host can do that.',
       started: 'This game has already started.',
@@ -311,6 +317,8 @@ export const T = {
     inJail: 'In Jail',
     onVacation: 'On vacation',
     bankrupt: 'Bankrupt',
+    /** A bankrupt player's chip in the top bar (room play). */
+    out: 'Out',
     current: 'Current player',
     jailCard: 'Get Out of Jail card',
     voucher: 'Free House card',
@@ -371,6 +379,7 @@ export const T = {
       cashAfter: 'Cash after buying',
       passHint: 'If you pass, everyone can bid for it.',
       passHintNoAuction: 'If you pass, it stays for sale.',
+      short: (amount: string) => `You need ${amount} more to buy it.`,
     },
     auction: {
       title: (name: string) => `Auction: ${name}`,
@@ -1188,8 +1197,8 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'You act only on your own decisions; everyone sees the dice, moves, cards and money live.',
       'Bids and trade answers happen on each player’s own device.',
       'Lost the connection? Open the link again to get your seat back. The game waits; there is no timer.',
-      'If a player is gone, the host can play for them or remove them (bankrupt to the bank).',
-      'Chat with the table from the Chat tab (in the lobby: the Chat button). Stamps are quick reactions that land on your card.',
+      'If a player is gone, the host can play for them or remove them (bankrupt to the bank): open their properties from their card or chip.',
+      'Chat with the table: on a large screen the chat is open beside the board and you can type at any time; on a phone use the Chat tab, in the lobby the Chat button. Stamps are quick reactions that land on your card.',
       'Animation speed and sound are chosen on each device.',
     ],
   },
@@ -1206,7 +1215,10 @@ export const QUICK_HELP: Readonly<Record<'freeStay' | 'companies' | 'airports' |
     topic: 'companies',
   },
   airports: {
-    lines: ['Airport rent depends on how many airports the owner holds.', 'From $40 for one up to $1,250 for all ten.'],
+    lines: [
+      'Airport rent depends on how many airports the owner holds.',
+      `From ${money(BALANCE.airportRent[0] as number)} for one up to ${money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} for all ${COUNT_WORDS[AIRPORTS.length] ?? AIRPORTS.length}.`,
+    ],
     topic: 'airports',
   },
   building: {

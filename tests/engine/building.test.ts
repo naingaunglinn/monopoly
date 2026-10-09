@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { buildBlocker, legalActions } from '../../src/engine';
-import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, own, rollTo, run } from './helpers';
+import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, own, rollTo, run, spaceOf } from './helpers';
 
-const BRASILIA = 1;
-const RIO = 3;
-const CAIRO = 12;
-const ALEXANDRIA = 14;
+const BRASILIA = spaceOf('Brasília');
+const RIO = spaceOf('Rio de Janeiro');
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
 const EGYPT = [CAIRO, ALEXANDRIA];
 
 function landOnCairoOwningEgypt(lv: Array<[number, number]> = []) {
@@ -163,8 +163,8 @@ describe('building (the landing-only house rule)', () => {
   });
 
   test('airports and companies never have buildings', () => {
-    expect(buildBlocker(game(), 0, 9)?.code).toBe('notCity');
-    expect(buildBlocker(game(), 0, 11)?.code).toBe('notCity');
+    expect(buildBlocker(game(), 0, spaceOf('Brazil Airport'))?.code).toBe('notCity');
+    expect(buildBlocker(game(), 0, spaceOf('Transportation Company'))?.code).toBe('notCity');
   });
 });
 

@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'vitest';
+import { AIRPORT_SPACES } from '../../src/data/board';
 import { airportRent } from '../../src/engine';
-import { act, cashOf, eventsOf, fail, game, nextDice, own, rollTo, run } from './helpers';
+import { act, cashOf, eventsOf, fail, game, nextDice, own, rollTo, run, spaceOf } from './helpers';
 
-const AIRPORTS = [4, 9, 15, 27, 35, 39, 48, 55, 67, 77];
-const EGYPT_AIRPORT = 15;
-const TRANSPORT = 11;
+const AIRPORTS = [...AIRPORT_SPACES];
+const EGYPT_AIRPORT = spaceOf('Egypt Airport');
+const TRANSPORT = spaceOf('Transportation Company');
 
 describe('airports', () => {
   test('buy an airport', () => {
@@ -24,7 +25,7 @@ describe('airports', () => {
   });
 
   test('landing on another player’s airport charges by their airport count', () => {
-    let s = own(game(), [EGYPT_AIRPORT, 4, 9], 1);
+    let s = own(game(), [EGYPT_AIRPORT, ...AIRPORTS.filter((a) => a !== EGYPT_AIRPORT).slice(0, 2)], 1);
     s = rollTo(s, EGYPT_AIRPORT).state;
     expect(s.flow.pending?.kind === 'rent' && s.flow.pending.rent).toMatchObject({
       amount: 160,

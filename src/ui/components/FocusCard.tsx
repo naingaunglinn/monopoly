@@ -1,8 +1,10 @@
 // The Focus Card (property deed, a luggage tag): the hovered, focused or pinned tile, otherwise the
-// current player's tile.
+// current player's tile. In room play on large screens it shows only for a hovered, focused or
+// pinned tile, floating beside it (FloatingFocusCard, D97).
 import { Pin } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { BALANCE, mortgageValue } from '../../data/balance';
-import { AIRPORT_BY_SPACE, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES } from '../../data/board';
+import { AIRPORT_BY_SPACE, AIRPORTS, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, gridPosition } from '../../data/board';
 import { COUNTRY_BY_ID } from '../../data/countries';
 import { airportsOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
 import { readableInk } from '../contrast';
@@ -119,7 +121,7 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
         <table className="rent-table ladder">
           <caption>{T.focus.rent}</caption>
           <tbody>
-            {BALANCE.airportRent.map((rent, i) => (
+            {BALANCE.airportRent.slice(0, AIRPORTS.length).map((rent, i) => (
               <tr key={i} className={owned === i + 1 ? 'is-current' : ''}>
                 <th scope="row">{T.focus.airportsOwned(i + 1)}</th>
                 <td className="money">{money(rent)}</td>
@@ -187,7 +189,7 @@ export function DeedSummary({ s, index }: { s: GameState; index: number }) {
     return (
       <dl className="deed-summary">
         <Row label={T.focus.airportsOwned(owned + 1)} value={money(BALANCE.airportRent[owned] as number)} />
-        <Row label={T.focus.airportsOwned(10)} value={money(BALANCE.airportRent[9] as number)} />
+        <Row label={T.focus.airportsOwned(AIRPORTS.length)} value={money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} />
         <Row label={T.focus.mortgage} value={money(mortgageValue(airport.price))} />
       </dl>
     );
@@ -243,5 +245,54 @@ export function FocusCard({ s, fallback }: { s: GameState; fallback: number }) {
       </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * Room play on large screens (owner request, D97): the card appears only for a hovered, focused or
+ * pinned tile, inside the ring beside that tile, and takes no room of its own. A hovered card lets
+ * the pointer through to whatever is under it; a pinned one (click the tile) keeps its Unpin
+ * button. Rendered inside the ocean, which it never leaves.
+ */
+export function FloatingFocusCard({ s }: { s: GameState }) {
+  const { hover, pinned } = useUi();
+  const index = hover ?? pinned;
+  const ref = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState<{ index: number; left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const ocean = el?.parentElement;
+    const tile = index === null ? null : document.querySelector<HTMLElement>(`.board .tile[data-space="${index}"]`);
+    if (index === null || !el || !ocean || !tile) {
+      setAt(null);
+      return;
+    }
+    const o = ocean.getBoundingClientRect();
+    const t = tile.getBoundingClientRect();
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const gap = 8;
+    const side = gridPosition(index).side;
+    // Beside the tile, on the ocean's edge nearest to it, centred on the tile along that edge.
+    let left = t.left + t.width / 2 - o.left - w / 2;
+    let top = t.top + t.height / 2 - o.top - h / 2;
+    if (side === 'top') top = gap;
+    else if (side === 'bottom') top = o.height - h - gap;
+    else if (side === 'left') left = gap;
+    else left = o.width - w - gap;
+    left = Math.min(Math.max(left, gap), o.width - w - gap);
+    top = Math.min(Math.max(top, gap), o.height - h - gap);
+    setAt({ index, left, top });
+  }, [index, s]);
+  if (index === null) return null;
+  const placed = at !== null && at.index === index;
+  return (
+    <div
+      ref={ref}
+      className={`deed-float ${hover === null ? 'is-pinned' : ''}`}
+      style={placed ? { left: at.left, top: at.top } : { visibility: 'hidden' }}
+    >
+      <FocusCard s={s} fallback={index} />
+    </div>
   );
 }

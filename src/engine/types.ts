@@ -1,5 +1,6 @@
 // Engine types. The game state is plain JSON (no undefined, Maps or classes) so a save is a
 // straight JSON round trip.
+import type { BoardShape } from '../data/balance.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type { TaxKind } from '../data/board.js';
 import type { TokenKind } from '../data/players.js';
@@ -24,6 +25,12 @@ export const PHASES = [
 export type Phase = (typeof PHASES)[number];
 
 export type GameMode = 'quick' | 'normal';
+
+/** The board a game is played on: BOARD_SIZE and BOARD_SHAPE when it was created (D96). */
+export interface BoardSettings {
+  spaces: number;
+  shape: BoardShape;
+}
 export type AnimationSpeed = 'normal' | 'fast' | 'off';
 export type Dice = [number, number];
 
@@ -44,6 +51,8 @@ export interface Settings {
   randomFirstPlayer: boolean;
   passDevice: boolean;
   animationSpeed: AnimationSpeed;
+  /** Always the board in play: the code sets it, never a player. */
+  board: BoardSettings;
 }
 
 export type MoneyReason =

@@ -1,7 +1,9 @@
 # Global Monopoly
 
-A property board game for 2 to 6 players who share one device. 80 spaces, 42 cities in 16 countries,
-10 airports and 8 companies. Runs fully offline in the browser: no account, server or network.
+A property board game for 2 to 6 players who share one device. A square board of 60 spaces: 31 cities
+in 11 countries, 7 airports and 8 companies (the full board has 80 spaces and 42 cities; two constants
+in `src/data/balance.ts` choose the size and shape). Runs fully offline in the browser: no account,
+server or network.
 
 ## Run it
 
@@ -34,8 +36,9 @@ limit for testing. Screenshots from `npm run test:e2e` land in `reports/screensh
 
 Friends can play together from different browsers, phones and computers. Press **Play online >
 Create room**, send the link (or the 4-letter code), and everyone takes a seat in the lobby. The host
-picks the settings and starts with 2 to 6 players. One device can hold several seats. Chat with the
-table with the **Chat** button in the top bar (phones: the **Chat** tab; lobby: the **Chat** button), and send stamps (Nice, Ouch, Ha ha,
+picks the settings and starts with 2 to 6 players. One device can hold several seats. On a large
+screen the chat is open beside the board and keeps the cursor, so you can type at any time (phones: the
+**Chat** tab; lobby: the **Chat** button); send stamps (Nice, Ouch, Ha ha,
 Wow, Hurry up, Good game) that land on your card for everyone to see. Press **Join voice** to talk
 (the browser asks for the microphone; headphones avoid echo).
 

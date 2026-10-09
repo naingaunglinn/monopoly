@@ -1,8 +1,7 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
 import { ArrowLeftRight, Check, CircleHelp, Hourglass, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
-import { COUNTRIES } from '../../data/countries';
+import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, propertyPrice } from '../../data/board';
 import { mortgageValue, unmortgageCost } from '../../data/balance';
 import {
   countryOf,
@@ -20,6 +19,7 @@ import { REDUCED_MOTION_QUERY } from '../animation';
 import { Button } from '../components/Button';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
+import { HostControls, seatNet } from '../components/PlayersColumn';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
 import { hostControl, leaveToStart, useOnline } from '../session/online';
@@ -269,6 +269,9 @@ export function PropertyGroups({ s, player }: { s: GameState; player: number }) 
 
 export function PropertyList({ s, player }: { s: GameState; player: number }) {
   const p = s.players[player] as Player;
+  const online = useOnline();
+  // Room play on large screens has no player cards: the host's controls for a player are here (D97).
+  const net = online ? seatNet(online, s, p) : null;
   return (
     <Sheet
       id="properties"
@@ -281,6 +284,16 @@ export function PropertyList({ s, player }: { s: GameState; player: number }) {
       onClose={closeSheet}
       wide
     >
+      {net?.hostControls && (
+        <div className="sheet-host">
+          <p className="muted">
+            {[net.offline ? T.online.disconnected : null, net.proxyName ? (net.proxyMine ? T.online.youPlayFor : T.online.playedBy(net.proxyName)) : null]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+          <HostControls p={p} net={net} idPrefix="sheet-" />
+        </div>
+      )}
       <PropertyGroups s={s} player={player} />
       {(p.jailCards.length > 0 || p.houseVouchers.length > 0) && (
         <p className="muted">

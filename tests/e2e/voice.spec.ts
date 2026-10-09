@@ -67,13 +67,14 @@ test('two devices talk: connected, audio both ways, talking lights up, mute show
   await b.page.locator('#voice-mute').click();
   await expect(a.page.locator('.lobby-seat[data-seat="1"] .voice-badge.is-muted')).toHaveCount(0);
 
-  // The game starts: the call carries on, with the switch in the top bar and badges on the cards.
+  // The game starts: the call carries on, with the switch in the top bar and badges on the players'
+  // chips there (room play on a large screen, D97).
   await a.page.locator('#lobby-start').click();
   await expect(a.page.locator('.game-screen')).toBeVisible();
   await expect(b.page.locator('.game-screen.is-phone')).toBeVisible();
   await expect(a.page.locator('.topbar #voice-mute')).toBeVisible();
   await expect(b.page.locator('.phone-status #voice-mute')).toBeVisible();
-  await expect(a.page.locator('.player-card .voice-badge')).toHaveCount(2);
+  await expect(a.page.locator('.tb-players .voice-badge')).toHaveCount(2);
   await audioFlows(a);
 
   // Mia leaves: Leo's connection closes and Mia's badge goes.

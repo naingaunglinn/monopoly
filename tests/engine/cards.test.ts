@@ -3,11 +3,13 @@ import { BALANCE } from '../../src/data/balance';
 import type { CardData, CardEffect } from '../../src/data/cardTypes';
 import { CHANCE_CARDS } from '../../src/data/chance';
 import { EVENT_CARDS } from '../../src/data/events';
+import { AIRPORT_SPACES, CITIES, COMPANY_SPACES, COUNTRY_CITIES, isProperty, SPACES } from '../../src/data/board';
 import { cardsForSettings, cityRent, type GameState } from '../../src/engine';
 import {
   cashOf,
   edit,
   eventsOf,
+  firstOf,
   forceCard,
   game,
   levels,
@@ -15,13 +17,22 @@ import {
   rollTo,
   run,
   endTurn,
+  spaceOf,
+  spacesOf,
 } from './helpers';
 
-const CHANCE_SPACE = 13;
-const EVENT_SPACE = 19;
-const CAIRO = 12;
-const ALEXANDRIA = 14;
-const AIRPORTS = [4, 9, 15, 27, 35, 39, 48, 55, 67, 77];
+/** A Chance space with properties 3 ahead and 2 behind (for the move cards). */
+const CHANCE_SPACE = spacesOf('chance').find((c) => isProperty(c + 3) && isProperty(c - 2)) as number;
+/** The last Chance space, near the end of the board. */
+const LAST_CHANCE = spacesOf('chance').at(-1) as number;
+const EVENT_SPACE = firstOf('event');
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+/** Visiting the Jail: a landing where nothing happens. */
+const REST = SPACES.jail;
+const CITY_SPACES = CITIES.map((c) => c.space);
+/** The first of these spaces after `from`, going round the board. */
+const nextOf = (spaces: readonly number[], from: number) => spaces.find((sp) => sp > from) ?? (spaces[0] as number);
 
 /** Lands the current player on a Chance or Event space with the given card on top, then OK. */
 function draw(s: GameState, cardId: string, space = cardId.startsWith('chance-') ? CHANCE_SPACE : EVENT_SPACE) {
@@ -177,23 +188,23 @@ describe('card effects', () => {
 
   test('move: forward and backward, then the new space resolves', () => {
     const forward = draw(game(), 'chance-shortcut').state;
-    expect(forward.players[0]?.position).toBe(16);
+    expect(forward.players[0]?.position).toBe(CHANCE_SPACE + 3);
     expect(forward.flow.phase).toBe('BuyDecision');
     const back = draw(game(), 'chance-wrong-exit').state;
-    expect(back.players[0]?.position).toBe(11);
+    expect(back.players[0]?.position).toBe(CHANCE_SPACE - 2);
     expect(back.flow.phase).toBe('BuyDecision');
   });
 
   test('moveTo: nearest airport, nearest company, a country and a space', () => {
-    expect(draw(game(), 'chance-gate-change').state.players[0]?.position).toBe(15);
-    expect(draw(game(), 'chance-gate-change', 70).state.players[0]?.position).toBe(77);
-    expect(draw(game(), 'chance-business-meeting').state.players[0]?.position).toBe(16);
-    expect(draw(game(), 'chance-business-meeting', 59).state.players[0]?.position).toBe(73);
+    expect(draw(game(), 'chance-gate-change').state.players[0]?.position).toBe(nextOf(AIRPORT_SPACES, CHANCE_SPACE));
+    expect(draw(game(), 'chance-gate-change', LAST_CHANCE).state.players[0]?.position).toBe(nextOf(AIRPORT_SPACES, LAST_CHANCE));
+    expect(draw(game(), 'chance-business-meeting').state.players[0]?.position).toBe(nextOf(COMPANY_SPACES, CHANCE_SPACE));
+    expect(draw(game(), 'chance-business-meeting', LAST_CHANCE).state.players[0]?.position).toBe(nextOf(COMPANY_SPACES, LAST_CHANCE));
     const brazil = draw(game(), 'chance-carnival').state;
-    expect(brazil.players[0]?.position).toBe(1);
+    expect(brazil.players[0]?.position).toBe(spaceOf('Brasília'));
     expect(cashOf(brazil, 0)).toBe(4500);
     const usa = draw(game(), 'chance-coast-to-coast').state;
-    expect(usa.players[0]?.position).toBe(74);
+    expect(usa.players[0]?.position).toBe(spaceOf('New York'));
     expect(cashOf(usa, 0)).toBe(4000);
     const start = draw(game(), 'chance-round-the-world').state;
     expect(start.players[0]?.position).toBe(0);
@@ -201,21 +212,21 @@ describe('card effects', () => {
   });
 
   test('a card that moves the player onto rent resolves the rent', () => {
-    const s = draw(own(game(), 15, 1), 'chance-gate-change').state;
+    const s = draw(own(game(), nextOf(AIRPORT_SPACES, CHANCE_SPACE), 1), 'chance-gate-change').state;
     expect(s.flow.phase).toBe('RentDue');
     expect(s.flow.pending?.kind === 'rent' && s.flow.pending.rent.amount).toBe(40);
   });
 
   test('goToJail', () => {
     const s = draw(game(), 'chance-customs-trouble').state;
-    expect(s.players[0]).toMatchObject({ position: 17, inJail: true });
+    expect(s.players[0]).toMatchObject({ position: SPACES.jail, inJail: true });
     expect(s.flow.phase).toBe('AwaitEndTurn');
     expect(cashOf(s, 0)).toBe(4000);
   });
 
   test('goToVacation: straight to Vacation, no World Start money, next turn skipped', () => {
-    const { state } = draw(game(), 'chance-beach-calling', 59);
-    expect(state.players[0]).toMatchObject({ position: 40, skipNextTurn: true });
+    const { state } = draw(game(), 'chance-beach-calling', LAST_CHANCE);
+    expect(state.players[0]).toMatchObject({ position: SPACES.vacation, skipNextTurn: true });
     expect(cashOf(state, 0)).toBe(4000);
     expect(state.flow.notices).toEqual([{ kind: 'vacation', player: 0 }]);
   });
@@ -257,19 +268,20 @@ describe('card effects', () => {
       ]);
     expect(cashOf(draw(egypt(2), 'event-natural-disaster').state, 0)).toBe(4000 - 4 * 40);
     expect(cashOf(draw(egypt(5), 'event-natural-disaster').state, 0)).toBe(4000 - 2 * 100);
-    const mexico = levels(own(game(), [6, 8, 10], 0), [
-      [6, 4],
-      [8, 4],
-      [10, 4],
-    ]);
+    const mexicoCities = COUNTRY_CITIES.mexico;
+    const mexico = levels(
+      own(game(), [...mexicoCities], 0),
+      mexicoCities.map((sp): [number, number] => [sp, 4]),
+    );
     expect(cashOf(draw(mexico, 'event-natural-disaster').state, 0)).toBe(4000 - 300);
     expect(cashOf(draw(game(), 'event-natural-disaster').state, 0)).toBe(4000);
   });
 
   test('companyOwnerCash: the owner gains or pays; nothing if unowned', () => {
-    const boom = draw(own(game(), 16, 1), 'event-oil-boom').state;
+    const oil = spaceOf('Oil Company');
+    const boom = draw(own(game(), oil, 1), 'event-oil-boom').state;
     expect(cashOf(boom, 1)).toBe(4200);
-    const crash = draw(own(game(), 16, 1), 'event-oil-crash').state;
+    const crash = draw(own(game(), oil, 1), 'event-oil-crash').state;
     expect(cashOf(crash, 1)).toBe(3800);
     const { state, events } = draw(game(), 'event-oil-boom');
     expect(eventsOf(events, 'cardNoEffect')).toHaveLength(1);
@@ -277,13 +289,19 @@ describe('card effects', () => {
   });
 
   test('perAssetCash: per asset owned, capped at $300 per player', () => {
-    let s = own(game(), AIRPORTS.slice(0, 7), 0);
-    s = own(s, AIRPORTS.slice(7), 1);
-    const after = draw(s, 'event-airport-promotion').state;
-    expect(cashOf(after, 0)).toBe(4300);
-    expect(cashOf(after, 1)).toBe(4150);
-    const tax = draw(own(game(), [CAIRO, ALEXANDRIA, 1, 3], 1), 'event-property-tax-reform').state;
+    let s = own(game(), AIRPORT_SPACES.slice(0, 2), 0);
+    s = own(s, AIRPORT_SPACES.slice(2, 3), 1);
+    const airports = draw(s, 'event-airport-promotion').state;
+    expect(cashOf(airports, 0)).toBe(4100);
+    expect(cashOf(airports, 1)).toBe(4050);
+    s = own(game(), COMPANY_SPACES.slice(0, 2), 0);
+    const companies = draw(s, 'event-business-expansion').state;
+    expect(cashOf(companies, 0)).toBe(4100);
+    const tax = draw(own(game(), [CAIRO, ALEXANDRIA, spaceOf('Brasília'), spaceOf('Rio de Janeiro')], 1), 'event-property-tax-reform').state;
     expect(cashOf(tax, 1)).toBe(4000 - 100);
+    // Thirteen cities would cost $325: capped at $300.
+    const many = draw(own(game(), CITY_SPACES.slice(0, 13), 1), 'event-property-tax-reform').state;
+    expect(cashOf(many, 1)).toBe(4000 - 300);
   });
 
   test('modifier: applies to rent, one per type, and expires when the drawer’s next turn begins', () => {
@@ -300,14 +318,14 @@ describe('card effects', () => {
     s = endTurn(s);
     // Player 0's turn: player 1's modifier is still active until player 1's next turn.
     expect(s.flow.modifiers).toHaveLength(1);
-    s = endTurn(rollTo(s, 34).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.turn.currentPlayerIndex).toBe(1);
     expect(s.flow.modifiers).toHaveLength(0);
   });
 
   test('buildCost modifier changes the house price for everyone until it expires', () => {
     let s = own(game(), [CAIRO, ALEXANDRIA], 0);
-    s = endTurn(rollTo(s, 34).state); // player 0 rests on Free Parking
+    s = endTurn(rollTo(s, REST).state); // player 0 visits the Jail
     s = draw(s, 'event-construction-discount').state; // player 1 draws it
     s = endTurn(s);
     s = rollTo(s, CAIRO).state; // player 0 lands on Cairo with Egypt complete

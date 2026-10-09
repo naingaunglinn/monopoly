@@ -1,6 +1,6 @@
 // The Ocean: an SVG graticule, a compass rose and dotted flight arcs in Ocean line (spec section 10).
 // On the start screen the arcs trace the game's route: the 16 countries in board order.
-import { COUNTRIES } from '../../data/countries';
+import { COUNTRIES } from '../../data/board';
 
 const W = 1000;
 const H = 620;

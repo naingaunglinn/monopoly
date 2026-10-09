@@ -3,7 +3,7 @@
 // Images go to reports/screenshots/<size>/ for a person to open and look at.
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout } from './audit';
-import { loadState, panelStates } from './fixtures';
+import { loadState, panelStates, sp } from './fixtures';
 import { trackErrors } from './helpers';
 
 const SIZES = [
@@ -89,7 +89,7 @@ for (const size of SIZES) {
           await page.locator('#act-trade').click();
           await shot(page, size, 'trade-builder');
           await page.keyboard.press('Escape');
-          await page.locator('.tile[data-space="38"]').hover();
+          await page.locator(`.tile[data-space="${sp('Tokyo')}"]`).hover();
           await shot(page, size, 'focus-card-hover');
         }
       }
@@ -127,8 +127,9 @@ test.describe('online 1280 x 720', () => {
     await expect(guest.page.locator('#primary')).toContainText('Waiting for Mia');
     await shot(guest.page, size, 'online-06-waiting');
 
-    // Chat (spec section 18): the Chat tab beside the log, a message preview, stamps on the cards.
-    await host.page.locator('#feed-chat').click();
+    // Chat (spec section 18): open beside the play area from the start (D97); a message preview
+    // while it is closed (Leo looks at the log), stamps on the players' chips.
+    await guest.page.locator('#feed-log').click();
     await host.page.locator('#chat-input').fill('Good luck everyone!');
     await host.page.keyboard.press('Enter');
     await expect(guest.page.locator('#chat-preview')).toBeVisible();
@@ -150,28 +151,69 @@ test.describe('online 1280 x 720', () => {
       await host.page.waitForTimeout(250);
     }
     await shot(host.page, size, 'online-10-panel-and-chat');
-    // Voice chat: both join; the top bar has the microphone switch, the cards show who is in voice.
+    // Voice chat: both join; the top bar has the microphone switch, the chips show who is in voice.
     await host.page.locator('#voice-join').click();
     await guest.page.locator('#voice-join').click();
-    await expect(host.page.locator('.player-card .voice-badge')).toHaveCount(2);
+    await expect(host.page.locator('.tb-players .voice-badge')).toHaveCount(2);
     await guest.page.locator('#voice-mute').click();
-    await expect(host.page.locator('.player-card .voice-badge.is-muted')).toHaveCount(1);
+    await expect(host.page.locator('.tb-players .voice-badge.is-muted')).toHaveCount(1);
     await shot(host.page, size, 'online-11-voice');
     await host.page.setViewportSize({ width: 1024, height: 768 });
-    // Compact screens: with the Chat tab selected, a panel still takes the whole stage...
+    // Compact screens: the chat keeps its column beside the play area, a panel or not...
     await shot(host.page, { width: 1024, height: 768 }, 'online-12-voice');
-    // ...and without one, the chat opens over the log row, here with the stamp tray.
     for (let i = 0; i < 8 && (await host.page.locator('.stage.has-panel').count()); i++) {
       await host.page.locator('#primary').click();
       await host.page.waitForTimeout(250);
     }
-    await expect(host.page.locator('.feed.is-expanded')).toBeVisible();
+    await expect(host.page.locator('.stage.is-room .feed-chat')).toBeVisible();
     await host.page.locator('#chat-stamps').click();
     await shot(host.page, { width: 1024, height: 768 }, 'online-13-chat-compact');
     expect([...host.log.errors, ...guest.log.errors]).toEqual([]);
     expect(problems).toEqual([]);
     await host.context.close();
     await guest.context.close();
+  });
+});
+
+test.describe('online, six players', () => {
+  test('the top bar holds six players at 1024, 1280 and 1920; the card shows beside a hovered tile', async ({ browser }) => {
+    test.setTimeout(240_000);
+    problems = [];
+    const names = ['Mia', 'Leo', 'Aung', 'Sofia', 'Kenji', 'Nadia'];
+    const devices = [];
+    for (let i = 0; i < names.length; i++) devices.push(await onlineDevice(browser, null));
+    const [host, ...rest] = devices as [Awaited<ReturnType<typeof onlineDevice>>, ...Awaited<ReturnType<typeof onlineDevice>>[]];
+    await host.page.goto(`${ONLINE}/`);
+    await host.page.locator('#start-create').click();
+    await host.page.locator('#online-name').fill(names[0] as string);
+    await host.page.locator('#online-submit').click();
+    await expect(host.page.locator('.lobby-code')).toBeVisible();
+    const code = (await host.page.locator('.lobby-code').innerText()).trim();
+    for (let i = 0; i < rest.length; i++) {
+      const d = rest[i] as (typeof rest)[number];
+      await d.page.goto(`${ONLINE}/?room=${code}`);
+      await d.page.locator('#online-name').fill(names[i + 1] as string);
+      await d.page.locator('#online-submit').click();
+      await expect(d.page.locator('.lobby-code')).toBeVisible();
+    }
+    await expect(host.page.locator('.lobby-seat')).toHaveCount(6);
+    await host.page.locator('#lobby-start').click();
+    await expect(host.page.locator('.tb-others .tb-slot')).toHaveCount(5);
+    // The widest bar: the host and a guest in voice as well.
+    await host.page.locator('#voice-join').click();
+    await (rest[0] as (typeof rest)[number]).page.locator('#voice-join').click();
+    await expect(host.page.locator('.tb-players .voice-badge')).toHaveCount(2);
+    for (const size of SIZES) {
+      await host.page.setViewportSize(size);
+      await shot(host.page, size, 'online-14-six-players');
+      await host.page.locator(`.board .tile[data-space="${sp('Tokyo')}"]`).hover();
+      await expect(host.page.locator('.deed-float .deed-name')).toHaveText('Tokyo');
+      await shot(host.page, size, 'online-15-hover-card');
+      await host.page.mouse.move(size.width / 2, size.height / 2);
+    }
+    expect(devices.flatMap((d) => d.log.errors)).toEqual([]);
+    expect(problems).toEqual([]);
+    for (const d of devices) await d.context.close();
   });
 });
 

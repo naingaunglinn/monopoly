@@ -1,4 +1,5 @@
-// The 8 companies (spec section 4). Rent = total of two fresh dice × multiplier.
+// The 8 companies (spec section 4). Rent = total of two fresh dice × multiplier. Every board holds
+// all eight unless it is smaller than 57 spaces (board.ts).
 import type { CountryId } from './countries.js';
 
 export type CompanyId =
@@ -15,18 +16,20 @@ export type CompanyId =
 export type CompanyIcon = 'truck' | 'fuel' | 'ship' | 'zap' | 'globe' | 'radio' | 'wheat' | 'landmark';
 
 export interface CompanyData {
+  /** Index on the board: here on the full 80-space board; board.ts renumbers the board in play. */
   space: number;
   id: CompanyId;
   name: string;
   /** Short name for compact tiles. */
   shortName: string;
+  /** The countries of the nearest cities before and after it (board.ts works them out for the board in play). */
   between: readonly [CountryId, CountryId];
   price: number;
   multiplier: number;
   icon: CompanyIcon;
 }
 
-export const COMPANIES: readonly CompanyData[] = [
+export const ALL_COMPANIES: readonly CompanyData[] = [
   { space: 11, id: 'transport', name: 'Transportation Company', shortName: 'Transport', between: ['mexico', 'egypt'], price: 200, multiplier: 25, icon: 'truck' },
   { space: 16, id: 'oil', name: 'Oil Company', shortName: 'Oil', between: ['egypt', 'israel'], price: 180, multiplier: 25, icon: 'fuel' },
   { space: 25, id: 'shipping', name: 'International Shipping Company', shortName: 'Shipping', between: ['spain', 'italy'], price: 280, multiplier: 35, icon: 'ship' },

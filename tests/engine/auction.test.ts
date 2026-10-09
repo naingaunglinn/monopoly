@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { decisionMaker, legalActions } from '../../src/engine';
-import { act, cashOf, eventsOf, fail, game, rollTo, run, setCash, totalCash } from './helpers';
+import { act, cashOf, eventsOf, fail, game, rollTo, run, setCash, totalCash, spaceOf } from './helpers';
 
-const MEXICO_AIRPORT = 9;
+const BRAZIL_AIRPORT = spaceOf('Brazil Airport');
 
 function auctionGame() {
-  const s = rollTo(game({ playerCount: 3 }), MEXICO_AIRPORT).state;
+  const s = rollTo(game({ playerCount: 3 }), BRAZIL_AIRPORT).state;
   return act(s, { type: 'decline' });
 }
 
@@ -34,7 +34,7 @@ describe('auction', () => {
     expect(auction(s).current).toBe(2);
     const { state, events } = run(s, { type: 'fold' });
     expect(eventsOf(events, 'auctionWon')[0]).toMatchObject({ player: 0, price: 160 });
-    expect(state.properties[MEXICO_AIRPORT]?.owner).toBe(0);
+    expect(state.properties[BRAZIL_AIRPORT]?.owner).toBe(0);
     expect(cashOf(state, 0)).toBe(4000 - 160);
     // The bank receives the money: nobody else gains.
     expect(totalCash(state)).toBe(before - 160);
@@ -52,7 +52,7 @@ describe('auction', () => {
   });
 
   test('a player who cannot afford the next bid folds automatically', () => {
-    let s = rollTo(setCash(game({ playerCount: 3 }), 2, 5), MEXICO_AIRPORT).state;
+    let s = rollTo(setCash(game({ playerCount: 3 }), 2, 5), BRAZIL_AIRPORT).state;
     s = act(s, { type: 'decline' });
     const { state, events } = run(s, { type: 'bid', amount: 10 });
     expect(eventsOf(events, 'folded')[0]).toMatchObject({ player: 2, auto: true });
@@ -64,7 +64,7 @@ describe('auction', () => {
     s = act(s, { type: 'fold' }, { type: 'fold' });
     const { state, events } = run(s, { type: 'fold' });
     expect(eventsOf(events, 'auctionUnsold')).toHaveLength(1);
-    expect(state.properties[MEXICO_AIRPORT]?.owner).toBeNull();
+    expect(state.properties[BRAZIL_AIRPORT]?.owner).toBeNull();
     expect(state.flow.phase).toBe('AwaitEndTurn');
   });
 
@@ -73,7 +73,7 @@ describe('auction', () => {
     s = act(s, { type: 'fold' }, { type: 'fold' });
     expect(auction(s).current).toBe(0);
     s = act(s, { type: 'bid', amount: 1 });
-    expect(s.properties[MEXICO_AIRPORT]?.owner).toBe(0);
+    expect(s.properties[BRAZIL_AIRPORT]?.owner).toBe(0);
     expect(cashOf(s, 0)).toBe(3999);
   });
 
@@ -91,7 +91,7 @@ describe('auction', () => {
   test('jailed players still bid', () => {
     let s = game({ playerCount: 3 });
     s = { ...s, players: s.players.map((p) => (p.id === 1 ? { ...p, inJail: true, position: 17 } : p)) };
-    s = act(rollTo(s, MEXICO_AIRPORT).state, { type: 'decline' });
+    s = act(rollTo(s, BRAZIL_AIRPORT).state, { type: 'decline' });
     expect(auction(s).current).toBe(1);
   });
 });

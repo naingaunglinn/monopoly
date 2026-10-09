@@ -1,6 +1,8 @@
 # Global Monopoly — working notes for Claude
 
-`docs/SPEC.md` is the single source of truth. Never change prices, the board or the rules.
+`docs/SPEC.md` is the single source of truth. Never change prices, the board or the rules. The board's
+size and shape are the owner's two constants, `BOARD_SIZE` and `BOARD_SHAPE` in `src/data/balance.ts`
+(now 60, square; D96); the full 80-space board in `src/data/` stays as it is.
 When something is undefined, pick the simplest option that fits the spec and log it in `DECISIONS.md`.
 
 ## Commands
@@ -28,7 +30,8 @@ npm is used because pnpm is not installed (see DECISIONS.md).
 src/
   engine/   pure rules: reducer, phases, rent, building, cards, auction, trade, debt, rng,
             legal actions, invariants, save, net worth
-  data/     board, countries, cities, airports, companies, chance, events, players, balance (every number)
+  data/     board (builds the board in play from the full board), countries, cities, airports,
+            companies, chance, events, players, balance (every number)
   ui/       App, screens/, components/, panels/, overlays/, store.ts (app + UI state, dispatch),
             session/ (GameSession: LocalSession runs the engine and autosaves; OnlineSession talks to
             the server), display.ts + animation.ts (event player), sound/ (synthesised effects:
@@ -76,8 +79,12 @@ docs/       SPEC.md (source of truth)
   `renderCue` (the sound spec keeps every cue between -36 and -18 dBFS).
 - Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
   both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
-- The save has a `schemaVersion` (now 2). A change to the state's shape bumps it and adds a migration
+- The save has a `schemaVersion` (now 3). A change to the state's shape bumps it and adds a migration
   in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
+  Saves record their board (`settings.board`): a save or room from another board is refused (D96).
+- Tests never hard-code a space index: they find spaces by name (`spaceOf`, `spacesOf`, `firstOf` in
+  `tests/engine/helpers.ts`; `sp` in `tests/e2e/fixtures.ts`) and read corners from `SPACES`, so the
+  suite passes on every board size. The board test checks every size and shape the builder accepts.
 - After UI changes run `npm run test:e2e`: the screenshot spec audits every capture (text under 10px,
   page scroll, clipped text, owner markers, overlaps) at 1280x720, 1024x768 and 1920x1080, plus the
   phone sizes. Playwright clears `test-results/` when it starts: keep logs elsewhere.
@@ -93,6 +100,11 @@ docs/       SPEC.md (source of truth)
 - Voice (`session/voice.ts`) is peer to peer; the server only lists peers and passes set-up messages,
   which only their receiver can read. Playwright runs Chromium with a fake microphone
   (`playwright.config.ts`); the local server hands out no ICE servers, so tests stay offline.
+- Room play on large screens (D97): the players sit in the top bar (`components/RoomBar.tsx`), there
+  is no players column, the Focus Card floats beside a hovered or pinned tile, and the chat is open
+  from the start; with a mouse its message box keeps the cursor (`useKeepFocus` in `Chat.tsx`), so
+  one-key shortcuts type there. Coins land on `[data-money-anchor]`, stamps on `[data-seat-anchor]`.
+  One shared device and phones keep the players column and the in-place Focus Card.
 - Phones (`PHONE_QUERY` in `ui/hooks.ts`, `screens/PhoneGame.tsx`): the board is the 1280 x 676
   desktop board scaled inside `.board-canvas`, whose CSS pins every board size (media queries see the
   phone). Nothing inside the canvas may use `position: fixed`. The camera lives in a ref, not state.

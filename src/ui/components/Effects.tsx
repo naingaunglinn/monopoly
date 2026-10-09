@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useDisplay } from '../display';
 
-/** Moves a coin from one player card to another. */
+/** Moves a coin from one player card (or top-bar chip in room play) to another. */
 export function CoinFlight() {
   const { coin } = useDisplay();
   const ref = useRef<HTMLSpanElement>(null);
@@ -14,8 +14,8 @@ export function CoinFlight() {
       return;
     }
     const host = ref.current?.parentElement;
-    const from = document.querySelector(`.player-card[data-player="${coin.from}"]`);
-    const to = document.querySelector(`.player-card[data-player="${coin.to}"]`);
+    const from = document.querySelector(`[data-money-anchor="${coin.from}"]`);
+    const to = document.querySelector(`[data-money-anchor="${coin.to}"]`);
     if (!host || !from || !to) return;
     const h = host.getBoundingClientRect();
     const a = from.getBoundingClientRect();

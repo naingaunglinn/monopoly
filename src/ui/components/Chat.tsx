@@ -3,7 +3,7 @@
 // words not emoji). A stamp thuds onto the sender's player card, like a passport stamp, in their
 // colour. While the chat is closed, a new message shows briefly as a preview that opens the chat.
 import { Clock, Laugh, Send, Sparkles, Stamp, ThumbsUp, Trophy, Zap, type LucideIcon } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type RefObject } from 'react';
 import { SEATS } from '../../data/players';
 import { CHAT_MAX_LENGTH, STAMPS, type ChatMessage, type StampId } from '../../online/protocol';
 import {
@@ -132,12 +132,54 @@ function StampRow({ disabled }: { disabled: boolean }) {
   );
 }
 
-function Composer({ st }: { st: OnlineState }) {
+/** Open dialogs, sheets, menus and help: while one is open the chat box never takes the cursor. */
+const FOCUS_BLOCKERS = '[data-sheet]:not([data-sheet="trade-waiting"]), [role="dialog"], [role="alertdialog"], .quick-help';
+
+/**
+ * Room play with a mouse (owner request, D97): the message box keeps the cursor, so a player can
+ * type at any moment and press Enter to send. After a click elsewhere, or when the focused control
+ * goes away, the cursor comes back, unless another text field or list has it, a dialog, sheet or
+ * menu is open, or the player is selecting text. Keyboard moves (Tab) are left alone.
+ */
+function useKeepFocus(input: RefObject<HTMLInputElement | null>, enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled) return;
+    const focus = () => {
+      const el = input.current;
+      if (!el) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active === el) return;
+      if (active && active !== document.body && active.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector(FOCUS_BLOCKERS)) return;
+      if (window.getSelection()?.toString()) return;
+      el.focus({ preventScroll: true });
+    };
+    let timer = 0;
+    const later = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(focus, 0);
+    };
+    const onFocusOut = (e: FocusEvent) => {
+      if (e.relatedTarget === null) later();
+    };
+    focus();
+    document.addEventListener('pointerup', later, true);
+    document.addEventListener('focusout', onFocusOut, true);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('pointerup', later, true);
+      document.removeEventListener('focusout', onFocusOut, true);
+    };
+  }, [input, enabled]);
+}
+
+function Composer({ st, keepFocus }: { st: OnlineState; keepFocus: boolean }) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   // The stamp tray stays open after a stamp, so a few can follow; the stamp button closes it.
   const [tray, setTray] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  useKeepFocus(input, keepFocus);
   const offline = st.link === 'offline' || st.link === 'gone';
   const seats = st.view.seats.flatMap((s, i) => (st.mine.includes(i) ? [{ s, i }] : []));
   useEffect(() => () => void (composing = false), []);
@@ -216,8 +258,11 @@ function Composer({ st }: { st: OnlineState }) {
   );
 }
 
-/** The room's chat: the messages, the message box and the stamps. Opening it marks everything read. */
-export function ChatPanel({ className = '' }: { className?: string }) {
+/**
+ * The room's chat: the messages, the message box and the stamps. Opening it marks everything read.
+ * With `keepFocus` (room play with a mouse) the message box keeps the cursor.
+ */
+export function ChatPanel({ className = '', keepFocus = false }: { className?: string; keepFocus?: boolean }) {
   const st = useOnline();
   useEffect(() => chatOpened(), []);
   if (!st) return null;
@@ -231,7 +276,7 @@ export function ChatPanel({ className = '' }: { className?: string }) {
           return m.stamp ? T.chat.stamped(m.name, STAMP_WORDS[m.stamp]) : `${m.name}: ${m.text ?? ''}`;
         })()}
       </div>
-      <Composer st={st} />
+      <Composer st={st} keepFocus={keepFocus} />
     </section>
   );
 }
@@ -254,7 +299,8 @@ function anchorFor(seat: number | null): { x: number; y: number } {
   const candidates = seat === null ? [] : Array.from(document.querySelectorAll<HTMLElement>(`[data-seat-anchor="${seat}"]`));
   for (const el of candidates) {
     const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    // A chip in the top bar (room play): the stamp lands just below it, whole on screen.
+    if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) return { x: r.left + r.width / 2, y: Math.max(r.top + r.height / 2, 64) };
   }
   const board = document.querySelector<HTMLElement>('.board-viewport, .ocean, .lobby-card');
   const r = board?.getBoundingClientRect();

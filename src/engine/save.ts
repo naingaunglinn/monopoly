@@ -1,16 +1,17 @@
 // Save and resume (spec section 9). The save is the game state as JSON with a schemaVersion.
-// A corrupt, older or newer save is reported, never thrown. Version 1 saves (before players
-// chose their colours) are migrated to version 2 on load.
+// A corrupt, older or newer save, or one from another board, is reported, never thrown. Version 1
+// saves (before players chose their colours) and version 2 saves (before the board size was a
+// setting, all on the full 80-space board) are migrated on load.
 import { BOARD_SIZE, SETUP } from '../data/balance.js';
 import { isProperty } from '../data/board.js';
 import { isKnownCard } from './cards.js';
 import { checkInvariants } from './invariants.js';
-import { SCHEMA_VERSION, normalizeSettings } from './state.js';
+import { SCHEMA_VERSION, isThisBoard, normalizeSettings } from './state.js';
 import { PHASES, type GameState, type Settings } from './types.js';
 
 export const SAVE_KEY = 'global-monopoly/save/v1';
 
-export type SaveProblem = 'corrupt' | 'older' | 'newer';
+export type SaveProblem = 'corrupt' | 'older' | 'newer' | 'otherBoard';
 export type ParseResult = { ok: true; state: GameState } | { ok: false; problem: SaveProblem };
 
 export function serializeGame(state: GameState): string {
@@ -126,10 +127,22 @@ function migrateV1(raw: Record<string, unknown>): Record<string, unknown> | null
   const v1 = meta.settings;
   const expected: Record<string, unknown> = { ...normalizeSettings(v1 as Partial<Settings>) };
   delete expected.playerColors;
+  delete expected.board;
   if (JSON.stringify(expected) !== JSON.stringify(v1)) return null;
   const playerColors = players.map((p) => (isObj(p) ? p.color : null)) as string[];
-  const settings = normalizeSettings({ ...(v1 as Partial<Settings>), playerColors });
+  const settings: Record<string, unknown> = { ...normalizeSettings({ ...(v1 as Partial<Settings>), playerColors }) };
+  delete settings.board;
   return { ...raw, meta: { ...meta, schemaVersion: 2, settings } };
+}
+
+/** The board of every save before version 3. */
+const FULL_BOARD = { spaces: 80, shape: 'rectangle' } as const;
+
+/** Version 2 to 3: the settings gain the board, which was always the full 80-space board. */
+function migrateV2(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const { meta } = raw;
+  if (!isObj(meta) || !isObj(meta.settings) || 'board' in meta.settings) return null;
+  return { ...raw, meta: { ...meta, schemaVersion: 3, settings: { ...meta.settings, board: { ...FULL_BOARD } } } };
 }
 
 export function parseSave(text: string | null | undefined): ParseResult {
@@ -146,8 +159,14 @@ export function parseSave(text: string | null | undefined): ParseResult {
   if (version < OLDEST_LOADABLE) return { ok: false, problem: 'older' };
   if (version > SCHEMA_VERSION) return { ok: false, problem: 'newer' };
   try {
-    const current = version === 1 ? migrateV1(raw) : raw;
-    if (!current || !shapeIsValid(current)) return { ok: false, problem: 'corrupt' };
+    let current: Record<string, unknown> | null = raw;
+    if (current && version <= 1) current = migrateV1(current);
+    if (current && version <= 2) current = migrateV2(current);
+    if (!current) return { ok: false, problem: 'corrupt' };
+    // A game from another board cannot go on: its spaces are not this board's (D96).
+    const settings = (current.meta as Record<string, unknown>).settings;
+    if (!isObj(settings) || !isThisBoard(settings.board)) return { ok: false, problem: 'otherBoard' };
+    if (!shapeIsValid(current)) return { ok: false, problem: 'corrupt' };
     const state = current as unknown as GameState;
     if (checkInvariants(state).length > 0) return { ok: false, problem: 'corrupt' };
     return { ok: true, state };

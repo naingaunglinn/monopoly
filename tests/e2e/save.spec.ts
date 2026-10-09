@@ -2,7 +2,11 @@
 // the identical state and the same panel; a corrupt or older save shows a clear message.
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { BOARD_SHAPE, BOARD_SIZE } from '../../src/data/balance';
 import { gameState, startGame, trackErrors } from './helpers';
+
+/** Saves before version 3 were all played on the full board (D96). */
+const FULL_BOARD_IN_PLAY = BOARD_SIZE === 80 && BOARD_SHAPE === 'rectangle';
 
 const SAVE_KEY = 'global-monopoly/save/v1';
 
@@ -69,7 +73,24 @@ test('a corrupt or older save shows a clear message and offers a new game', asyn
   expect(log.errors).toEqual([]);
 });
 
+test('a save from the 80-space board says it was played on a different board and offers a new game', async ({ page }) => {
+  test.skip(FULL_BOARD_IN_PLAY, 'the full board loads it (next test)');
+  const log = trackErrors(page);
+  const v1 = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
+  await page.goto('/');
+  await page.evaluate(([key, value]) => window.localStorage.setItem(key as string, value as string), [SAVE_KEY, v1]);
+  await page.reload();
+  await page.locator('#start-continue').click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog).toContainText('played on a different board');
+  await expect(dialog).toContainText(`${BOARD_SIZE}-space board`);
+  await dialog.getByRole('button', { name: 'Start a new game' }).click();
+  await expect(page.locator('.setup-card')).toBeVisible();
+  expect(log.errors).toEqual([]);
+});
+
 test('a save from the previous version (before colour choice) continues where it was', async ({ page }) => {
+  test.skip(!FULL_BOARD_IN_PLAY, 'only the full board can load it');
   const log = trackErrors(page);
   // Written by the version 1 build: four players in an auction, Egypt built, an airport mortgaged.
   const v1 = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
@@ -85,15 +106,15 @@ test('a save from the previous version (before colour choice) continues where it
   await page.locator('#start-continue').click();
   await expect(page.locator('[data-panel="auction"]')).toBeVisible();
   const s = await gameState(page);
-  expect(s.meta.schemaVersion).toBe(2);
+  expect(s.meta.schemaVersion).toBe(3);
   expect(s.players.map((p: { name: string }) => p.name)).toEqual(['Mia', 'Leo', 'Aung', 'Sofia']);
   expect(s.meta.settings.playerColors.slice(0, 4)).toEqual(s.players.map((p: { color: string }) => p.color));
   // Leo's Egypt tiles wear Leo's colour.
   const cairo = await page.locator('.board .tile[data-space="12"]').evaluate((el) => getComputedStyle(el, '::before').content);
   expect(cairo).not.toBe('none');
-  // The next autosave writes version 2.
+  // The next autosave writes version 3.
   await page.locator('#bid-fold').click();
   const saved = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) as string), SAVE_KEY);
-  expect(saved.meta.schemaVersion).toBe(2);
+  expect(saved.meta.schemaVersion).toBe(3);
   expect(log.errors).toEqual([]);
 });

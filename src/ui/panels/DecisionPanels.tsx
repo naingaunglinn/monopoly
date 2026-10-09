@@ -57,6 +57,9 @@ function SpaceTitle({ index, s }: { index: number; s: GameState }) {
 function BuyPanel({ s, space }: { s: GameState; space: number }) {
   const me = s.players[s.turn.currentPlayerIndex] as Player;
   const price = propertyPrice(space);
+  // Too little cash: the engine says how much is missing, and the big button passes (D95).
+  const refused = validateAction(s, { type: 'buy' });
+  const needed = Number(refused?.params.needed ?? 0) - Number(refused?.params.have ?? 0);
   return (
     <Panel
       id="buy"
@@ -82,6 +85,7 @@ function BuyPanel({ s, space }: { s: GameState; space: number }) {
             <dt>{T.panels.buy.cashAfter}</dt>
             <dd className={`money ${me.cash - price < 0 ? 'is-loss' : ''}`}>{money(me.cash - price)}</dd>
           </div>
+          {refused && needed > 0 && <p className="fact-strong">{T.panels.buy.short(money(needed))}</p>}
           <p className="fact-hint">{s.meta.settings.auction ? T.panels.buy.passHint : T.panels.buy.passHintNoAuction}</p>
         </dl>
       </div>

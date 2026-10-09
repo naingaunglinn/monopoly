@@ -50,9 +50,20 @@ GLOBAL MONOPOLY is a property board game for 2 to 6 players who share one device
 
 ## 3. Board
 
-The board has exactly 80 spaces, indexed 0 to 79, and players always move clockwise (index +1, wrapping 79 to 0). This layout is final; do not rearrange it.
+The full board has 80 spaces, indexed 0 to 79, listed below; players always move clockwise (index +1, wrapping the last space to 0). Do not rearrange it.
 
 Counts: 42 cities, 10 airports, 8 companies and 20 special spaces (World Start, Jail, Go To Jail, Vacation, Free Parking, Income Tax, Luxury Tax, 6 Chance, 7 Event).
+
+**The board in play** (owner change, D96) is built from the full board by two constants in `src/data/balance.ts`: `BOARD_SIZE` (40 to 80 spaces) and `BOARD_SHAPE` (`square` or `rectangle`). It is now **60 spaces, square**. A smaller board leaves out spaces of the full board in a fixed order (`LEAVE_OUT` in `src/data/board.ts`): whole countries (a country is kept or dropped whole), some airports and some Chance, Event and Free Parking spaces. The kept spaces stay in the full board's order, so prices still rise around the board, and the four corners go to the ends of the sides. Never left out: the corners, both taxes, Brazil, Japan, Myanmar and the United States (Chance cards send players there), and the companies on boards of 57 spaces or more. A company's two countries are the countries of the nearest cities on either side. Games are saved with their board; a save or a room from another board cannot continue.
+
+The 60-space square board (14 spaces between corners on every side) keeps 31 cities in 11 countries, 7 airports, all 8 companies, both taxes, 4 Chance and 4 Event spaces. It leaves out Spain, France, the Netherlands, South Korea and Canada; the Mexico, Germany and China airports; Free Parking, the Chance spaces at 13 and 59 and the Event spaces at 19, 42 and 62 (full-board indices). Clockwise from World Start:
+
+| Index | Spaces |
+| --- | --- |
+| 0 to 15 (top) | World Start, Brasília, Chance, Rio de Janeiro, Brazil Airport, Income Tax, Mexico City, Event, Guadalajara, Monterrey, Transportation Company, Cairo, Alexandria, Egypt Airport, Oil Company, Jail |
+| 16 to 30 (right) | Jerusalem, Tel Aviv, Haifa, Chance, International Shipping Company, Rome, Italy Airport, Milan, Event, Venice, Electricity / Power Grid, Berlin, Munich, Frankfurt, Vacation |
+| 31 to 45 (bottom) | Global Trading Company, Tokyo, Japan Airport, Osaka, Telecommunications Company, Beijing, Chance, Shanghai, Shenzhen, Rice Trading Company, Yangon, Event, Mandalay, Myanmar Airport, Go To Jail |
+| 46 to 59 (left) | Naypyitaw, Luxury Tax, London, United Kingdom Airport, Manchester, Birmingham, Chance, Global Finance Company, New York, Event, Los Angeles, United States Airport, Chicago, San Francisco |
 
 ### Top row, left to right
 
@@ -156,16 +167,16 @@ Counts: 42 cities, 10 airports, 8 companies and 20 special spaces (World Start, 
 
 ### Geometry
 
-The board is a rectangular ring on a grid of 18 columns by 24 rows, with corners at spaces 0, 17, 40 and 57. A square ring would leave tiles about 32px wide at 1280 × 720, which is unreadable.
+The board is a ring on a grid of a + 2 columns by d + 2 rows, where a is the number of spaces between two corners along the top and bottom and d along the left and right. A square board has a = d = (N − 4) / 4: 14 on the 60-space board, a 16 × 16 grid with corners at 0, 15, 30 and 45. A rectangle keeps the full board's proportion of 16 across to 22 down: the full board is an 18 × 24 grid with corners at 0, 17, 40 and 57. Either way the ring fills the play area, so on a wide screen a square board's tiles are wider than they are tall (a ring that is square on screen would leave tiles about 40px wide at 1280 × 720).
 
-| Index i | Column | Row |
+| Index i (N spaces) | Column | Row |
 | --- | --- | --- |
-| 0 to 17 | i | 0 |
-| 18 to 40 | 17 | i − 17 |
-| 41 to 57 | 57 − i | 23 |
-| 58 to 79 | 0 | 80 − i |
+| 0 to a + 1 | i | 0 |
+| a + 2 to a + d + 2 | a + 1 | i − (a + 1) |
+| a + d + 3 to 2a + d + 3 | 2a + d + 3 − i | d + 1 |
+| 2a + d + 4 to N − 1 | 0 | N − i |
 
-Write a test that asserts the counts above, the country order in section 4, and that each company sits between its two countries.
+Write a test that asserts the counts above, the country order in section 4, and that each company sits between its two countries, for the full board and for every size and shape the builder accepts.
 
 ## 4. Property data
 
@@ -1092,11 +1103,21 @@ Added at the owner's request, after M5. Friends play one game together from diff
   - A seat with no heartbeat (sent every 20 s) for 45 s shows "Disconnected"; the game waits, with no timer.
   - "Reconnecting…" shows while offline and blocks actions.
   - An action not answered within 300 ms shows a spinner, and an action is never sent twice.
-- **Host controls.**
+- **Host controls.** On a player's card on phones, and in their property list on large screens.
   - Play for them: the host acts for a disconnected player until they return.
   - Remove player: bankrupt to the bank. In a Quick game this ends the game, as the first bankruptcy.
   - If the host disconnects, the next connected player becomes host.
 - **Rule guide.** A new topic, "Playing online", explains all of this.
+
+### Room play on large screens
+
+Changed at the owner's request after section 17 was built (D97). On one shared device and on phones nothing changes.
+
+- **The players are in the top bar.** This device's player comes first, in full: token, name, cash, how many cities, airports and companies they own, Free Stay tokens, held cards, and In Jail or On vacation; the chip wears their colour. Every other player shows their name and money (with five or six players on a narrower screen the name sits above the money), with a small sign on the token for In Jail, On vacation, Disconnected or played by someone else (the words are in its tooltip). If the bar still runs short, names end in an ellipsis before any button leaves the screen. The player whose turn it is has a ring in their colour. A chip opens that player's property list; the host's Play for them and Remove are there. With two seats on one device, its player is the one deciding now, else the one whose turn it is, else the first. Money changes float under the chips and rent coins fly between them. The round shows as a small counter; the title and the turn number leave the bar, and active events show in the play area above the dice. Below 1900 px the bar's buttons show icons only (names as tooltips); below 1600 px with five or six players this device's player's badges drop their words and the round counter moves into the play area; below 1280 px Rules and the sound switch move into the menu and voice keeps only the microphone switch (Leave voice is in the menu).
+- **No players column.** The play area and the chat share the space inside the ring: the chat takes 40% of it (260 to 460 px), full height from 1280 px; below that the buttons take the whole width under both.
+- **The chat keeps the cursor** on devices with a mouse: typing goes into the message box at any moment and Enter sends. After a click elsewhere, or when the focused control goes away, the cursor comes back, except while another text field or list has it (the bid box), a sheet, dialog, menu, the rule guide or a pass screen is open, or text is being selected. Tab moves are left alone. Never on touch screens, where it would open the keyboard. While the cursor is in the chat, the one-key shortcuts (Space, Enter, B, P, T, R) type instead; Escape still closes things, and the shortcuts work again on the Log tab.
+- **The Focus Card shows only for a hovered, focused or pinned tile**, floating inside the ring beside that tile; it takes no room of its own. A hovered card lets the pointer through; a pinned one (click the tile) keeps its Unpin button.
+- **Small dice.** The dice, their total and the recap line are small and sit just above the buttons.
 
 ### Architecture
 
@@ -1174,9 +1195,9 @@ Added at the owner's request, after section 17, to make playing with friends liv
 
 ### Chat and stamps (online)
 
-- **Where.** On large screens a Chat button in the top bar (beside Join voice) opens it beside the log, also as the log box's Chat tab; on phones a Chat tab is in the sheet; in the lobby a Chat button opens it. With the chat open on a large screen, a decision panel takes the play area and the chat stays beside it (on compact screens the chat floats over the panel until it is closed).
+- **Where.** On large screens the chat is open from the start, in its own column beside the play area, with the Log as a tab beside it; the Chat button in the top bar (beside Join voice) switches between the two. A decision panel takes the play area and the chat stays beside it. With a mouse, the message box keeps the cursor: a player can type at any moment and press Enter to send (section 17, Room play on large screens). On phones a Chat tab is in the sheet; in the lobby a Chat button opens it.
 - **Messages.** One line of plain text, 200 characters at most, with the sender's token, name and time. Messages from one seat in a row share a heading. One device with several seats chooses which of them writes.
-- **Stamps.** Quick reactions, words not emoji: Nice, Ouch, Ha ha, Wow, Hurry up, Good game. A stamp thuds onto the sender's card like a passport stamp, in their colour, with its own sound, and appears in the chat.
+- **Stamps.** Quick reactions, words not emoji: Nice, Ouch, Ha ha, Wow, Hurry up, Good game. A stamp thuds onto the sender's card (on large screens their chip in the top bar) like a passport stamp, in their colour, with its own sound, and appears in the chat.
 - **Noticing.** While the chat is closed, new messages from others count on the Chat tab or button and show briefly as a preview that opens the chat; they make a soft pop. Writing never skips the animation that is playing, and no key is lost.
 - **Delivery.** Chat travels with the game updates (stream, or polling) but never changes the game's version. A room keeps its newest 100 messages; they go when the room expires. A seat may send a message every 0.6 s and a stamp every 1.5 s.
 

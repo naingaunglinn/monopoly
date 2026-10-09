@@ -1,7 +1,6 @@
 // Invariants checked after every simulated action (spec section 15) and when loading a save.
 import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { COUNTRY_CITIES, isProperty } from '../data/board.js';
-import { COUNTRIES } from '../data/countries.js';
+import { COUNTRIES, COUNTRY_CITIES, isProperty } from '../data/board.js';
 import { cardsForSettings } from './cards.js';
 import { legalActions } from './legal.js';
 import { PHASES, type GameState, type Pending } from './types.js';

@@ -6,7 +6,20 @@ import { afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { createGame, PHASES, type GameState, type TradeOffer } from '../../src/engine';
 import { App } from '../../src/ui/App';
 import { app, resetUi } from '../../src/ui/store';
-import { act, endTurn, game, own, rollTo, setCash } from '../engine/helpers';
+import { BALANCE } from '../../src/data/balance';
+import { AIRPORTS, SPACES } from '../../src/data/board';
+import { money } from '../../src/ui/strings';
+import { act, endTurn, game, own, rollTo, setCash, spaceOf, spacesOf } from '../engine/helpers';
+
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+const GUADALAJARA = spaceOf('Guadalajara');
+const TRANSPORT = spaceOf('Transportation Company');
+const BRAZIL_AIRPORT = spaceOf('Brazil Airport');
+/** A Chance space reached without passing World Start. */
+const CHANCE = spacesOf('chance').find((c) => c >= 7) as number;
+/** Visiting the Jail: a landing where nothing happens. */
+const REST = SPACES.jail;
 
 beforeAll(() => {
   class NoopResizeObserver {
@@ -23,42 +36,42 @@ afterEach(() => {
 });
 
 function inJailAtTurnStart(): GameState {
-  let s = rollTo(game({ auction: false }), 57).state;
+  let s = rollTo(game({ auction: false }), SPACES.goToJail).state;
   s = endTurn(s);
-  return endTurn(rollTo(s, 34).state);
+  return endTurn(rollTo(s, REST).state);
 }
 
 function vacationSkip(): GameState {
-  let s = endTurn(rollTo(game(), 40).state);
-  return endTurn(rollTo(s, 34).state);
+  let s = endTurn(rollTo(game(), SPACES.vacation).state);
+  return endTurn(rollTo(s, REST).state);
 }
 
 const trade: TradeOffer = {
   from: 0,
   to: 1,
-  give: { properties: [12], cash: 0, jailCards: 0 },
+  give: { properties: [CAIRO], cash: 0, jailCards: 0 },
   get: { properties: [], cash: 100, jailCards: 0 },
 };
 
 function states(): Array<[string, GameState]> {
-  const bankrupt = act(rollTo(setCash(own(game({ mode: 'normal' }), 12, 1), 0, 10), 12).state, { type: 'payRent' });
+  const bankrupt = act(rollTo(setCash(own(game({ mode: 'normal' }), CAIRO, 1), 0, 10), CAIRO).state, { type: 'payRent' });
   return [
     ['PassDevice', createGame({ passDevice: true }, 1)],
     ['TurnStart (Jail)', inJailAtTurnStart()],
     ['TurnStart (Vacation)', vacationSkip()],
     ['AwaitRoll', game()],
-    ['BuyDecision', rollTo(game(), 9).state],
-    ['Auction', act(rollTo(game(), 9).state, { type: 'decline' })],
-    ['RentDue', rollTo(own(game(), 12, 1), 12).state],
-    ['CompanyRoll', rollTo(own(game(), 11, 1), 11).state],
-    ['CardReveal', rollTo(game(), 13).state],
-    ['BuildOffer', rollTo(own(game(), [12, 14], 0), 12).state],
-    ['Debt', act(rollTo(setCash(own(own(game(), 12, 1), 9, 0), 0, 10), 12).state, { type: 'payRent' })],
-    ['AwaitEndTurn', rollTo(game(), 34).state],
+    ['BuyDecision', rollTo(game(), GUADALAJARA).state],
+    ['Auction', act(rollTo(game(), GUADALAJARA).state, { type: 'decline' })],
+    ['RentDue', rollTo(own(game(), CAIRO, 1), CAIRO).state],
+    ['CompanyRoll', rollTo(own(game(), TRANSPORT, 1), TRANSPORT).state],
+    ['CardReveal', rollTo(game(), CHANCE).state],
+    ['BuildOffer', rollTo(own(game(), [CAIRO, ALEXANDRIA], 0), CAIRO).state],
+    ['Debt', act(rollTo(setCash(own(own(game(), CAIRO, 1), BRAZIL_AIRPORT, 0), 0, 10), CAIRO).state, { type: 'payRent' })],
+    ['AwaitEndTurn', rollTo(game(), REST).state],
     ['GameOver (notice)', bankrupt],
     ['GameOver', act(bankrupt, { type: 'acknowledge' })],
-    ['Vacation notice', rollTo(game(), 40).state],
-    ['Trade offer pending', act(own(game(), 12, 0), { type: 'proposeTrade', offer: trade })],
+    ['Vacation notice', rollTo(game(), SPACES.vacation).state],
+    ['Trade offer pending', act(own(game(), CAIRO, 0), { type: 'proposeTrade', offer: trade })],
   ];
 }
 
@@ -121,7 +134,11 @@ describe('rule guide', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'Vacation' }));
     expect(dialog.getByText('Vacation is switched off in this game.')).toBeTruthy();
     fireEvent.click(dialog.getByRole('button', { name: 'Airports' }));
-    expect(dialog.getByText('$1,250')).toBeTruthy();
+    // The rent ladder stops at the number of airports on the board.
+    const top = BALANCE.airportRent[AIRPORTS.length - 1] as number;
+    expect(dialog.getByText(money(top))).toBeTruthy();
+    expect(dialog.getByText(`${AIRPORTS.length} airports`)).toBeTruthy();
+    expect(dialog.queryByText(`${AIRPORTS.length + 1} airports`)).toBeNull();
     fireEvent.click(dialog.getByRole('button', { name: 'Companies' }));
     expect(dialog.getByText('Global Finance Company')).toBeTruthy();
   });

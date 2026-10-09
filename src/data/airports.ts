@@ -1,7 +1,9 @@
-// The 10 airports (spec section 4). Rent depends on how many airports the owner holds (balance.ts).
+// The 10 airports of the full board (spec section 4). Rent depends on how many airports the owner
+// holds (balance.ts). The board in play holds all or some of them (board.ts).
 import type { CountryId } from './countries.js';
 
 export interface AirportData {
+  /** Index on the board: here on the full 80-space board; board.ts renumbers the board in play. */
   space: number;
   name: string;
   /** Country name shown beside a plane icon on one-line tiles. */
@@ -11,7 +13,7 @@ export interface AirportData {
   price: number;
 }
 
-export const AIRPORTS: readonly AirportData[] = [
+export const ALL_AIRPORTS: readonly AirportData[] = [
   { space: 4, name: 'Brazil Airport', shortName: 'Brazil', country: 'brazil', price: 100 },
   { space: 9, name: 'Mexico Airport', shortName: 'Mexico', country: 'mexico', price: 110 },
   { space: 15, name: 'Egypt Airport', shortName: 'Egypt', country: 'egypt', price: 120 },
