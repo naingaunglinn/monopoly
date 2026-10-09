@@ -19,8 +19,9 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { BOARD } from '../../data/board';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { BOARD_SIZE } from '../../data/balance';
+import { BOARD, LAYOUT } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
@@ -456,6 +457,11 @@ function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   );
 }
 
+/** The board's grid: the spaces along each side, between the corners (theme.css `.board`). */
+const BOARD_GRID = { '--across': LAYOUT.across, '--down': LAYOUT.down } as CSSProperties;
+/** With 18 or fewer spaces down a side, its tiles are tall enough for a name on two lines. */
+const ROOMY_ROWS = LAYOUT.down <= 18;
+
 /** The ring of tiles with the ocean, tokens and (on large screens) the HUD inside it. */
 export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; compactLog: boolean }) {
   const display = useDisplay();
@@ -464,12 +470,12 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
   const over = s.flow.phase === 'GameOver';
   const [focusIndex, setFocusIndex] = useState(0);
   const navigate = useCallback((from: number, delta: number) => {
-    const next = (from + delta + 80) % 80;
+    const next = (from + delta + BOARD_SIZE) % BOARD_SIZE;
     setFocusIndex(next);
     document.querySelector<HTMLElement>(`.board [data-space="${next}"]`)?.focus();
   }, []);
   return (
-    <main className="board" aria-label={GAME_TITLE}>
+    <main className={`board ${ROOMY_ROWS ? 'is-roomy' : ''}`} aria-label={GAME_TITLE} style={BOARD_GRID}>
       {BOARD.map((space) => (
         <Tile
           key={space.index}

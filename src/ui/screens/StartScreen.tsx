@@ -3,7 +3,7 @@
 // It loads instantly, with no intro; it asks the server nothing unless a room is stored.
 import { BookOpen, LogIn, Play, Plus, RotateCcw, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { BOARD, gridPosition } from '../../data/board';
+import { BOARD, GRID_COLUMNS, GRID_ROWS, gridPosition } from '../../data/board';
 import { Button } from '../components/Button';
 import { OceanArt } from '../components/OceanArt';
 import { probeRejoin, rejoin, showCreate, showJoin } from '../session/online';
@@ -16,7 +16,7 @@ function BoardRing() {
   const cell = 7;
   const gap = 1.4;
   return (
-    <svg className="start-ring" viewBox={`0 0 ${18 * cell} ${24 * cell}`} aria-hidden="true" focusable="false">
+    <svg className="start-ring" viewBox={`0 0 ${GRID_COLUMNS * cell} ${GRID_ROWS * cell}`} aria-hidden="true" focusable="false">
       {BOARD.map((space) => {
         const pos = gridPosition(space.index);
         const country = countryOfSpace(space.index);

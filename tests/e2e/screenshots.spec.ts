@@ -3,7 +3,7 @@
 // Images go to reports/screenshots/<size>/ for a person to open and look at.
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout } from './audit';
-import { loadState, panelStates } from './fixtures';
+import { loadState, panelStates, sp } from './fixtures';
 import { trackErrors } from './helpers';
 
 const SIZES = [
@@ -89,7 +89,7 @@ for (const size of SIZES) {
           await page.locator('#act-trade').click();
           await shot(page, size, 'trade-builder');
           await page.keyboard.press('Escape');
-          await page.locator('.tile[data-space="38"]').hover();
+          await page.locator(`.tile[data-space="${sp('Tokyo')}"]`).hover();
           await shot(page, size, 'focus-card-hover');
         }
       }

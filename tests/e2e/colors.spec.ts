@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { PLAYER_COLORS } from '../../src/data/players';
 import { createGame } from '../../src/engine';
 import { MORTGAGED_TINT, OWNED_TINT, tint } from '../../src/ui/contrast';
-import { act, loadState, own, rollTo } from './fixtures';
+import { act, CHANCE, loadState, own, rollTo, sp } from './fixtures';
 import { gameState, trackErrors } from './helpers';
 
 const [RED, BLUE, GREEN, , PURPLE, , PINK, BROWN] = PLAYER_COLORS as string[];
@@ -105,26 +105,27 @@ test('owned tiles take the owner colour, mortgaged ones paler; white tiles are f
     { playerCount: 2, passDevice: false, animationSpeed: 'off', playerNames: ['Mia', 'Leo'], playerColors: [PINK as string, BROWN as string] },
     7,
   );
-  s = own(s, [12, 14, 15], 1); // Leo: Cairo, Alexandria, Egypt Airport
-  s = act(s, { type: 'debug', op: 'setMortgaged', space: 15, mortgaged: true });
-  s = rollTo(s, 9); // Mia lands on Mexico Airport, which is for sale
+  const [cairo, alexandria, egyptAirport, forSale] = [sp('Cairo'), sp('Alexandria'), sp('Egypt Airport'), sp('Guadalajara')];
+  s = own(s, [cairo, alexandria, egyptAirport], 1); // Leo
+  s = act(s, { type: 'debug', op: 'setMortgaged', space: egyptAirport, mortgaged: true });
+  s = rollTo(s, forSale); // Mia lands on Guadalajara, which is for sale
   await loadState(page, s);
 
-  expect(await tileTint(page, 12)).toBe(rgb(tint(BROWN as string, OWNED_TINT)));
-  expect(await tileTint(page, 14)).toBe(rgb(tint(BROWN as string, OWNED_TINT)));
-  expect(await tileTint(page, 15)).toBe(rgb(tint(BROWN as string, MORTGAGED_TINT)));
+  expect(await tileTint(page, cairo)).toBe(rgb(tint(BROWN as string, OWNED_TINT)));
+  expect(await tileTint(page, alexandria)).toBe(rgb(tint(BROWN as string, OWNED_TINT)));
+  expect(await tileTint(page, egyptAirport)).toBe(rgb(tint(BROWN as string, MORTGAGED_TINT)));
   // Unowned properties and special spaces stay white.
-  expect(await tileTint(page, 9)).toBeNull();
-  expect(await tileTint(page, 13)).toBeNull();
-  await expect(page.locator('.board .tile[data-space="9"]')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await expect(page.locator('.board .tile[data-space="9"]')).toHaveAttribute('aria-label', /For sale/);
+  expect(await tileTint(page, forSale)).toBeNull();
+  expect(await tileTint(page, CHANCE)).toBeNull();
+  await expect(page.locator(`.board .tile[data-space="${forSale}"]`)).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator(`.board .tile[data-space="${forSale}"]`)).toHaveAttribute('aria-label', /For sale/);
   // The owner marker stays: ownership is never colour alone.
-  await expect(page.locator('.board .tile[data-space="12"] .owner-marker')).toHaveCount(1);
+  await expect(page.locator(`.board .tile[data-space="${cairo}"] .owner-marker`)).toHaveCount(1);
 
   await page.locator('#primary').click(); // Buy
-  expect((await gameState(page)).properties[9].owner).toBe(0);
-  expect(await tileTint(page, 9)).toBe(rgb(tint(PINK as string, OWNED_TINT)));
-  await expect(page.locator('.board .tile[data-space="9"]')).toHaveAttribute('aria-label', /Owned by Mia/);
+  expect((await gameState(page)).properties[forSale].owner).toBe(0);
+  expect(await tileTint(page, forSale)).toBe(rgb(tint(PINK as string, OWNED_TINT)));
+  await expect(page.locator(`.board .tile[data-space="${forSale}"]`)).toHaveAttribute('aria-label', /Owned by Mia/);
   expect(log.errors).toEqual([]);
 });
 

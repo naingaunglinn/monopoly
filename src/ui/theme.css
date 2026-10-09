@@ -1036,10 +1036,11 @@ select {
 
 /* Board ring */
 
+/* --across and --down: the spaces between two corners (set from the board data, D96). */
 .board {
   display: grid;
-  grid-template-columns: var(--corner-w) repeat(16, minmax(0, 1fr)) var(--corner-w);
-  grid-template-rows: var(--corner-h) repeat(22, minmax(0, 1fr)) var(--corner-h);
+  grid-template-columns: var(--corner-w) repeat(var(--across, 16), minmax(0, 1fr)) var(--corner-w);
+  grid-template-rows: var(--corner-h) repeat(var(--down, 22), minmax(0, 1fr)) var(--corner-h);
   gap: var(--gap);
   padding: 4px;
   min-height: 0;
@@ -1420,6 +1421,16 @@ select {
   text-overflow: ellipsis;
 }
 
+/* Tall side tiles (18 or fewer down a side, D96): a long name wraps to a second line instead of
+   being cut, as when houses and the rent take the room on a built city. */
+.board.is-roomy .tile-row .tile-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.05;
+}
+
 /* House pips overlap by half on one-line tiles. */
 .tile-row .pip-house + .pip-house {
   margin-left: calc(var(--pip) / -2);
@@ -1458,8 +1469,8 @@ select {
 /* Ocean and HUD */
 
 .ocean {
-  grid-column: 2 / 18;
-  grid-row: 2 / 24;
+  grid-column: 2 / -2;
+  grid-row: 2 / -2;
   position: relative;
   border-radius: var(--r-panel);
   overflow: hidden;
