@@ -55,9 +55,11 @@ test('a roll plays the dice, one step per space and the landing, in time with th
   expect(names.filter((n) => n === 'hop')).toHaveLength(moved.path.length - 1);
   expect(names.indexOf('land')).toBeGreaterThan(names.lastIndexOf('hop'));
   // The first step sounds once the dice have settled (1.1 s at Normal), then one step every 260 ms.
+  // The dice sound starts the timeline while the page draws the roll, so its timer can fire up to
+  // ~150 ms late (with the dice picture, in the same callback): the gap is measured with that margin.
   const dice = cues.find((c) => c.cue === 'dice') as Played;
   const hops = cues.filter((c) => c.cue === 'hop');
-  expect((hops[0] as Played).at - dice.at).toBeGreaterThanOrEqual(1000);
+  expect((hops[0] as Played).at - dice.at).toBeGreaterThanOrEqual(1100 - 150);
   if (hops.length >= 2) expect((hops[1] as Played).at - (hops[0] as Played).at).toBeGreaterThanOrEqual(200);
   expect(log.errors).toEqual([]);
 });

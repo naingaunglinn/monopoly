@@ -36,7 +36,7 @@ export function VoiceButton({ compact = false }: { compact?: boolean }) {
         }}
       >
         {joining ? <Loader2 className="spinner" size={16} aria-hidden="true" /> : <Headphones size={16} aria-hidden="true" />}
-        {!compact && <span className="btn-label">{label}</span>}
+        {!compact && <span className="btn-label tb-label">{label}</span>}
         {others > 0 && (
           <span className="voice-count" aria-hidden="true">
             {others}
@@ -58,7 +58,7 @@ export function VoiceButton({ compact = false }: { compact?: boolean }) {
         onClick={() => void setVoiceMuted(!v.muted)}
       >
         {v.muted ? <MicOff size={16} aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}
-        {!compact && <span className="btn-label">{v.muted ? T.voice.muted : T.voice.micOn}</span>}
+        {!compact && <span className="btn-label tb-label">{v.muted ? T.voice.muted : T.voice.micOn}</span>}
       </button>
       {!compact && (
         <button type="button" id="voice-leave" className="icon-btn voice-leave" aria-label={T.voice.leave} title={T.voice.leave} onClick={() => leaveVoice()}>

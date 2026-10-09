@@ -35,7 +35,7 @@ limit for testing. Screenshots from `npm run test:e2e` land in `reports/screensh
 Friends can play together from different browsers, phones and computers. Press **Play online >
 Create room**, send the link (or the 4-letter code), and everyone takes a seat in the lobby. The host
 picks the settings and starts with 2 to 6 players. One device can hold several seats. Chat with the
-table from the **Chat** tab (in the lobby, the **Chat** button), and send stamps (Nice, Ouch, Ha ha,
+table with the **Chat** button in the top bar (phones: the **Chat** tab; lobby: the **Chat** button), and send stamps (Nice, Ouch, Ha ha,
 Wow, Hurry up, Good game) that land on your card for everyone to see. Press **Join voice** to talk
 (the browser asks for the microphone; headphones avoid echo).
 

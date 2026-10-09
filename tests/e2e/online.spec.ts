@@ -289,9 +289,17 @@ test.describe('online', () => {
     await expect(b.page.locator('#chat-input')).toHaveValue('nice roll');
     await b.page.keyboard.press('Enter');
     await expect(b.page.locator('.chat-line .chat-text').last()).toHaveText('nice roll');
-    // Mia's chat is closed: an unread count on the Chat tab and a preview.
+    // Mia's chat is closed: an unread count on the Chat tab and the top bar's Chat button, and a preview.
     await expect(a.page.locator('#feed-chat .chat-badge')).toHaveText('1');
+    await expect(a.page.locator('#tb-chat .chat-badge')).toHaveText('1');
     await expect(a.page.locator('#chat-preview')).toContainText('nice roll');
+    // The top bar's Chat button opens the chat, even with a decision panel open, and closes it again.
+    await a.page.locator('#tb-chat').click();
+    await expect(a.page.locator('.feed-chat #chat-input')).toBeVisible();
+    await expect(a.page.locator('#tb-chat')).toHaveAttribute('aria-pressed', 'true');
+    await expect(a.page.locator('#tb-chat .chat-badge')).toHaveCount(0);
+    await a.page.locator('#tb-chat').click();
+    await expect(a.page.locator('.feed-chat')).toHaveCount(0);
     // Mia's decision (buy, card, rent...) did not pull Aung out of the chat; his own message arrived live.
     await expect(c.page.locator('#tab-chat')).toHaveAttribute('aria-selected', 'true');
     await expect(c.page.locator('.chat-line .chat-text').last()).toHaveText('nice roll');

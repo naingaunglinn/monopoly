@@ -4784,9 +4784,18 @@ ol.rules-lines {
 
 /* Compact layouts: the chat opens over the log row, like an expanded log, and a decision panel
    still takes the whole stage. */
+/* The top bar's Chat button, pressed while the chat is open. */
+.tb-chat.is-on {
+  background: var(--info-tint);
+  box-shadow: inset 0 0 0 1px var(--ocean);
+}
+
+/* Compact screens: the open chat floats over the stage, above a decision panel, until the player
+   goes back to the log (the Log tab or the Chat button). The top bar's Chat and voice buttons show
+   their icons only (their names stay for screen readers and in the tooltip), so the bar fits. */
 @media (max-width: 1279px) {
-  .stage.has-panel.has-chat > .log {
-    visibility: hidden;
+  .topbar .tb-label {
+    display: none;
   }
 
   .stage.has-chat > .panel-layer {

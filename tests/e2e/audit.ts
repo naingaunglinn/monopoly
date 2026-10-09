@@ -40,6 +40,12 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
         }
       }
     }
+    // Every control in the top bar (and the phone status bar) is fully on screen.
+    for (const el of document.querySelectorAll('.topbar button, .phone-status button')) {
+      if (!visible(el)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.right > window.innerWidth + 0.5 || r.left < -0.5) problems.push(`top bar control off screen: ${el.id || el.textContent?.trim() || 'button'}`);
+    }
     // Popovers (the menu) stay on screen: when there is not room for all of them, they scroll inside.
     for (const pop of document.querySelectorAll('.menu')) {
       if (!visible(pop)) continue;

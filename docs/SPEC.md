@@ -1174,7 +1174,7 @@ Added at the owner's request, after section 17, to make playing with friends liv
 
 ### Chat and stamps (online)
 
-- **Where.** On large screens a Chat tab sits beside the log; on phones a Chat tab is in the sheet; in the lobby a Chat button opens it. With the chat open on a large screen, a decision panel takes the play area and the chat stays beside it.
+- **Where.** On large screens a Chat button in the top bar (beside Join voice) opens it beside the log, also as the log box's Chat tab; on phones a Chat tab is in the sheet; in the lobby a Chat button opens it. With the chat open on a large screen, a decision panel takes the play area and the chat stays beside it (on compact screens the chat floats over the panel until it is closed).
 - **Messages.** One line of plain text, 200 characters at most, with the sender's token, name and time. Messages from one seat in a row share a heading. One device with several seats chooses which of them writes.
 - **Stamps.** Quick reactions, words not emoji: Nice, Ouch, Ha ha, Wow, Hurry up, Good game. A stamp thuds onto the sender's card like a passport stamp, in their colour, with its own sound, and appears in the chat.
 - **Noticing.** While the chat is closed, new messages from others count on the Chat tab or button and show briefly as a preview that opens the chat; they make a soft pop. Writing never skips the animation that is playing, and no key is lost.

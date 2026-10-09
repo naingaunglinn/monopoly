@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   Menu as MenuIcon,
+  MessageCircle,
   Plus,
   Save,
   Volume2,
@@ -48,7 +49,7 @@ import {
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
 import { setPrefs, usePrefs } from '../prefs';
-import { chatRequest, inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
+import { Box, chatRequest, inviteLink, leaveToStart, useOnline, usePending, type OnlineState } from '../session/online';
 import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
@@ -179,6 +180,39 @@ export function SoundToggle({ className = '' }: { className?: string }) {
   );
 }
 
+type FeedTab = 'log' | 'chat';
+
+/** Which tab the log box shows online: the log, or the chat (the top bar's Chat button switches it). */
+const feedTab = new Box<FeedTab>('log');
+
+function useFeedTab(): FeedTab {
+  return useSyncExternalStore(feedTab.subscribe, feedTab.get, feedTab.get);
+}
+
+/** Online: opens the chat beside the board (closes it again), with the count of unread messages. */
+function ChatButton() {
+  const online = useOnline();
+  const tab = useFeedTab();
+  if (!online) return null;
+  const open = tab === 'chat';
+  return (
+    <button
+      type="button"
+      id="tb-chat"
+      className={`btn btn-ghost tb-chat ${open ? 'is-on' : ''}`}
+      data-no-skip=""
+      aria-pressed={open}
+      aria-label={T.chat.title}
+      title={T.chat.title}
+      onClick={() => feedTab.set(open ? 'log' : 'chat')}
+    >
+      <MessageCircle size={16} aria-hidden="true" />
+      <span className="btn-label tb-label">{T.chat.title}</span>
+      <UnreadBadge count={online.unread} />
+    </button>
+  );
+}
+
 function TopBar({ s }: { s: GameState }) {
   const online = useOnline();
   const display = useDisplay();
@@ -207,6 +241,7 @@ function TopBar({ s }: { s: GameState }) {
         ))}
       </ul>
       <span className="tb-spacer" />
+      {online && <ChatButton />}
       {online && <VoiceButton />}
       {online && (
         <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
@@ -330,11 +365,10 @@ function ActionBar({ s }: { s: GameState }) {
   );
 }
 
-type FeedTab = 'log' | 'chat';
-
 /**
- * Online, the log box has a Chat tab beside the log (spec section 18). With the chat open, a
- * decision panel takes the play area only, so the conversation stays in view.
+ * Online, the log box has a Chat tab beside the log (spec section 18), also opened by the top bar's
+ * Chat button. With the chat open, a decision panel takes the play area only (compact screens: the
+ * chat floats over it), so the conversation stays in view.
  */
 function Feed({ s, compact, tab, onTab }: { s: GameState; compact: boolean; tab: FeedTab; onTab: (t: FeedTab) => void }) {
   const online = useOnline();
@@ -363,7 +397,8 @@ function Feed({ s, compact, tab, onTab }: { s: GameState; compact: boolean; tab:
 function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   const display = useDisplay();
   const online = useOnline();
-  const [feed, setFeed] = useState<FeedTab>('log');
+  const feed = useFeedTab();
+  const setFeed = feedTab.set;
   // A tapped message preview opens the chat.
   const request = useSyncExternalStore(chatRequest.subscribe, chatRequest.get, chatRequest.get);
   const seen = useRef(request);
@@ -372,6 +407,8 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
     seen.current = request;
     setFeed('chat');
   }, [request]);
+  // The next game starts on the log.
+  useEffect(() => () => feedTab.set('log'), []);
   const chatOpen = online !== null && feed === 'chat';
   const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
