@@ -199,6 +199,10 @@ test.describe('online, six players', () => {
     await expect(host.page.locator('.lobby-seat')).toHaveCount(6);
     await host.page.locator('#lobby-start').click();
     await expect(host.page.locator('.tb-others .tb-slot')).toHaveCount(5);
+    // The widest bar: the host and a guest in voice as well.
+    await host.page.locator('#voice-join').click();
+    await (rest[0] as (typeof rest)[number]).page.locator('#voice-join').click();
+    await expect(host.page.locator('.tb-players .voice-badge')).toHaveCount(2);
     for (const size of SIZES) {
       await host.page.setViewportSize(size);
       await shot(host.page, size, 'online-14-six-players');

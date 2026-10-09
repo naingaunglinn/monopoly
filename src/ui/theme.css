@@ -5217,10 +5217,25 @@ ol.rules-lines {
 }
 
 /* Five or six players on a narrower screen: this device's player drops the name (it is in the
-   tooltip and on the token), the room chip keeps only its code. */
+   tooltip and on the token) and its badges their words, and the round counter moves into the play
+   area, so the bar keeps room for Jail and held cards. */
+.stage-round {
+  display: none;
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--tile);
+}
+
 @media (max-width: 1599px) {
-  .tb-players.is-crowded .tb-me-name {
+  .tb-players.is-crowded .tb-me-name,
+  .tb-players.is-crowded .tb-badge-label,
+  .tb-players.is-crowded ~ .tb-round {
     display: none;
+  }
+
+  .stage-round {
+    display: inline-flex;
   }
 }
 
@@ -5243,6 +5258,43 @@ ol.rules-lines {
   .topbar.is-room .tb-badge-label {
     display: none;
   }
+
+  .tb-others {
+    gap: 4px;
+  }
+
+  .tb-other {
+    gap: 5px;
+    padding: 0 8px 0 3px;
+  }
+
+  .tb-players.is-crowded .tb-other {
+    gap: 4px;
+    padding: 0 6px 0 3px;
+  }
+
+  .tb-players.is-crowded .tb-other-cash {
+    font-size: 15px;
+  }
+
+  .tb-players.is-crowded .tb-counts {
+    gap: 6px;
+  }
+
+  .tb-players.is-crowded .tb-badge {
+    padding: 2px 5px;
+  }
+}
+
+
+/* Room play: active events above the dice (the top bar has no room for them with six players). */
+.stage-modifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 /* The play area and the chat side by side; no player column. */

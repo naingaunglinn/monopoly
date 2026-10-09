@@ -220,12 +220,29 @@ function ChatButton() {
   );
 }
 
-/** Room play: the round as a small counter (the players take the room the title and turn had). */
-function RoundCounter({ s }: { s: GameState }) {
+/** Active events (rent and building cost modifiers) as chips. */
+function Modifiers({ s, className }: { s: GameState; className: string }) {
+  return (
+    <ul className={className} aria-label={T.top.modifiersLabel}>
+      {s.flow.modifiers.map((m) => (
+        <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
+          <Layers size={13} aria-hidden="true" />
+          {modifierLabel(m.type, m.factor)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Room play: the round as a small counter (the players take the room the title and turn had). With
+ * five or six players on a narrower screen it moves into the play area (`stage-round`).
+ */
+function RoundCounter({ s, className = 'tb-round' }: { s: GameState; className?: string }) {
   const quick = s.meta.settings.mode === 'quick';
   const round = quick ? T.top.roundOf(s.turn.roundNumber, s.meta.settings.roundLimit) : T.top.round(s.turn.roundNumber);
   return (
-    <span className="tb-round" title={round}>
+    <span className={className} title={round}>
       <Repeat aria-hidden="true" />
       <span aria-hidden="true">{quick ? `${s.turn.roundNumber}/${s.meta.settings.roundLimit}` : s.turn.roundNumber}</span>
       <span className="sr-only">{round}</span>
@@ -261,18 +278,13 @@ function TopBar({ s }: { s: GameState }) {
           )}
         </>
       )}
-      <ul className="tb-modifiers" aria-label={T.top.modifiersLabel}>
-        {s.flow.modifiers.map((m) => (
-          <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
-            <Layers size={13} aria-hidden="true" />
-            {modifierLabel(m.type, m.factor)}
-          </li>
-        ))}
-      </ul>
+      {/* Room play: the active events sit in the play area instead, where they always have room. */}
+      {!online && <Modifiers s={s} className="tb-modifiers" />}
       <span className="tb-spacer" />
       {online && <RoundCounter s={s} />}
       {online && <ChatButton />}
-      {online && <VoiceButton />}
+      {/* Below 1280 px only the microphone switch stays; Leave voice is in the menu. */}
+      {online && <VoiceButton compact={!roomy} />}
       {online && (
         <span className={`tb-room ${online.link === 'offline' ? 'is-off' : ''}`} title={online.link === 'offline' ? T.online.reconnecting : T.online.connected}>
           {online.link === 'offline' ? <WifiOff size={15} aria-hidden="true" /> : <Wifi size={15} aria-hidden="true" />}
@@ -466,6 +478,8 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
         {/* Room play: the card floats beside a hovered tile instead (D97). */}
         {!online && <FocusCard s={s} fallback={position} />}
         <div className="stage-side">
+          {online && s.players.length >= 5 && <RoundCounter s={s} className="tb-round stage-round" />}
+          {online && s.flow.modifiers.length > 0 && <Modifiers s={s} className="stage-modifiers" />}
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
