@@ -73,6 +73,7 @@ export async function auditLayout(page: Page, opts: { allowVerticalScroll?: bool
       '.tb-player-name',
       '.tb-me-name',
       '.tb-me-cash',
+      '.tb-other-name',
       '.tb-other-cash',
       '.winner-title',
       '.pass-name',

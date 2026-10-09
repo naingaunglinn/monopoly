@@ -5128,11 +5128,60 @@ ol.rules-lines {
   padding: 0 10px 0 4px;
 }
 
+.tb-other-name {
+  min-width: 0;
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
 .tb-other-cash {
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* When the bar runs out of room, names give way (they end in an ellipsis; the tooltip has them)
+   before any button is pushed off the screen. */
+.topbar.is-room .tb-players,
+.topbar.is-room .tb-others,
+.topbar.is-room .tb-slot {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Five or six players below 1900 px: the name sits above the money, so the chip stays narrow. */
+@media (max-width: 1899px) {
+  .tb-players.is-crowded .tb-other {
+    display: inline-grid;
+    grid-template-columns: auto minmax(auto, max-content);
+    grid-template-rows: auto auto;
+    align-content: center;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 0;
+    height: 34px;
+  }
+
+  .tb-players.is-crowded .tb-other .pc-token {
+    grid-row: 1 / 3;
+    grid-column: 1;
+  }
+
+  .tb-players.is-crowded .tb-other-name {
+    grid-column: 2;
+    max-width: none;
+    font-size: 11px;
+    line-height: 1.1;
+    color: var(--ink-soft);
+  }
+
+  .tb-players.is-crowded .tb-other-cash {
+    grid-column: 2;
+    line-height: 1.05;
+  }
 }
 
 .tb-other.is-bankrupt {
@@ -5216,9 +5265,8 @@ ol.rules-lines {
   }
 }
 
-/* Five or six players on a narrower screen: this device's player drops the name (it is in the
-   tooltip and on the token) and its badges their words, and the round counter moves into the play
-   area, so the bar keeps room for Jail and held cards. */
+/* Five or six players on a narrower screen: this device's player's badges drop their words and the
+   round counter moves into the play area, so the bar keeps room for Jail and held cards. */
 .stage-round {
   display: none;
   align-self: flex-start;
@@ -5228,7 +5276,6 @@ ol.rules-lines {
 }
 
 @media (max-width: 1599px) {
-  .tb-players.is-crowded .tb-me-name,
   .tb-players.is-crowded .tb-badge-label,
   .tb-players.is-crowded ~ .tb-round {
     display: none;

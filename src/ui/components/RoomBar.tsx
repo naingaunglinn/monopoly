@@ -1,7 +1,7 @@
 // Room play on large screens (owner request, D97): the players sit in the top bar. This device's
 // player is shown in full (token, name, cash, what they own, Free Stay, held cards, Jail or
-// Vacation); every other player as their money only, with a small sign on the token when they are
-// in Jail, on Vacation, disconnected or played by someone else. A chip opens that player's
+// Vacation); every other player as their name and money, with a small sign on the token when they
+// are in Jail, on Vacation, disconnected or played by someone else. A chip opens that player's
 // properties (and, for the host, Play for them and Remove); the current player's chip wears a ring
 // in their colour. Money changes float under the chips, and coins and stamps land on them.
 import { BedDouble, Building2, Factory, Gamepad2, House, IdCard, Lock, Plane, TreePalm, WifiOff, type LucideIcon } from 'lucide-react';
@@ -145,7 +145,7 @@ function statusSign(p: Player, net: SeatNet | null): { kind: string; Icon: Lucid
   return null;
 }
 
-/** Another player: their money only. */
+/** Another player: their name and money (name above the money when the bar is crowded). */
 function OtherChip({ p, cash, current, floats, pulse, net }: ChipProps) {
   const words = statusWords(p, net);
   const sign = statusSign(p, net);
@@ -174,6 +174,7 @@ function OtherChip({ p, cash, current, floats, pulse, net }: ChipProps) {
             </span>
           )}
         </span>
+        <span className="tb-other-name">{p.name}</span>
         <span className="tb-other-cash money">{p.bankrupt ? T.players.out : money(cash)}</span>
       </button>
       <Floats floats={floats} />

@@ -316,12 +316,13 @@ test.describe('online', () => {
     await joinRoom(b, code);
     await a.page.locator('#lobby-start').click();
     for (const d of [a, b]) await expect(d.page.locator('.game-screen')).toBeVisible();
-    // Mia's own player in full (D97): name, cash, cities, airports, companies, Free Stay; Leo as money.
+    // Mia's own player in full (D97): name, cash, cities, airports, companies, Free Stay; Leo as name and money.
     await expect(a.page.locator('.players-col')).toHaveCount(0);
     await expect(a.page.locator('#tb-me')).toContainText('Mia');
     await expect(a.page.locator('#tb-me .tb-me-cash')).toHaveText('$4,000');
     await expect(a.page.locator('#tb-me .tb-count')).toHaveCount(4);
-    await expect(a.page.locator('#tb-player-1')).toHaveText('$4,000');
+    await expect(a.page.locator('#tb-player-1 .tb-other-name')).toHaveText('Leo');
+    await expect(a.page.locator('#tb-player-1 .tb-other-cash')).toHaveText('$4,000');
     await expect(b.page.locator('#tb-me')).toContainText('Leo');
     // Whose turn it is: Mia's chip wears the ring on both screens.
     await expect(a.page.locator('#tb-me')).toHaveAttribute('aria-current', 'true');
