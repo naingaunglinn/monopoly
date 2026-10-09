@@ -1,4 +1,5 @@
-// The 16 countries in clockwise board order (spec section 4) with their band colours (section 10).
+// The 16 countries of the full board in clockwise order (spec section 4) with their band colours
+// (section 10). The board in play holds all or some of them (board.ts: COUNTRIES).
 
 export type CountryId =
   | 'brazil'
@@ -49,7 +50,7 @@ export interface CountryData {
   at: readonly [number, number];
 }
 
-export const COUNTRIES: readonly CountryData[] = [
+export const ALL_COUNTRIES: readonly CountryData[] = [
   { id: 'brazil', name: 'Brazil', colorName: 'Rainforest green', color: '#2F9E63', flag: 'br', at: [-47.9, -15.8] },
   { id: 'mexico', name: 'Mexico', colorName: 'Terracotta', color: '#B8543A', flag: 'mx', at: [-99.1, 19.4] },
   { id: 'egypt', name: 'Egypt', colorName: 'Desert sand', color: '#C9A13E', flag: 'eg', at: [31.2, 30.0] },
@@ -69,5 +70,5 @@ export const COUNTRIES: readonly CountryData[] = [
 ];
 
 export const COUNTRY_BY_ID: Readonly<Record<CountryId, CountryData>> = Object.fromEntries(
-  COUNTRIES.map((c) => [c.id, c]),
+  ALL_COUNTRIES.map((c) => [c.id, c]),
 ) as Record<CountryId, CountryData>;

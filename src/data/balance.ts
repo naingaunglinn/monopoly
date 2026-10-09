@@ -1,13 +1,22 @@
 // Every rule number used by the engine, setup screen and bots lives here (spec section 9).
 
-export const BOARD_SIZE = 80;
+export type BoardShape = 'square' | 'rectangle';
 
-export const SPACES = {
-  start: 0,
-  jail: 17,
-  vacation: 40,
-  goToJail: 57,
-} as const;
+/**
+ * Spaces around the board. 80 is the full board of spec section 3, with all 42 cities; a smaller
+ * board, down to 40, leaves out whole countries, some airports and some special spaces (the order
+ * is LEAVE_OUT in board.ts). Raise it to bring cities back. A board above 80 needs more cities in
+ * cities.ts first. A square board needs a number that divides by 4, a rectangle an even number.
+ * A different board cannot load games saved on this one (D96).
+ */
+export const BOARD_SIZE: number = 60;
+
+/**
+ * 'square': the same number of spaces along every side (14 on the 60-space board).
+ * 'rectangle': more spaces down the left and right sides than across the top and bottom, in the
+ * full board's proportion of 22 to 16.
+ */
+export const BOARD_SHAPE: BoardShape = 'square';
 
 export const BALANCE = {
   /** Paid for passing or landing on World Start (forward moves only). */

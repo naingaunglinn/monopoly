@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { decisionMaker, legalActions, type TradeOffer } from '../../src/engine';
-import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, nextDice, own, rollTo, run } from './helpers';
+import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, nextDice, own, rollTo, run, spaceOf, spacesOf } from './helpers';
 
-const CAIRO = 12;
-const ALEXANDRIA = 14;
-const EGYPT_AIRPORT = 15;
-const TRANSPORT = 11;
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+const EGYPT_AIRPORT = spaceOf('Egypt Airport');
+const TRANSPORT = spaceOf('Transportation Company');
 
 describe('Free Stay', () => {
   test('every player starts with 3 tokens (0 when Free Stay is off)', () => {
@@ -30,7 +30,7 @@ describe('Free Stay', () => {
     expect(fail(airport, { type: 'useFreeStay' }).code).toBe('freeStayUnavailable');
     const company = act(nextDice(rollTo(own(game(), TRANSPORT, 1), TRANSPORT).state, 1, 2), { type: 'rollCompanyDice' });
     expect(fail(company, { type: 'useFreeStay' }).code).toBe('freeStayUnavailable');
-    const tax = rollTo(game(), 65).state;
+    const tax = rollTo(game(), spacesOf('tax').at(-1) as number).state;
     expect(tax.flow.phase).toBe('RentDue');
     expect(fail(tax, { type: 'useFreeStay' }).code).toBe('freeStayUnavailable');
   });
@@ -164,7 +164,7 @@ describe('trading', () => {
       fail(s, { type: 'proposeTrade', offer: offer({ from: 1, to: 0, get: { properties: [CAIRO], cash: 0, jailCards: 0 } }) })
         .code,
     ).toBe('wrongPhase');
-    const deciding = rollTo(s, 9).state;
+    const deciding = rollTo(s, spaceOf('Guadalajara')).state;
     expect(deciding.flow.phase).toBe('BuyDecision');
     expect(
       fail(deciding, { type: 'proposeTrade', offer: offer({ from: 0, to: 1, give: { properties: [CAIRO], cash: 0, jailCards: 0 } }) })

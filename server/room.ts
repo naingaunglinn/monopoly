@@ -7,6 +7,7 @@ import {
   actorFor,
   createGame,
   DEFAULT_SETTINGS,
+  isThisBoard,
   legalActions,
   normalizeSettings,
   publicView,
@@ -98,6 +99,14 @@ export const fail = (error: ErrorCode, status: number, reason?: string): OpError
 
 export function isError<T>(value: T | OpError): value is OpError {
   return typeof value === 'object' && value !== null && 'error' in value && 'status' in value;
+}
+
+/**
+ * A room whose game began on another board (an earlier version of the game, D96) cannot go on: the
+ * handlers treat it as closed, like an expired room.
+ */
+export function playable(room: Room | null): Room | null {
+  return room && room.game && !isThisBoard(room.game.meta.settings.board) ? null : room;
 }
 
 export function statusOf(room: Room): RoomStatus {

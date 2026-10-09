@@ -1,8 +1,7 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
 import { ArrowLeftRight, Check, CircleHelp, Hourglass, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
-import { COUNTRIES } from '../../data/countries';
+import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, propertyPrice } from '../../data/board';
 import { mortgageValue, unmortgageCost } from '../../data/balance';
 import {
   countryOf,

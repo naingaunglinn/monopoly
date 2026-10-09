@@ -1,6 +1,7 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import type { SpecialType } from '../data/board.js';
+import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { AIRPORTS, type SpecialType } from '../data/board.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
   ErrorCode,
@@ -37,6 +38,9 @@ export function signedMoney(amount: number): string {
   return `${amount > 0 ? '+' : MINUS}$${Math.abs(Math.round(amount)).toLocaleString('en-US')}`;
 }
 
+/** Small counts in words ("all seven"). */
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -54,6 +58,7 @@ export const T = {
     saveProblem: {
       corrupt: 'The saved game is damaged and can’t be loaded.',
       older: 'The saved game comes from an older version of the game and can’t be loaded.',
+      otherBoard: `The saved game was played on a different board. This version of the game has a ${BOARD_SIZE}-space board, so the save can’t be loaded.`,
       newer: 'The saved game comes from a newer version of the game and can’t be loaded.',
     },
     startFresh: 'Start a new game',
@@ -190,7 +195,7 @@ export const T = {
     leftGame: 'Your seat was taken over on another device.',
     errors: {
       badRequest: 'That did not work. Please try again.',
-      roomNotFound: 'No room has this code. Check it with the host.',
+      roomNotFound: 'No room has this code, or it has closed. Check it with the host.',
       notInRoom: 'This device has no seat in the room.',
       notHost: 'Only the host can do that.',
       started: 'This game has already started.',
@@ -1207,7 +1212,10 @@ export const QUICK_HELP: Readonly<Record<'freeStay' | 'companies' | 'airports' |
     topic: 'companies',
   },
   airports: {
-    lines: ['Airport rent depends on how many airports the owner holds.', 'From $40 for one up to $1,250 for all ten.'],
+    lines: [
+      'Airport rent depends on how many airports the owner holds.',
+      `From ${money(BALANCE.airportRent[0] as number)} for one up to ${money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} for all ${COUNT_WORDS[AIRPORTS.length] ?? AIRPORTS.length}.`,
+    ],
     topic: 'airports',
   },
   building: {

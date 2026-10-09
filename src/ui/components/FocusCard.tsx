@@ -2,7 +2,7 @@
 // current player's tile.
 import { Pin } from 'lucide-react';
 import { BALANCE, mortgageValue } from '../../data/balance';
-import { AIRPORT_BY_SPACE, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES } from '../../data/board';
+import { AIRPORT_BY_SPACE, AIRPORTS, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES } from '../../data/board';
 import { COUNTRY_BY_ID } from '../../data/countries';
 import { airportsOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
 import { readableInk } from '../contrast';
@@ -119,7 +119,7 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
         <table className="rent-table ladder">
           <caption>{T.focus.rent}</caption>
           <tbody>
-            {BALANCE.airportRent.map((rent, i) => (
+            {BALANCE.airportRent.slice(0, AIRPORTS.length).map((rent, i) => (
               <tr key={i} className={owned === i + 1 ? 'is-current' : ''}>
                 <th scope="row">{T.focus.airportsOwned(i + 1)}</th>
                 <td className="money">{money(rent)}</td>
@@ -187,7 +187,7 @@ export function DeedSummary({ s, index }: { s: GameState; index: number }) {
     return (
       <dl className="deed-summary">
         <Row label={T.focus.airportsOwned(owned + 1)} value={money(BALANCE.airportRent[owned] as number)} />
-        <Row label={T.focus.airportsOwned(10)} value={money(BALANCE.airportRent[9] as number)} />
+        <Row label={T.focus.airportsOwned(AIRPORTS.length)} value={money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} />
         <Row label={T.focus.mortgage} value={money(mortgageValue(airport.price))} />
       </dl>
     );

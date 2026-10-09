@@ -13,6 +13,27 @@ import {
   type Settings,
 } from '../../src/engine';
 import { cloneState } from '../../src/engine/core';
+import { BOARD_SIZE } from '../../src/data/balance';
+import { BOARD, PROPERTY_SPACES, propertyName, type SpaceType } from '../../src/data/board';
+
+/** The index of the city, airport or company with this name on the board in play. */
+export function spaceOf(name: string): number {
+  const space = PROPERTY_SPACES.find((sp) => propertyName(sp) === name);
+  if (space === undefined) throw new Error(`No space named ${name} on this board`);
+  return space;
+}
+
+/** The spaces of this type on the board in play, clockwise from World Start. */
+export function spacesOf(type: SpaceType): number[] {
+  return BOARD.filter((s) => s.type === type).map((s) => s.index);
+}
+
+/** The first space of this type on the board in play. */
+export function firstOf(type: SpaceType): number {
+  const space = spacesOf(type)[0];
+  if (space === undefined) throw new Error(`No ${type} space on this board`);
+  return space;
+}
 
 export function game(settings: Partial<Settings> = {}, seed = 7): GameState {
   return createGame({ passDevice: false, ...settings }, seed);
@@ -84,14 +105,17 @@ export function rollWith(s: GameState, a: number, b: number): { state: GameState
   return run(nextDice(s, a, b), { type: 'roll' });
 }
 
-/** Puts the current player `steps` before `target` and rolls exactly onto it. */
+/**
+ * Puts the current player `steps` before `target` and rolls exactly onto it. The default dice
+ * (3 and 4, or less for a target near World Start) never pass World Start when they can avoid it.
+ */
 export function rollTo(
   s: GameState,
   target: number,
-  dice: [number, number] = [3, 4],
+  dice: [number, number] = target >= 7 ? [3, 4] : target >= 3 ? [1, target - 1] : [3, 4],
 ): { state: GameState; events: GameEvent[] } {
   const steps = dice[0] + dice[1];
-  const from = (target - steps + 80) % 80;
+  const from = (target - steps + BOARD_SIZE) % BOARD_SIZE;
   return rollWith(at(s, s.turn.currentPlayerIndex, from), dice[0], dice[1]);
 }
 

@@ -192,6 +192,26 @@ describe.each(CASES)('$name', (storeCase) => {
       expect(text).not.toContain(`"rngState":${room?.game?.meta.rngState}`);
     });
 
+    test('a room whose game began on another board reads as closed (D96)', async () => {
+      const h = harness();
+      const { code, tokens, view: v } = await started(h, ['Mia', 'Leo']);
+      // A game from before the board became a setting: no board in its settings (the full board).
+      const room = structuredClone(await h.store.load(code)) as NonNullable<Awaited<ReturnType<RoomStore['load']>>>;
+      delete (room.game?.meta.settings as { board?: unknown }).board;
+      const old = { ...room, version: room.version + 1 };
+      expect(await h.store.commit(old, room.version, { v: old.version, kind: 'action', seat: 0, events: [] })).toBe('ok');
+      const read = await h.call('GET', `/api/room?code=${code}`);
+      expect([read.status, read.body.error]).toEqual([404, 'roomNotFound']);
+      const polled = await h.call('GET', `/api/room?code=${code}&since=${v.version}`);
+      expect([polled.status, polled.body.error]).toEqual([404, 'roomNotFound']);
+      const action = await h.call('POST', '/api/room?op=action', { code, token: tokens[0], action: { type: 'roll' }, expectedVersion: old.version });
+      expect([action.status, action.body.error]).toEqual([404, 'roomNotFound']);
+      const beat = await h.call('POST', '/api/room?op=heartbeat', { code, tokens: [tokens[0]] });
+      expect(beat.body.error).toBe('roomNotFound');
+      // The start screen's rejoin check sees no room, without an error.
+      expect((await h.call('GET', `/api/room?code=${code}&probe=1`)).body.view).toBeNull();
+    });
+
     test('colours: a free colour can be picked, another seat’s colour is refused', async () => {
       const h = harness();
       const { code, tokens } = await lobby(h, ['Mia', 'Leo']);

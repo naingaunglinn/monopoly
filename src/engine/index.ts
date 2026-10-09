@@ -2,7 +2,7 @@
 export { reduce } from './reducer.js';
 export { legalActions, decisionMaker, freeActor, actorFor, validateAction, isLegal, auctionBidOptions } from './legal.js';
 export { publicView } from './public.js';
-export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION } from './state.js';
+export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION, THIS_BOARD, isThisBoard } from './state.js';
 export { checkInvariants } from './invariants.js';
 export { SAVE_KEY, serializeGame, parseSave, type ParseResult, type SaveProblem } from './save.js';
 export { netWorth, ranking, computeWinners, type NetWorth, type RankRow } from './networth.js';

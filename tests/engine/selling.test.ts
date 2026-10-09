@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { act, cashOf, eventsOf, fail, game, levels, own, run } from './helpers';
+import { act, cashOf, eventsOf, fail, game, levels, own, run, spaceOf } from './helpers';
 
-const MEXICO_CITY = 6;
-const GUADALAJARA = 8;
-const MONTERREY = 10;
-const CAIRO = 12;
-const ALEXANDRIA = 14;
+const MEXICO_CITY = spaceOf('Mexico City');
+const GUADALAJARA = spaceOf('Guadalajara');
+const MONTERREY = spaceOf('Monterrey');
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
 
 describe('selling buildings', () => {
   test('a house refunds half the house cost (rounded to whole dollars)', () => {

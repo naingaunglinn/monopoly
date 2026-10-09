@@ -1,5 +1,5 @@
 // Creating a new game (spec 5.1 and section 8).
-import { BALANCE, BOARD_SIZE, SETUP } from '../data/balance.js';
+import { BALANCE, BOARD_SHAPE, BOARD_SIZE, SETUP } from '../data/balance.js';
 import { isProperty } from '../data/board.js';
 import { PLAYER_COLORS, SEATS } from '../data/players.js';
 import { defaultPlayerName } from '../ui/strings.js';
@@ -7,10 +7,23 @@ import { buildDecks } from './cards.js';
 import { type Ctx, emit } from './core.js';
 import { beginTurn } from './phases.js';
 import { normalizeSeed, randomInt } from './rng.js';
-import type { GameState, Player, Settings } from './types.js';
+import type { BoardSettings, GameState, Player, Settings } from './types.js';
 
-/** Version 2 added settings.playerColors; version 1 saves are migrated on load (save.ts). */
-export const SCHEMA_VERSION = 2;
+/**
+ * Version 2 added settings.playerColors, version 3 settings.board; older saves are migrated on load
+ * (save.ts).
+ */
+export const SCHEMA_VERSION = 3;
+
+/** The board in play, as the settings record it. */
+export const THIS_BOARD: Readonly<BoardSettings> = { spaces: BOARD_SIZE, shape: BOARD_SHAPE };
+
+/** True when settings' board is the board in play (a game from another board cannot go on). */
+export function isThisBoard(board: unknown): boolean {
+  if (typeof board !== 'object' || board === null) return false;
+  const b = board as Record<string, unknown>;
+  return b.spaces === THIS_BOARD.spaces && b.shape === THIS_BOARD.shape;
+}
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = {
   playerCount: SETUP.defaultPlayerCount,
@@ -27,6 +40,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   randomFirstPlayer: false,
   passDevice: true,
   animationSpeed: 'normal',
+  board: THIS_BOARD,
 };
 
 /**
@@ -83,6 +97,7 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
     passDevice: merged.passDevice !== false,
     animationSpeed:
       merged.animationSpeed === 'fast' || merged.animationSpeed === 'off' ? merged.animationSpeed : 'normal',
+    board: { ...THIS_BOARD },
   };
 }
 

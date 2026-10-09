@@ -1,7 +1,9 @@
-// The 42 cities (spec section 4). Hotel cost is always house cost × 2 (see balance.ts).
+// The 42 cities of the full board (spec section 4). Hotel cost is always house cost × 2 (see
+// balance.ts). The board in play holds all or some of them (board.ts).
 import type { CountryId } from './countries.js';
 
 export interface CityData {
+  /** Index on the board: here on the full 80-space board; board.ts renumbers the board in play. */
   space: number;
   name: string;
   country: CountryId;
@@ -10,7 +12,7 @@ export interface CityData {
   houseCost: number;
 }
 
-export const CITIES: readonly CityData[] = [
+export const ALL_CITIES: readonly CityData[] = [
   { space: 1, name: 'Brasília', country: 'brazil', price: 70, baseRent: 7, houseCost: 40 },
   { space: 3, name: 'Rio de Janeiro', country: 'brazil', price: 90, baseRent: 9, houseCost: 40 },
   { space: 6, name: 'Mexico City', country: 'mexico', price: 110, baseRent: 11, houseCost: 45 },

@@ -1,7 +1,7 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
-import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance.js';
-import { BOARD, propertyKind } from '../data/board.js';
+import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { BOARD, propertyKind, SPACES } from '../data/board.js';
 import { startAuction } from './auction.js';
 import { discardCard, drawCard } from './cards.js';
 import {

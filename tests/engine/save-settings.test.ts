@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
+import { BOARD_SHAPE, BOARD_SIZE } from '../../src/data/balance';
+import { isProperty, SPACES } from '../../src/data/board';
 import { PLAYER_COLORS, SEATS } from '../../src/data/players';
 import {
   checkInvariants,
@@ -14,7 +16,15 @@ import {
   type GameState,
 } from '../../src/engine';
 import { mulberry32 } from '../../src/engine/rng';
-import { act, cashOf, edit, endTurn, forceCard, game, own, rollTo } from './helpers';
+import { act, cashOf, edit, endTurn, firstOf, forceCard, game, own, rollTo, spaceOf, spacesOf } from './helpers';
+
+/** A Chance space reached without passing World Start. */
+const CHANCE = spacesOf('chance').find((c) => c >= 7) as number;
+const GUADALAJARA = spaceOf('Guadalajara');
+/** Visiting the Jail: a landing where nothing happens. */
+const REST = SPACES.jail;
+/** Saves before version 3 were all played on the full board. */
+const FULL_BOARD_IN_PLAY = BOARD_SIZE === 80 && BOARD_SHAPE === 'rectangle';
 
 /** Plays `steps` legal actions chosen by a seeded picker (deterministic). */
 function autoplay(start: GameState, steps: number, pickSeed: number): { state: GameState; log: string[] } {
@@ -37,11 +47,11 @@ function autoplay(start: GameState, steps: number, pickSeed: number): { state: G
 describe('save and resume', () => {
   test('serialise then parse gives an identical state, mid-decision', () => {
     const states: GameState[] = [];
-    let s = act(rollTo(game({ playerCount: 3 }), 9).state, { type: 'decline' });
+    let s = act(rollTo(game({ playerCount: 3 }), GUADALAJARA).state, { type: 'decline' });
     states.push(s); // auction pending
     s = act(s, { type: 'bid', amount: 50 });
     states.push(s);
-    states.push(rollTo(forceCard(game(), 'chance-tour-guide'), 13).state); // card pending
+    states.push(rollTo(forceCard(game(), 'chance-tour-guide'), CHANCE).state); // card pending
     states.push(autoplay(createGame({ playerCount: 4 }, 99), 400, 5).state);
     for (const state of states) {
       const parsed = parseSave(serializeGame(state));
@@ -95,11 +105,24 @@ describe('save and resume', () => {
     expect(parseSave(good).ok).toBe(true);
   });
 
+  test('a game from another board is refused as such (D96)', () => {
+    const raw = JSON.parse(serializeGame(game()));
+    for (const board of [{ spaces: BOARD_SIZE + 4, shape: BOARD_SHAPE }, { spaces: BOARD_SIZE, shape: BOARD_SHAPE === 'square' ? 'rectangle' : 'square' }]) {
+      const other = { ...raw, meta: { ...raw.meta, settings: { ...raw.meta.settings, board } } };
+      expect(parseSave(JSON.stringify(other))).toEqual({ ok: false, problem: 'otherBoard' });
+    }
+    const missing = { ...raw, meta: { ...raw.meta, settings: { ...raw.meta.settings } } };
+    delete missing.meta.settings.board;
+    expect(parseSave(JSON.stringify(missing))).toEqual({ ok: false, problem: 'otherBoard' });
+    // The settings record the board in play, whatever a caller asks for.
+    expect(normalizeSettings({ board: { spaces: 80, shape: 'rectangle' } } as never).board).toEqual({ spaces: BOARD_SIZE, shape: BOARD_SHAPE });
+  });
+
   // tests/fixtures/save-v1.json was written by the version 1 build: four players, mid-auction,
   // with an Event modifier, houses and a mortgage.
   const v1Text = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
 
-  test('a version 1 save (before colour choice) loads as version 2 with the seat colours', () => {
+  test.runIf(FULL_BOARD_IN_PLAY)('a version 1 save loads on the full board as version 3, with the seat colours', () => {
     const v1 = JSON.parse(v1Text);
     expect(v1.meta.schemaVersion).toBe(1);
     expect(v1.meta.settings.playerColors).toBeUndefined();
@@ -107,29 +130,41 @@ describe('save and resume', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const s = parsed.state;
-    expect(s.meta.schemaVersion).toBe(2);
+    expect(s.meta.schemaVersion).toBe(3);
     expect(s.meta.settings.playerColors).toEqual(SEATS.map((seat) => seat.color));
+    expect(s.meta.settings.board).toEqual({ spaces: 80, shape: 'rectangle' });
     expect(Object.keys(s.meta.settings)).toEqual(Object.keys(normalizeSettings()));
     expect(checkInvariants(s)).toEqual([]);
     // Nothing else changed: same players, board, decks, turn and pending auction.
     const { settings, schemaVersion: _version, ...meta } = s.meta;
     const { settings: v1Settings, schemaVersion: _v1Version, ...v1Meta } = v1.meta;
-    expect({ ...settings, playerColors: undefined }).toEqual({ ...v1Settings, playerColors: undefined });
+    expect({ ...settings, playerColors: undefined, board: undefined }).toEqual({ ...v1Settings, playerColors: undefined, board: undefined });
     expect(meta).toEqual(v1Meta);
     expect({ ...s, meta: null }).toEqual({ ...v1, meta: null });
     expect(s.flow.phase).toBe('Auction');
-    // It plays on, and saves as version 2.
+    // It plays on, and saves as version 3.
     const bid = reduce(s, { type: 'bid', amount: 70 });
     expect(bid.error).toBeNull();
     const again = parseSave(serializeGame(bid.state));
-    expect(again.ok && again.state.meta.schemaVersion).toBe(2);
+    expect(again.ok && again.state.meta.schemaVersion).toBe(3);
+  });
+
+  test.skipIf(FULL_BOARD_IN_PLAY)('a save from the full 80-space board is refused on this board', () => {
+    expect(JSON.parse(v1Text).meta.schemaVersion).toBe(1);
+    expect(parseSave(v1Text)).toEqual({ ok: false, problem: 'otherBoard' });
+    // A version 2 save (colours chosen, no board yet) is refused the same way.
+    const v1 = JSON.parse(v1Text);
+    const v2 = { ...v1, meta: { ...v1.meta, schemaVersion: 2, settings: { ...v1.meta.settings, playerColors: SEATS.map((seat) => seat.color) } } };
+    expect(parseSave(JSON.stringify(v2))).toEqual({ ok: false, problem: 'otherBoard' });
   });
 
   test('a version 1 save with altered settings or colours is reported as damaged', () => {
+    // Off the full board, a save that migrates is refused for its board before its shape is checked.
+    const damaged = FULL_BOARD_IN_PLAY ? 'corrupt' : 'otherBoard';
     const v1 = JSON.parse(v1Text);
     expect(parseSave(JSON.stringify({ ...v1, meta: { ...v1.meta, settings: { ...v1.meta.settings, playerCount: 5 } } }))).toEqual({
       ok: false,
-      problem: 'corrupt',
+      problem: damaged,
     });
     const withColors = { ...v1.meta.settings, playerColors: PLAYER_COLORS.slice(0, 6) };
     expect(parseSave(JSON.stringify({ ...v1, meta: { ...v1.meta, settings: withColors } }))).toEqual({
@@ -138,7 +173,7 @@ describe('save and resume', () => {
     });
     const v1Bad = JSON.parse(v1Text);
     v1Bad.players[2].color = 'green';
-    expect(parseSave(JSON.stringify(v1Bad))).toEqual({ ok: false, problem: 'corrupt' });
+    expect(parseSave(JSON.stringify(v1Bad))).toEqual({ ok: false, problem: damaged });
   });
 });
 
@@ -195,16 +230,17 @@ describe('settings', () => {
   });
 
   test('Free Stay off: no tokens, never offered, Free Stay cards pay $100', () => {
-    let s = rollTo(own(game({ freeStay: false }), 12, 1), 12).state;
+    const cairo = spaceOf('Cairo');
+    let s = rollTo(own(game({ freeStay: false }), cairo, 1), cairo).state;
     expect(legalActions(s).map((a) => a.type)).toEqual(['payRent']);
-    s = rollTo(forceCard(game({ freeStay: false }), 'chance-friendly-host'), 13).state;
+    s = rollTo(forceCard(game({ freeStay: false }), 'chance-friendly-host'), CHANCE).state;
     s = act(s, { type: 'confirmCard' });
     expect(s.players[0]?.freeStay).toBe(0);
     expect(cashOf(s, 0)).toBe(4100);
   });
 
   test('Vacation off: the space does nothing and Go to Vacation cards are removed', () => {
-    const s = rollTo(game({ vacation: false }), 40).state;
+    const s = rollTo(game({ vacation: false }), SPACES.vacation).state;
     expect(s.players[0]?.skipNextTurn).toBe(false);
     expect(s.flow.notices).toEqual([]);
     expect(s.decks.chanceDeck).not.toContain('chance-beach-calling');
@@ -212,17 +248,17 @@ describe('settings', () => {
   });
 
   test('Auction off: passing leaves the property unowned', () => {
-    const s = act(rollTo(game({ auction: false }), 9).state, { type: 'decline' });
+    const s = act(rollTo(game({ auction: false }), GUADALAJARA).state, { type: 'decline' });
     expect(s.flow.phase).toBe('AwaitEndTurn');
-    expect(s.properties[9]?.owner).toBeNull();
+    expect(s.properties[GUADALAJARA]?.owner).toBeNull();
   });
 
   test('Chance off and Event off: those spaces do nothing', () => {
-    const chance = rollTo(game({ chance: false }), 13).state;
+    const chance = rollTo(game({ chance: false }), CHANCE).state;
     expect(chance.flow.phase).toBe('AwaitEndTurn');
-    const event = rollTo(game({ event: false }), 19).state;
+    const event = rollTo(game({ event: false }), firstOf('event')).state;
     expect(event.flow.phase).toBe('AwaitEndTurn');
-    expect(rollTo(game(), 13).state.flow.phase).toBe('CardReveal');
+    expect(rollTo(game(), CHANCE).state.flow.phase).toBe('CardReveal');
   });
 
   test('random first player', () => {
@@ -242,7 +278,7 @@ describe('settings', () => {
     }
     if (!s) throw new Error('no seed with player 3 first');
     expect(s.turn.roundStartSeat).toBe(2);
-    for (let i = 0; i < 3; i++) s = act(rollTo(s, 34).state, { type: 'endTurn' });
+    for (let i = 0; i < 3; i++) s = act(rollTo(s, REST).state, { type: 'endTurn' });
     expect(s.turn.currentPlayerIndex).toBe(2);
     expect(s.turn.roundNumber).toBe(2);
   });
@@ -252,11 +288,14 @@ describe('settings', () => {
     expect(s.flow.phase).toBe('PassDevice');
     s = act(s, { type: 'ready' });
     expect(s.flow.phase).toBe('AwaitRoll');
-    s = act(s, { type: 'debug', op: 'movePlayer', player: 0, space: 3 }, { type: 'debug', op: 'setNextDice', dice: [3, 3] });
-    s = act(s, { type: 'roll' }); // 9: Mexico Airport
+    // Doubles onto a property, then a plain roll onto another.
+    const d = [1, 2, 3, 4, 5, 6].find((n) => isProperty(3 + 2 * n)) as number;
+    const [a, b] = ([[1, 2], [1, 3], [2, 3], [1, 4], [2, 4], [1, 5], [2, 5], [3, 4]] as const).find(([x, y]) => isProperty(3 + 2 * d + x + y)) as readonly [number, number];
+    s = act(s, { type: 'debug', op: 'movePlayer', player: 0, space: 3 }, { type: 'debug', op: 'setNextDice', dice: [d, d] });
+    s = act(s, { type: 'roll' });
     s = act(s, { type: 'decline' });
     expect(s.flow.phase).toBe('AwaitRoll');
-    s = act(s, { type: 'debug', op: 'setNextDice', dice: [12 - 9 - 1, 1] }, { type: 'roll' }); // to 12
+    s = act(s, { type: 'debug', op: 'setNextDice', dice: [a, b] }, { type: 'roll' });
     s = act(s, { type: 'decline' });
     s = act(s, { type: 'endTurn' });
     expect(s.flow.phase).toBe('PassDevice');
@@ -269,10 +308,10 @@ describe('settings', () => {
     s = act(s, { type: 'setPassDevice', on: false });
     expect(s.meta.settings.passDevice).toBe(false);
     expect(s.flow.phase).toBe('AwaitRoll');
-    s = endTurn(rollTo(s, 34).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.flow.phase).toBe('AwaitRoll');
     s = act(s, { type: 'setPassDevice', on: true });
-    s = endTurn(rollTo(s, 34).state);
+    s = endTurn(rollTo(s, REST).state);
     expect(s.flow.phase).toBe('PassDevice');
   });
 

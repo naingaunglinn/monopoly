@@ -1,35 +1,36 @@
 import { describe, expect, test } from 'vitest';
 import { cityRent, ownsCountry } from '../../src/engine';
-import { act, cashOf, dbg, fail, game, levels, own, rollTo, setCash } from './helpers';
+import { propertyPrice } from '../../src/data/board';
+import { act, cashOf, dbg, fail, game, levels, own, rollTo, setCash, spaceOf } from './helpers';
 
-const CAIRO = 12;
-const ALEXANDRIA = 14;
-const MEXICO_AIRPORT = 9;
+const CAIRO = spaceOf('Cairo');
+const ALEXANDRIA = spaceOf('Alexandria');
+const BRAZIL_AIRPORT = spaceOf('Brazil Airport');
 
 describe('buying', () => {
   test('Buy pays the price to the bank and takes ownership', () => {
-    let s = rollTo(game(), MEXICO_AIRPORT).state;
+    let s = rollTo(game(), BRAZIL_AIRPORT).state;
     expect(s.flow.phase).toBe('BuyDecision');
     s = act(s, { type: 'buy' });
-    expect(s.properties[MEXICO_AIRPORT]?.owner).toBe(0);
-    expect(cashOf(s, 0)).toBe(4000 - 110);
+    expect(s.properties[BRAZIL_AIRPORT]?.owner).toBe(0);
+    expect(cashOf(s, 0)).toBe(4000 - propertyPrice(BRAZIL_AIRPORT));
     expect(cashOf(s, 1)).toBe(4000);
     expect(s.flow.phase).toBe('AwaitEndTurn');
   });
 
   test('Pass starts an auction when auctions are on', () => {
-    const s = act(rollTo(game(), MEXICO_AIRPORT).state, { type: 'decline' });
+    const s = act(rollTo(game(), BRAZIL_AIRPORT).state, { type: 'decline' });
     expect(s.flow.phase).toBe('Auction');
   });
 
   test('Pass leaves the property unowned when auctions are off', () => {
-    const s = act(rollTo(game({ auction: false }), MEXICO_AIRPORT).state, { type: 'decline' });
-    expect(s.properties[MEXICO_AIRPORT]?.owner).toBeNull();
+    const s = act(rollTo(game({ auction: false }), BRAZIL_AIRPORT).state, { type: 'decline' });
+    expect(s.properties[BRAZIL_AIRPORT]?.owner).toBeNull();
     expect(s.flow.phase).toBe('AwaitEndTurn');
   });
 
   test('Buy is refused without enough cash and says why', () => {
-    const s = rollTo(setCash(game(), 0, 50), MEXICO_AIRPORT).state;
+    const s = rollTo(setCash(game(), 0, 50), BRAZIL_AIRPORT).state;
     const error = fail(s, { type: 'buy' });
     expect(error.code).toBe('notEnoughCash');
     expect(error.reason).toContain("You don't have enough money");

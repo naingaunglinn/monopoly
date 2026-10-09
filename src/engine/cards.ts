@@ -1,8 +1,7 @@
 // Chance and Event cards (spec section 6): draw the top card, apply it, discard it; an empty deck
 // reshuffles its discard pile. Held cards (Jail card, Free House) leave the deck until used.
-import { BALANCE, BOARD_SIZE, SPACES } from '../data/balance.js';
-import { AIRPORT_SPACES, COMPANY_SPACES, COUNTRY_CITIES } from '../data/board.js';
-import { COMPANIES } from '../data/companies.js';
+import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { AIRPORT_SPACES, cardFits, COMPANIES, COMPANY_SPACES, COUNTRY_CITIES, LAYOUT, SPACES } from '../data/board.js';
 import type { AssetKind, CardData, DeckId, MoveTarget } from '../data/cardTypes.js';
 import { CHANCE_CARDS } from '../data/chance.js';
 import { EVENT_CARDS } from '../data/events.js';
@@ -35,10 +34,15 @@ export function isKnownCard(id: string): boolean {
   return CARD_BY_ID.has(id);
 }
 
+/** The cards that fit the board in play: on a small board, the cards about a missing company go. */
+const ON_BOARD: Readonly<Record<DeckId, readonly CardData[]>> = {
+  chance: CHANCE_CARDS.filter((card) => cardFits(card, LAYOUT)),
+  event: EVENT_CARDS.filter((card) => cardFits(card, LAYOUT)),
+};
+
 /** Cards in play for these settings: Go to Vacation cards are removed when Vacation is off. */
 export function cardsForSettings(deck: DeckId, settings: Settings): CardData[] {
-  const source = deck === 'chance' ? CHANCE_CARDS : EVENT_CARDS;
-  return source.filter((card) => settings.vacation || card.effect.type !== 'goToVacation');
+  return ON_BOARD[deck].filter((card) => settings.vacation || card.effect.type !== 'goToVacation');
 }
 
 /** Builds both decks and shuffles them with the game's generator (draft state). */
