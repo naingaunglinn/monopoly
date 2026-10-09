@@ -119,11 +119,9 @@ export function tileView(s: GameState, index: number): TileView {
     value = money(space.tax === 'income' ? BALANCE.incomeTax : BALANCE.luxuryTax);
   }
   const current = s.turn.currentPlayerIndex;
+  // Any city of the country just landed in that may take a building now (D98).
   const canBuildNow =
-    s.flow.phase !== 'GameOver' &&
-    s.turn.landedCity === index &&
-    ps?.owner === current &&
-    buildBlocker(s, current, index) === null;
+    s.flow.phase !== 'GameOver' && s.turn.landedCity !== null && ps?.owner === current && buildBlocker(s, current, index) === null;
   return {
     space,
     name: spaceName(s, index),

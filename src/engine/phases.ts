@@ -1,7 +1,7 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
 import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { BOARD, propertyKind, SPACES } from '../data/board.js';
+import { BOARD, COUNTRY_CITIES, propertyKind, SPACES } from '../data/board.js';
 import { startAuction } from './auction.js';
 import { discardCard, drawCard } from './cards.js';
 import {
@@ -283,15 +283,15 @@ export function payRentDue(c: Ctx, rent: RentDue): void {
 }
 
 /** True when the current player stands on their own city in a complete country (step 7). */
+/** Building is offered after landing on a city of a country the player owns whole, until every city has a hotel (D98). */
 export function canOfferBuild(s: GameState): boolean {
   const space = s.turn.landedCity;
   if (space === null) return false;
   const p = currentPlayer(s);
   if (p.position !== space || p.inJail) return false;
-  const ps = s.properties[space];
   const country = countryOf(space);
-  if (!ps || country === null || ps.owner !== p.id) return false;
-  return ownsCountry(s, p.id, country) && ps.level < BALANCE.hotelLevel;
+  if (country === null || !ownsCountry(s, p.id, country)) return false;
+  return COUNTRY_CITIES[country].some((sp) => (s.properties[sp]?.level ?? 0) < BALANCE.hotelLevel);
 }
 
 /** The landing is fully resolved: offer building, then continue the turn. */

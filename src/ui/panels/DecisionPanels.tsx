@@ -17,14 +17,14 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { BALANCE } from '../../data/balance';
-import { CITY_BY_SPACE, COMPANY_BY_SPACE, propertyPrice } from '../../data/board';
+import { CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
+import { COUNTRY_BY_ID } from '../../data/countries';
 import {
   buildQuote,
   canRaiseMoney,
   cardById,
   cityRent,
   minimumBid,
-  ownsCountry,
   ranking,
   validateAction,
   type GameState,
@@ -258,64 +258,68 @@ function CompanyPanel({ s }: { s: GameState }) {
   );
 }
 
-function BuildPanel({ s }: { s: GameState }) {
-  if (s.flow.pending?.kind !== 'build') return null;
-  const space = s.flow.pending.space;
-  const me = s.players[s.turn.currentPlayerIndex] as Player;
+/** One city of the country in the build panel: its buildings, rent now and its own Build button. */
+function BuildRow({ s, me, space, here }: { s: GameState; me: Player; space: number; here: boolean }) {
   const city = CITY_BY_SPACE.get(space);
   const ps = s.properties[space];
   if (!city || !ps) return null;
   const level = ps.level;
   const quote = level < BALANCE.hotelLevel ? buildQuote(s, me.id, space) : null;
-  const blocker = reason(s, { type: 'build', space });
-  const complete = ownsCountry(s, me.id, city.country);
-  const rentNow = complete ? cityRent(s, space).amount : city.baseRent;
-  const rentNext =
-    level < BALANCE.hotelLevel ? city.baseRent * (BALANCE.cityRentMultipliers[level + 1] as number) : null;
   const label = !quote
-    ? T.panels.build.maxed
+    ? T.panels.build.maxedShort
     : quote.nextLevel === BALANCE.hotelLevel
       ? T.panels.build.hotel(quote.cost)
       : quote.voucher
         ? T.panels.build.houseFree
         : T.panels.build.house(quote.cost);
   return (
+    <li className={`build-row ${here ? 'is-here' : ''}`} aria-current={here ? 'location' : undefined}>
+      <span className="build-city">
+        <span className="build-name">{city.name}</span>
+        {here && <span className="build-here">{T.panels.build.here}</span>}
+      </span>
+      <span className="level-line build-level">
+        <BuildingPips level={level} />
+        {levelText(level)}
+      </span>
+      <span className="build-rent">
+        <span className="build-rent-label">{T.panels.build.rentNow}</span>
+        <span className="money">{money(cityRent(s, space).amount)}</span>
+      </span>
+      {quote ? (
+        <Button id={`build-${space}`} label={label} reason={reason(s, { type: 'build', space })} action={{ type: 'build', space }} />
+      ) : (
+        <span className="build-maxed">{label}</span>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Building after landing on a city of a country the player owns whole: every city of that country,
+ * each with its own Build button, enabled by the even rule and cash (5.8, D98).
+ */
+function BuildPanel({ s }: { s: GameState }) {
+  if (s.flow.pending?.kind !== 'build') return null;
+  const landed = s.flow.pending.space;
+  const me = s.players[s.turn.currentPlayerIndex] as Player;
+  const city = CITY_BY_SPACE.get(landed);
+  if (!city) return null;
+  return (
     <Panel
       id="build"
       icon={Hammer}
-      title={T.panels.build.title(city.name)}
+      title={T.panels.build.title(COUNTRY_BY_ID[city.country].name)}
       whose={me}
       help="houses"
       tone="good"
-      actions={
-        quote ? (
-          <span className="inline-actions">
-            <Button id="build-btn" label={label} reason={blocker} showReason action={{ type: 'build', space }} />
-            <QuickHelpButton topic="building" label={T.panels.build.landingRule} />
-          </span>
-        ) : null
-      }
     >
-      <dl className="facts">
-        <div className="fact">
-          <dt>{T.panels.build.current}</dt>
-          <dd className="level-line">
-            <BuildingPips level={level} />
-            {levelText(level)}
-          </dd>
-        </div>
-        <div className="fact">
-          <dt>{T.panels.build.rentNow}</dt>
-          <dd className="money">{money(rentNow)}</dd>
-        </div>
-        {rentNext !== null && (
-          <div className="fact">
-            <dt>{T.panels.build.rentNext}</dt>
-            <dd className="money">{money(rentNext)}</dd>
-          </div>
-        )}
-        <p className="muted">{level >= BALANCE.hotelLevel ? T.panels.build.maxed : T.panels.build.landingRule}</p>
-      </dl>
+      <ul className="build-list">
+        {COUNTRY_CITIES[city.country].map((space) => (
+          <BuildRow key={space} s={s} me={me} space={space} here={space === landed} />
+        ))}
+      </ul>
+      <p className="muted">{T.panels.build.landingRule}</p>
     </Panel>
   );
 }

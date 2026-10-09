@@ -1,11 +1,12 @@
 // Who decides now, what they may do, and why anything else is refused. legalActions() and
 // reduce() share validateAction(), so the UI, the bots and the reducer always agree.
 import { BALANCE } from '../data/balance.js';
-import { BOARD, propertyPrice } from '../data/board.js';
+import { BOARD, COUNTRY_CITIES, propertyPrice } from '../data/board.js';
+import { COUNTRY_BY_ID } from '../data/countries.js';
 import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
 import { cardById, isKnownCard } from './cards.js';
-import { currentPlayer, livingPlayers, makeError } from './core.js';
+import { countryOf, currentPlayer, livingPlayers, makeError } from './core.js';
 import { canOfferBuild } from './phases.js';
 import { tradeBlocker } from './trade.js';
 import type { Action, EngineError, GameState, LegalAction, Player } from './types.js';
@@ -175,8 +176,10 @@ export function validateAction(s: GameState, action: Action): EngineError | null
     case 'openBuild':
       return (phase === 'AwaitRoll' || phase === 'AwaitEndTurn') && canOfferBuild(s) ? null : wrong();
     case 'build':
-      if (phase !== 'BuildOffer' || pending?.kind !== 'build' || action.space !== pending.space) {
-        return makeError('notLandedHere');
+      // Any city in the country of the city just landed on (D98); buildBlocker checks the rest.
+      if (phase !== 'BuildOffer' || pending?.kind !== 'build') {
+        const country = countryOf(action.space);
+        return makeError('notLandedHere', { country: country ? COUNTRY_BY_ID[country].name : '' });
       }
       return buildBlocker(s, me.id, action.space);
     case 'finishBuilding':
@@ -281,7 +284,10 @@ export function legalActions(s: GameState): LegalAction[] {
       consider({ type: 'confirmCard' });
       break;
     case 'BuildOffer':
-      if (pending?.kind === 'build') consider({ type: 'build', space: pending.space });
+      if (pending?.kind === 'build') {
+        const country = countryOf(pending.space);
+        if (country !== null) for (const space of COUNTRY_CITIES[country]) consider({ type: 'build', space });
+      }
       consider({ type: 'finishBuilding' });
       break;
     case 'Debt':

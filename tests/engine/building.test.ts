@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { buildBlocker, legalActions } from '../../src/engine';
+import { COUNTRY_CITIES } from '../../src/data/board';
 import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, own, rollTo, run, spaceOf } from './helpers';
 
 const BRASILIA = spaceOf('Brasília');
@@ -20,7 +21,7 @@ function giveVoucher(s: ReturnType<typeof game>, player: number) {
   });
 }
 
-describe('building (the landing-only house rule)', () => {
+describe('building (the house rule: in the country you land in, D98)', () => {
   test('needs a complete country', () => {
     const s = rollTo(own(game(), CAIRO, 0), CAIRO).state;
     expect(s.flow.phase).toBe('AwaitEndTurn');
@@ -29,24 +30,45 @@ describe('building (the landing-only house rule)', () => {
     expect(blocker?.reason).toBe('You need every city in Egypt before building.');
   });
 
-  test('landing on your city in a complete country offers building on that city only', () => {
+  test('landing on one city of a complete country offers building on every city of it', () => {
     const s = landOnCairoOwningEgypt();
     expect(s.flow.phase).toBe('BuildOffer');
     expect(s.flow.pending).toEqual({ kind: 'build', space: CAIRO });
     expect(legalActions(s)).toContainEqual({ type: 'build', space: CAIRO });
-    expect(legalActions(s)).not.toContainEqual({ type: 'build', space: ALEXANDRIA });
+    expect(legalActions(s)).toContainEqual({ type: 'build', space: ALEXANDRIA });
+    const built = act(s, { type: 'build', space: ALEXANDRIA });
+    expect(built.properties[ALEXANDRIA]?.level).toBe(1);
   });
 
-  test('needs the player to have landed on that exact city this move', () => {
+  test('needs a landing in that country this move', () => {
     const s = own(game(), EGYPT, 0);
     expect(buildBlocker(s, 0, CAIRO)?.code).toBe('notLandedHere');
     expect(fail(s, { type: 'openBuild' }).code).toBe('wrongPhase');
   });
 
-  test('is refused on a sibling city, even in the same country', () => {
-    const s = landOnCairoOwningEgypt();
-    expect(fail(s, { type: 'build', space: ALEXANDRIA }).code).toBe('notLandedHere');
-    expect(buildBlocker(s, 0, ALEXANDRIA)?.code).toBe('notLandedHere');
+  test('never covers another country, even one the player owns whole', () => {
+    const s = rollTo(own(game(), [...EGYPT, BRASILIA, RIO], 0), CAIRO).state;
+    expect(s.flow.phase).toBe('BuildOffer');
+    const error = fail(s, { type: 'build', space: BRASILIA });
+    expect(error.code).toBe('notLandedHere');
+    expect(error.reason).toBe('You can build in Brazil only during a move that lands on one of its cities.');
+    expect(legalActions(s)).not.toContainEqual({ type: 'build', space: RIO });
+  });
+
+  test('the owner’s example: with one house on each city, any of them can get a second; never two ahead', () => {
+    const mexico = [...COUNTRY_CITIES.mexico] as [number, number, number];
+    const [p1, p2, p3] = mexico;
+    let s = rollTo(own(game(), mexico, 0), p1).state;
+    expect(s.flow.phase).toBe('BuildOffer');
+    // p1 has a house, p2 and p3 have none: p1 waits for them.
+    s = act(s, { type: 'build', space: p1 });
+    expect(fail(s, { type: 'build', space: p1 }).code).toBe('evenBuild');
+    // p1 → 1, p2 → 1, p3 → 1: now any city can have a second house.
+    s = act(s, { type: 'build', space: p2 }, { type: 'build', space: p3 });
+    for (const space of mexico) expect(legalActions(s)).toContainEqual({ type: 'build', space });
+    s = act(s, { type: 'build', space: p3 });
+    expect(fail(s, { type: 'build', space: p3 }).code).toBe('evenBuild');
+    expect(mexico.map((sp) => s.properties[sp]?.level)).toEqual([1, 1, 2]);
   });
 
   test('builds a house for the house cost', () => {

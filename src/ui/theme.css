@@ -5475,3 +5475,92 @@ ol.rules-lines {
   gap: 6px;
   margin-bottom: 12px;
 }
+
+/* Build panel: one row per city of the country landed in (D98). The rows follow the panel's own
+   width (it is narrow on phones and in the room's play column). */
+.build-list {
+  container-type: inline-size;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.build-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto auto;
+  grid-template-areas: 'city level rent build';
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--chart-paper);
+}
+
+.build-row.is-here {
+  box-shadow: inset 0 0 0 2px var(--info);
+}
+
+.build-city {
+  grid-area: city;
+  display: grid;
+  min-width: 0;
+}
+
+.build-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.build-here {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.build-level {
+  grid-area: level;
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.build-rent {
+  grid-area: rent;
+  display: grid;
+  justify-items: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.build-rent-label {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.build-row > .btn-wrap,
+.build-row > .build-maxed {
+  grid-area: build;
+}
+
+.build-maxed {
+  color: var(--ink-soft);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+/* A narrow panel: the city and its buildings on the left, rent and the button beside them. */
+@container (max-width: 520px) {
+  .build-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'city rent build'
+      'level rent build';
+  }
+
+  .build-here {
+    display: none;
+  }
+}

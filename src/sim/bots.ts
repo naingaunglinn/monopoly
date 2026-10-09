@@ -1,9 +1,10 @@
 // Two bots (spec section 15): one picks random legal actions, one plays sensibly. Both choose only
 // from legalActions(), so they can never make an illegal move.
 import { SIM } from '../data/balance';
-import { propertyPrice } from '../data/board';
+import { COUNTRY_CITIES, propertyPrice } from '../data/board';
 import {
   buildBlocker,
+  countryOf,
   netWorth,
   tradeBlocker,
   type Action,
@@ -144,8 +145,13 @@ export function sensibleBot(ctx: BotContext): Action {
     const space = cheapest(options.map((a) => a.space));
     return space === undefined ? undefined : ({ type: 'unmortgage', space } as const);
   };
-  const buildAvailable = () =>
-    has('openBuild') && s.turn.landedCity !== null && buildBlocker(s, actor, s.turn.landedCity) === null;
+  // Building covers every city of the country landed in (D98).
+  const buildAvailable = () => {
+    const landed = s.turn.landedCity;
+    if (!has('openBuild') || landed === null) return false;
+    const country = countryOf(landed);
+    return country !== null && COUNTRY_CITIES[country].some((sp) => buildBlocker(s, actor, sp) === null);
+  };
 
   switch (s.flow.phase) {
     case 'PassDevice':
