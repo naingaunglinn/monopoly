@@ -69,7 +69,7 @@ for (const size of SIZES) {
       const states = panelStates();
       for (const [name, state] of Object.entries(states)) {
         await loadState(page, state, '?seed=42');
-        if (name === 'trade') {
+        if (name.startsWith('trade')) {
           await shot(page, size, `panel-${name}-handover`);
           await page.locator('#handover-ready').click();
         }
@@ -241,7 +241,7 @@ for (const size of PHONES) {
       for (const [name, state] of Object.entries(states)) {
         await loadState(page, state, '?seed=42');
         await expect(page.locator('.game-screen.is-phone')).toBeVisible();
-        if (name === 'trade') {
+        if (name.startsWith('trade')) {
           await shot(page, size, `phone-panel-${name}-handover`, true);
           await page.locator('#handover-ready').click();
         }

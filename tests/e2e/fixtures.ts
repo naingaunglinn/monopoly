@@ -170,6 +170,16 @@ export function panelStates(): Record<string, GameState> {
       get: { properties: [alexandria], cash: 0, jailCards: 0 },
     },
   });
+  // Leo answers with a counter-offer: Mexico City and $250 for Alexandria (D99).
+  const tradeCounter = act(trade, {
+    type: 'counterTrade',
+    offer: {
+      from: 1,
+      to: 0,
+      give: { properties: [alexandria], cash: 0, jailCards: 0 },
+      get: { properties: [mexicoCity], cash: 250, jailCards: 0 },
+    },
+  });
   const over = act(bankrupt, { type: 'acknowledge' });
   return {
     'mid-game': mid,
@@ -195,6 +205,7 @@ export function panelStates(): Record<string, GameState> {
     debt,
     bankruptcy: bankrupt,
     trade,
+    'trade-counter': tradeCounter,
     winner: over,
   };
 }

@@ -92,7 +92,7 @@ async function main(): Promise<void> {
 
   for (let i = 0; i < 6 && game.flow.phase !== 'GameOver'; i++) {
     const seat = decisionMaker(game) as number;
-    const action = legalActions(game).find((a) => a.type !== 'proposeTrade') as Action;
+    const action = legalActions(game).find((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action;
     const res = await call('POST', '/api/room?op=action', { code, token: tokens[seat], action, expectedVersion: version });
     version = res.v;
     game = res.view.game;

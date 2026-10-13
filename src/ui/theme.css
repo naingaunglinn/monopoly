@@ -3854,22 +3854,6 @@ ol.rules-lines {
   font-weight: 500;
 }
 
-.trade-waiting {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  z-index: 70;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  background: var(--tile);
-  box-shadow: var(--shadow-panel);
-  font-weight: 600;
-  transform: translateX(-50%);
-}
-
 .pc-host {
   display: flex;
   flex-wrap: wrap;
@@ -4318,12 +4302,6 @@ ol.rules-lines {
     max-width: calc(100vw - 24px);
     font-size: 18px;
     text-align: center;
-  }
-
-  .trade-waiting {
-    top: calc(58px + env(safe-area-inset-top));
-    bottom: auto;
-    max-width: calc(100vw - 24px);
   }
 
   .lobby-header {
@@ -5563,4 +5541,255 @@ ol.rules-lines {
   .build-here {
     display: none;
   }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* The offer on the table (D99): an exchange slip. Each side is headed by its player's token and a
+   rule in their colour; the sides face each other across a perforation with the exchange sign. A
+   counter-offer is stamped like a passport, in the colour of the player who countered. */
+
+.panel-waiting-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding-right: 12px;
+}
+
+.trade-slip-wrap {
+  container-type: inline-size;
+  padding-top: 12px;
+}
+
+.trade-slip {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
+  border: 1px solid var(--tile-line);
+  border-radius: 12px;
+  background: var(--tile);
+}
+
+.slip-side {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  box-shadow: inset 0 4px 0 var(--player);
+}
+
+.slip-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
+.slip-who > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.slip-items {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slip-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 7px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.slip-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.slip-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin: 0 4px;
+  border-radius: 50%;
+  background: var(--tile-line);
+}
+
+.slip-amount {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.slip-nothing {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* What changed since the previous offer of these talks. */
+.slip-item.is-new {
+  margin: 0 -6px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--info-tint);
+}
+
+.slip-mark {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--info);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 18px;
+}
+
+.slip-item.is-dropped .slip-name {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.slip-mark.is-out {
+  background: var(--chart-paper);
+  color: var(--ink-soft);
+}
+
+.slip-was {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* The perforation between the two sides, with the exchange sign in the middle. */
+.slip-perf {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.slip-perf::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 50%;
+  border-left: 2px dashed var(--tile-line);
+}
+
+.slip-perf svg {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border-radius: 50%;
+  background: var(--chart-paper);
+  color: var(--ink-soft);
+}
+
+/* The counter-offer stamp, struck on the slip's corner. */
+.slip-stamp {
+  position: absolute;
+  top: -19px;
+  right: 14px;
+  z-index: 1;
+  padding: 2px 9px;
+  border: 2px solid var(--stamp-ink);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px var(--stamp-ink);
+  color: var(--stamp-ink);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 18px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: rotate(-4deg);
+  animation: slip-stamp calc(var(--t) * 360ms) cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes slip-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-4deg) scale(1.6);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+
+/* A narrow slip (phones, the room's play column at 1024 px): tighter, still side by side, so both
+   sides can be compared at a glance. */
+@container (max-width: 430px) {
+  .trade-slip {
+    grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr);
+  }
+
+  .slip-side {
+    gap: 6px;
+    padding: 10px 8px 12px;
+  }
+
+  .slip-who {
+    gap: 6px;
+    font-size: var(--fs-small);
+  }
+
+  .slip-item {
+    font-size: var(--fs-small);
+  }
+
+  .slip-amount {
+    font-size: 18px;
+  }
+
+  .slip-perf svg {
+    width: 22px;
+    height: 22px;
+    padding: 4px;
+  }
+}
+
+/* Very narrow: the sides stack, the perforation runs across. */
+@container (max-width: 290px) {
+  .trade-slip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .slip-perf {
+    height: 26px;
+  }
+
+  .slip-perf::before {
+    top: 50%;
+    bottom: auto;
+    left: 10px;
+    right: 10px;
+    border-left: none;
+    border-top: 2px dashed var(--tile-line);
+  }
+
+  .slip-perf svg {
+    transform: rotate(90deg);
+  }
+}
+
+/* The handover screen offers the offerer a way back too. */
+.pass-card #handover-withdraw {
+  margin-top: -4px;
 }

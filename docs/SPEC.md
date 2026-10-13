@@ -304,7 +304,7 @@ Implement these rules as written. They follow standard Monopoly except where thi
 9. After doubles, and if not in Jail, go back to step 3. Otherwise the player presses End turn.
 10. The turn passes to the next living player.
 
-During their own turn, whenever no decision is pending, the player may also trade, view properties, sell buildings, and mortgage or unmortgage properties.
+During their own turn, whenever no decision is pending, the player may also view properties, sell buildings, and mortgage or unmortgage properties. Any player may make a trade offer then (7.2).
 
 ### 5.3 Dice
 
@@ -480,9 +480,13 @@ All four happen on the one shared device, so every panel names whose decision it
 
 ### 7.2 Trading
 
-- The current player may open a trade whenever no decision is pending, and while in debt.
-- They pick one partner, then fill two columns, You give and You get, with cities, airports, companies, Get Out of Jail cards and cash.
-- On submit the panel says Hand the device to the partner. The partner accepts or rejects. There are no counter-offers and no forced trades.
+Changed at the owner's request (D99): any player may offer, on anyone's turn, and offers can be negotiated.
+
+- Any living player may make an offer whenever the game is between decisions: while the current player is about to roll or end the turn, on a Jail choice or a build offer, and while a debt is being raised. During any other decision (buying, an auction, rent, a card, a company roll) the offer waits; the builder says so and sends once trading is open.
+- The player picks one partner, then fills two columns, what each side gives, with cities, airports, companies, Get Out of Jail cards and cash. On one device the builder also asks who is offering; online it offers as this device's own player.
+- One offer is on the table at a time, and everyone sees it as a panel: both sides, who must answer, and the negotiation round. The game waits while it is on the table.
+- The partner accepts it, rejects it, or answers with a counter-offer: a new offer back the other way, which replaces it on the table and now waits for the first player. Talks go on until one side accepts or rejects. A counter-offer wears a stamp with its round, and what changed since the previous offer is marked.
+- The player whose offer is on the table can withdraw it. On one device the answer is handed over first (Hand the device to the partner), and the offer can be withdrawn there. There are no forced trades.
 - A city cannot be traded while any city in its country has buildings. Sell the buildings first. A mortgaged property can be traded and stays mortgaged with its new owner.
 - Free Stay tokens and house vouchers cannot be traded.
 - An accepted trade applies in one step.
@@ -1058,8 +1062,9 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 
 #### Trading
 
-- On your turn, offer a trade to one player: properties, Get Out of Jail cards and cash, in any mix.
-- The other player accepts or rejects. Nobody can be forced.
+- Any player can offer a trade to one other player, on anyone's turn, whenever the game is between decisions: properties, Get Out of Jail cards and cash, in any mix.
+- Everyone sees the offer. The other player accepts it, rejects it or answers with a counter-offer, and the talks go on until one of you accepts or rejects. Nobody can be forced.
+- Whoever made the offer on the table can withdraw it. The game waits while an offer is on the table.
 - Cities in a country with buildings cannot be traded until the buildings are sold.
 - A mortgaged property stays mortgaged after a trade.
 

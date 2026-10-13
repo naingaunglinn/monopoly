@@ -42,8 +42,18 @@ export function freeActor(s: GameState): number | null {
 }
 
 /**
- * The player who must send this action now (online play checks it): trading, mortgaging and
- * selling belong to the free actor, every other game action to the decision maker. Settings,
+ * Trading is open when the game is between decisions: whenever there is a free actor (no decision
+ * pending, or a debt being raised) and no offer is on the table. Then any player may make an offer,
+ * whoever's turn it is (D99).
+ */
+export function tradingOpen(s: GameState): boolean {
+  return freeActor(s) !== null && livingPlayers(s).length > 1;
+}
+
+/**
+ * The player who must send this action now (online play checks it): mortgaging and selling belong
+ * to the free actor, an offer to the player making it, taking an offer back to the player who made
+ * it, and every other game action (including answering an offer) to the decision maker. Settings,
  * debug and removePlayer belong to no player.
  */
 export function actorFor(s: GameState, action: Action): number | null {
@@ -51,8 +61,11 @@ export function actorFor(s: GameState, action: Action): number | null {
     case 'sellBuilding':
     case 'mortgage':
     case 'unmortgage':
-    case 'proposeTrade':
       return freeActor(s);
+    case 'proposeTrade':
+      return action.offer && Number.isInteger(action.offer.from) && s.players[action.offer.from] ? action.offer.from : null;
+    case 'withdrawTrade':
+      return s.flow.trade?.from ?? null;
     case 'setPassDevice':
     case 'setAnimationSpeed':
     case 'debug':
@@ -118,9 +131,22 @@ export function validateAction(s: GameState, action: Action): EngineError | null
   }
   if (s.flow.notices.length > 0) return action.type === 'acknowledge' ? null : makeError('noticePending');
   if (s.flow.phase === 'GameOver') return makeError('gameOver');
-  if (s.flow.trade !== null) {
-    if (action.type === 'respondTrade') return typeof action.accept === 'boolean' ? null : makeError('invalidAction');
-    return makeError('tradePending', { player: s.players[s.flow.trade.to]?.name ?? '' });
+  const trade = s.flow.trade;
+  if (trade !== null) {
+    switch (action.type) {
+      case 'respondTrade':
+        return typeof action.accept === 'boolean' ? null : makeError('invalidAction');
+      case 'counterTrade': {
+        // A counter-offer goes back the other way: from the partner to the player who offered.
+        const offer = action.offer;
+        if (!offer || typeof offer !== 'object' || offer.from !== trade.to || offer.to !== trade.from) return makeError('invalidAction');
+        return tradeBlocker(s, offer);
+      }
+      case 'withdrawTrade':
+        return null;
+      default:
+        return makeError('tradePending', { player: s.players[trade.to]?.name ?? '' });
+    }
   }
 
   const phase = s.flow.phase;
@@ -208,11 +234,17 @@ export function validateAction(s: GameState, action: Action): EngineError | null
     case 'declareBankruptcy':
       return phase === 'Debt' && s.flow.debts.length > 0 ? null : wrong();
     case 'proposeTrade': {
-      const actor = freeActor(s);
-      if (actor === null || !action.offer || action.offer.from !== actor) return wrong();
+      if (!action.offer || typeof action.offer !== 'object') return makeError('invalidAction');
+      // Any player may offer while the game is between decisions (D99).
+      if (!tradingOpen(s)) {
+        const waiting = decisionMaker(s);
+        return makeError('tradeWait', { player: waiting === null ? '' : (s.players[waiting]?.name ?? '') });
+      }
       return tradeBlocker(s, action.offer);
     }
     case 'respondTrade':
+    case 'counterTrade':
+    case 'withdrawTrade':
       return wrong();
     case 'endTurn':
       return phase === 'AwaitEndTurn' ? null : wrong();
@@ -242,6 +274,7 @@ export function legalActions(s: GameState): LegalAction[] {
     return [
       { type: 'respondTrade', accept: true },
       { type: 'respondTrade', accept: false },
+      { type: 'counterTrade', offer: null },
     ];
   }
   const out: LegalAction[] = [];
@@ -309,6 +342,19 @@ export function legalActions(s: GameState): LegalAction[] {
     });
     if (livingPlayers(s).length > 1) out.push({ type: 'proposeTrade', offer: null });
   }
+  return out;
+}
+
+/**
+ * Everything this player can do now: the decision maker's actions (legalActions), and for anyone
+ * else an offer while trading is open, and taking back their own offer on the table (D99).
+ */
+export function legalActionsFor(s: GameState, player: number): LegalAction[] {
+  const out = decisionMaker(s) === player ? legalActions(s) : [];
+  const p = s.players[player];
+  if (!p || p.bankrupt || s.flow.notices.length > 0 || s.flow.phase === 'GameOver') return out;
+  if (s.flow.trade?.from === player) out.push({ type: 'withdrawTrade' });
+  if (tradingOpen(s) && !out.some((a) => a.type === 'proposeTrade')) out.push({ type: 'proposeTrade', offer: null });
   return out;
 }
 

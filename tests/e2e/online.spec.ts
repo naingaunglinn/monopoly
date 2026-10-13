@@ -361,6 +361,58 @@ test.describe('online', () => {
     expect([...a.errors, ...b.errors]).toEqual([]);
   });
 
+  test('trading (D99): an offer on another player’s turn, seen by everyone, countered and accepted; another withdrawn', async ({ browser }) => {
+    const a = await openDevice(browser, 'Mia');
+    const b = await openDevice(browser, 'Leo');
+    const c = await openDevice(browser, 'Aung', { phone: true });
+    const code = await createRoom(a, '');
+    await joinRoom(b, code);
+    await joinRoom(c, code);
+    await expect(a.page.locator('.lobby-seat')).toHaveCount(3);
+    await a.page.locator('#lobby-start').click();
+    for (const d of [a, b, c]) await expect(d.page.locator('.game-screen')).toBeVisible();
+    // It is Mia's turn. Leo offers Aung $50 from his own device.
+    await b.page.locator('#act-trade').click();
+    const builder = b.page.locator('[data-sheet="trade"]');
+    await expect(builder.getByRole('radiogroup', { name: 'Offer from' })).toHaveCount(0);
+    await builder.getByRole('radiogroup', { name: 'Trade with' }).locator('label', { hasText: 'Aung' }).click();
+    await b.page.locator('#give-cash').fill('50');
+    await b.page.locator('#trade-send').click();
+    await expect(builder).toHaveCount(0);
+    // Everyone sees the offer: Mia waits for Aung, Leo can withdraw, Aung answers (on his phone).
+    await expect(a.page.locator('[data-panel="trade"]')).toContainText('Leo offers Aung a trade');
+    await expect(a.page.locator('[data-panel="trade"]')).toContainText('Waiting for Aung');
+    await expect(a.page.locator('#trade-accept')).toHaveCount(0);
+    await expect(b.page.locator('[data-panel="trade"]')).toContainText('Your offer to Aung');
+    await expect(b.page.locator('#trade-withdraw')).toBeVisible();
+    await expect(c.page.locator('[data-panel="trade"]')).toContainText('Leo offers you a trade');
+    // Aung counters: $80 instead.
+    await c.page.locator('#trade-counter').click();
+    await c.page.locator('#get-cash').fill('80');
+    await c.page.locator('#trade-send').click();
+    const leoPanel = b.page.locator('[data-panel="trade"]');
+    await expect(leoPanel).toContainText('Aung’s counter-offer');
+    await expect(leoPanel.locator('.slip-stamp')).toHaveText('Counter-offer');
+    await expect(leoPanel.locator('.slip-was')).toHaveText('was $50');
+    await expect(a.page.locator('[data-panel="trade"]')).toContainText('Aung’s counter-offer to Leo');
+    // Leo accepts; the money moves for everyone.
+    await b.page.locator('#trade-accept').click();
+    await b.page.locator('#confirm-yes').click();
+    await everyoneSees([a, b, c], (s) => s.flow.trade === null && s.players[1]?.cash === 3920 && s.players[2]?.cash === 4080);
+    await expect(a.page.locator('[data-panel="trade"]')).toHaveCount(0);
+    // Another offer, taken back by Leo; then Mia rolls.
+    await b.page.locator('#act-trade').click();
+    await b.page.locator('#give-cash').fill('10');
+    await b.page.locator('#trade-send').click();
+    await expect(a.page.locator('[data-panel="trade"]')).toBeVisible();
+    await b.page.locator('#trade-withdraw').click();
+    await everyoneSees([a, b, c], (s) => s.flow.trade === null && s.meta.log.some((e) => e.event.type === 'tradeWithdrawn'));
+    await expect(a.page.locator('[data-panel="trade"]')).toHaveCount(0);
+    await a.page.locator('#primary').click();
+    await everyoneSees([a, b, c], (s) => s.turn.dice !== null);
+    expect([...a.errors, ...b.errors, ...c.errors]).toEqual([]);
+  });
+
   test('lobby: colours are exclusive, one device takes two seats, only the host sets options and starts', async ({ browser }) => {
     const a = await openDevice(browser, 'Mia');
     const b = await openDevice(browser, 'Leo');

@@ -224,7 +224,10 @@ export interface ActiveModifier {
 export interface FlowState {
   phase: Phase;
   pending: Pending | null;
-  /** A submitted trade offer waiting for the partner's answer. */
+  /**
+   * The offer on the table, waiting for `to` to accept, reject or counter (spec 7.2, D99). Everyone
+   * sees it; the game waits until it is answered or withdrawn.
+   */
   trade: TradeOffer | null;
   /** Acknowledgement overlays (vacation, bankruptcy). They block other actions until OK. */
   notices: Notice[];
@@ -313,6 +316,10 @@ export type Action =
   | { type: 'declareBankruptcy' }
   | { type: 'proposeTrade'; offer: TradeOffer }
   | { type: 'respondTrade'; accept: boolean }
+  /** The partner answers with a new offer back: `offer.from` is the old `to` (D99). */
+  | { type: 'counterTrade'; offer: TradeOffer }
+  /** The player who made the offer on the table takes it back (D99). */
+  | { type: 'withdrawTrade' }
   | { type: 'endTurn' }
   | { type: 'setPassDevice'; on: boolean }
   | { type: 'setAnimationSpeed'; speed: AnimationSpeed }
@@ -322,8 +329,11 @@ export type Action =
 
 export type ActionType = Action['type'];
 
-/** legalActions() lists concrete actions, plus a trade template the caller fills in. */
-export type LegalAction = Exclude<Action, { type: 'proposeTrade' }> | { type: 'proposeTrade'; offer: null };
+/** legalActions() lists concrete actions, plus trade templates the caller fills in. */
+export type LegalAction =
+  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' }>
+  | { type: 'proposeTrade'; offer: null }
+  | { type: 'counterTrade'; offer: null };
 
 // ---------------------------------------------------------------------------------------------
 // Events: what just happened, for animation and the log. State is final when they are emitted.
@@ -375,6 +385,10 @@ export type GameEvent =
   | { type: 'tradeProposed'; from: number; to: number }
   | { type: 'tradeAccepted'; offer: TradeOffer }
   | { type: 'tradeRejected'; from: number; to: number }
+  /** `from` answered with a counter-offer to `to` (the new offer on the table). */
+  | { type: 'tradeCountered'; from: number; to: number }
+  /** `from` took back their offer to `to`. */
+  | { type: 'tradeWithdrawn'; from: number; to: number }
   | { type: 'tradeCancelled'; from: number; to: number }
   | { type: 'playerRemoved'; player: number }
   | { type: 'gameOver'; winners: number[]; reason: EndReason }
@@ -391,6 +405,7 @@ export type ErrorCode =
   | 'wrongPhase'
   | 'noticePending'
   | 'tradePending'
+  | 'tradeWait'
   | 'notEnoughCash'
   | 'notProperty'
   | 'notOwner'

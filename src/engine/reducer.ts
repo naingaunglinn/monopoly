@@ -173,6 +173,18 @@ function apply(c: Ctx, action: Action): void {
       s.flow.trade = deepCopy(action.offer);
       emit(c, { type: 'tradeProposed', from: action.offer.from, to: action.offer.to });
       return;
+    case 'counterTrade':
+      // The counter-offer replaces the offer on the table; now the first player answers (D99).
+      s.flow.trade = deepCopy(action.offer);
+      emit(c, { type: 'tradeCountered', from: action.offer.from, to: action.offer.to });
+      return;
+    case 'withdrawTrade': {
+      const offer = s.flow.trade;
+      s.flow.trade = null;
+      if (offer) emit(c, { type: 'tradeWithdrawn', from: offer.from, to: offer.to });
+      bankruptIfStuck(c);
+      return;
+    }
     case 'respondTrade': {
       const offer = s.flow.trade;
       s.flow.trade = null;

@@ -32,7 +32,7 @@ function autoplay(start: GameState, steps: number, pickSeed: number): { state: G
   let r = pickSeed;
   const log: string[] = [];
   for (let i = 0; i < steps && s.flow.phase !== 'GameOver'; i++) {
-    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade') as Action[];
+    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
     const next = mulberry32(r);
     r = next.next;
     const action = legal[Math.floor(next.value * legal.length)] as Action;
