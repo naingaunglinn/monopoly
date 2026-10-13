@@ -5793,3 +5793,41 @@ ol.rules-lines {
 .pass-card #handover-withdraw {
   margin-top: -4px;
 }
+
+/* Phones: the three answers fit one row (no icons, tighter), so the offer itself keeps the room
+   above the pinned buttons and both sides, money included, show without scrolling. */
+.phone-panel .trade-panel .inline-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.phone-panel .trade-panel .inline-actions .btn {
+  padding: 0 12px;
+}
+
+.phone-panel .trade-panel .inline-actions .btn svg {
+  display: none;
+}
+
+.phone-panel .trade-panel .trade-slip-wrap + .muted {
+  display: none;
+}
+
+.phone-panel .trade-panel .trade-slip-wrap {
+  padding-top: 8px;
+}
+
+.phone-panel .trade-panel .slip-side {
+  gap: 4px;
+  padding: 8px 8px 8px;
+}
+
+.phone-panel .trade-panel .slip-items {
+  gap: 2px;
+}
+
+/* The trade panel's title already names who answers ("Mia offers you a trade"). */
+.phone-panel .trade-panel .panel-whose {
+  display: none;
+}

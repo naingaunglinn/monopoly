@@ -244,6 +244,13 @@ for (const size of PHONES) {
         if (name.startsWith('trade')) {
           await shot(page, size, `phone-panel-${name}-handover`, true);
           await page.locator('#handover-ready').click();
+          // Portrait: both sides of the offer, money included, show above the pinned answers and their
+          // fade (D99). Landscape phones have a short sheet and scroll it, like every panel there.
+          if (size.height > size.width) {
+            const cash = (await page.locator('.trade-panel .slip-cash').last().boundingBox())!;
+            const answers = (await page.locator('.trade-panel .panel-actions').boundingBox())!;
+            expect(cash.y + cash.height, `${size.width}x${size.height} ${name}: the offer's money line is hidden`).toBeLessThanOrEqual(answers.y - 16);
+          }
         }
         await shot(page, size, `phone-${name}`, true);
         if (name === 'winner') {
