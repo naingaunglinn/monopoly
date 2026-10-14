@@ -65,6 +65,11 @@ export function rowTileName(s: GameState | null, index: number): string {
   return AIRPORT_BY_SPACE.has(index) ? propertyShortName(index) : spaceShortName(s, index);
 }
 
+/** Active events or (Myanmar map) inflation to show beside the board. */
+export function hasBoardNews(s: GameState): boolean {
+  return s.flow.modifiers.length > 0 || s.economy.inflation > 0;
+}
+
 /** In Jail, or (Myanmar map) in military service: the words for it, or null. */
 export function heldLabel(p: Player): string | null {
   if (p.draft) return T.players.draft(p.draft.status, p.draft.turns);
@@ -146,6 +151,9 @@ export function tileView(s: GameState, index: number): TileView {
     }
   } else if (space.type === 'tax') {
     value = money(space.tax === 'income' ? RULES.incomeTax : RULES.luxuryTax);
+  } else if (space.type === 'vacation' && RULES.pot) {
+    // Myanmar map: the Refuge shows the community pot it pays out (D103).
+    value = money(s.economy.pot);
   }
   const current = s.turn.currentPlayerIndex;
   // Any city of the country just landed in that may take a building now (D98).
@@ -225,6 +233,9 @@ export function primarySpec(s: GameState): PrimarySpec | null {
       // The broker card: OK means refusing to pay, so the button says where it leads.
       if (pending?.kind === 'card' && cardById(pending.cardId).effect.type === 'broker') {
         return spec(s, T.panels.card.toCamp, { type: 'confirmCard' });
+      }
+      if (pending?.kind === 'card' && cardById(pending.cardId).effect.type === 'lottery') {
+        return spec(s, T.panels.card.noTicket, { type: 'confirmCard' });
       }
       return spec(s, T.play.ok, { type: 'confirmCard' });
     case 'BuildOffer':

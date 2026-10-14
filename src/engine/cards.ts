@@ -273,7 +273,10 @@ export function applyCard(c: Ctx, cardId: string): void {
     case 'noTrade':
     case 'fuelShortage':
     case 'inflation':
-      // Myanmar map, stage 2 (D102): the effect continues the turn itself.
+    case 'lottery':
+    case 'earthquake':
+    case 'potDonation':
+      // Myanmar map, stages 2 and 3 (D102, D103): the effect continues the turn itself.
       applyMyanmarEffect(c, cardId);
       return;
   }

@@ -138,6 +138,9 @@ export const T = {
     saveFailed: 'Saving failed: this browser blocks storage.',
     modifiersLabel: 'Active events',
     inflation: (rate: number) => `Inflation +${rate}%`,
+    pot: (amount: number) => `Community pot ${money(amount)}`,
+    potTitle: 'Taxes and fines collect in the pot. Landing on the Refuge takes it all.',
+    potLabel: 'Community pot',
     inflationTitle: 'City rents are this much higher than printed. The owner of KBZ Bank pays without it.',
     until: (name: string) => `Until ${name}’s next turn`,
     sound: 'Sound effects',
@@ -483,6 +486,8 @@ export const T = {
       },
       boarding: 'Boarding pass',
       cancelMerit: 'Cancel it with a merit point',
+      ticket: (amount: number) => `Buy a ticket · ${money(amount)}`,
+      noTicket: 'No ticket',
       brokerPay: (amount: number) => `Pay ${money(amount)}`,
       toCamp: 'Go to the Military camp',
       get news() {
@@ -565,6 +570,7 @@ export const T = {
         rent: (name: string) => `Rent for ${name}`,
         tax: (name: string) => name,
         card: (title: string) => `Card: ${title}`,
+        toll: (name: string) => `Toll for ${name}`,
         get jailFine() {
           return byMap('Jail fine', 'Military camp fine');
         },
@@ -802,7 +808,7 @@ export function specialText(key: SpecialKey): string {
         ? `Go straight to the Military camp. You collect nothing for passing ${specialName('start')}.`
         : 'Go straight to Jail. You collect nothing for passing World Start.';
     case 'vacation':
-      return myanmar ? 'Nothing happens.' : 'Your next turn is skipped. You still collect rent.';
+      return myanmar ? 'Take everything in the community pot.' : 'Your next turn is skipped. You still collect rent.';
     case 'freeParking':
       return 'Nothing happens.';
     case 'temple':
@@ -997,6 +1003,10 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   debug: 'debug',
   draft: 'military service',
   merit: 'donation',
+  toll: 'toll',
+  pot: 'community pot',
+  remittance: 'money from home',
+  lottery: 'lottery',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -1208,6 +1218,22 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         : 'Fuel shortage: nobody has to skip a turn.';
     case 'inflationRose':
       return `Inflation: city rents are now +${e.rate}%.`;
+    case 'tollPaid':
+      return `${who(e.from)} paid ${who(e.to)} a ${money(e.amount)} toll for passing ${n.space(e.space)}.`;
+    case 'potAdded':
+      return `${money(e.amount)} went into the community pot (now ${money(e.pot)}).`;
+    case 'potTaken':
+      return `${who(e.player)} took the community pot: ${signedMoney(e.amount)}.`;
+    case 'remittance':
+      return `${who(e.player)} received money from home: ${signedMoney(e.amount)}.`;
+    case 'lotteryDrawn':
+      return e.prize > 0
+        ? `${who(e.player)} drew ${e.total} in the lottery and won ${money(e.prize)}.`
+        : `${who(e.player)} drew ${e.total} in the lottery: no prize.`;
+    case 'earthquake':
+      return e.spaces.length > 0
+        ? `Earthquake (die ${e.die}): every building in ${groupName(e.region)} fell.`
+        : `Earthquake (die ${e.die}): ${groupName(e.region)} had no buildings to lose.`;
     case 'debugApplied':
       return `Debug: ${e.op}.`;
   }
@@ -1414,6 +1440,7 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'The two airports, the Expressway and the Muse Border Gate are the transport spaces. They never have buildings.',
             'Rent grows with the number of transport spaces the owner holds.',
+            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned, mortgaged, or its owner is in military service).`,
           ]
         : ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
     },
@@ -1437,6 +1464,7 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'Land on Chance or News to draw a card, then do what it says.',
             'Chance mostly affects you: money, movement, merit and military service. A merit point cancels a bad Chance card.',
+            `The lottery: pay ${money(MYANMAR.lotteryTicket)} and roll two dice. 12 wins ${money(3000)}, 10 or 11 wins ${money(500)}, 7 to 9 wins ${money(100)}.`,
             'News is Myanmar news. Some cards change rents or trading until the next turn of the player who drew it. Active news shows at the top of the screen.',
             'Call-up exemption: keep it until you need it. You can trade it.',
           ]
@@ -1496,12 +1524,15 @@ export function ruleTopics(): readonly RuleTopic[] {
     myanmar
       ? {
           id: 'companyEvents',
-          title: 'Company news and inflation',
+          title: 'Myanmar news and inflation',
           lines: [
             'Blackout: until the next turn of the player who drew it, city rents are halved and YESC earns double.',
             'Internet cut: until then only the owner of MPT can offer trades. Offers can still be accepted or rejected.',
             'Fuel shortage: every player skips their next turn, except the owner of Denko and players in military service.',
             `Inflation: city rents rise ${MYANMAR.inflationStep}% for the rest of the game, and again after every ${MYANMAR.inflationEvery} rounds. The rate shows at the top of the screen. The owner of KBZ Bank pays city rent without it.`,
+            'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
+            `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
+            `A player who fled to the border receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
           ],
         }
       : null,
@@ -1519,7 +1550,9 @@ export function ruleTopics(): readonly RuleTopic[] {
       lines: myanmar
         ? [
             `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}. ${specialName('luxuryTax')}: pay ${money(RULES.luxuryTax)}.`,
-            'Pagodas: you may donate for a merit point. The Refuge: nothing happens.',
+            'Taxes and fines (paying out of military service, fleeing, the broker) go into the community pot, shown in the middle of the board and on the Refuge.',
+            'Land on the Refuge and you take everything in the pot.',
+            'Pagodas: you may donate for a merit point.',
           ]
         : [`Income Tax: pay ${money(RULES.incomeTax)}. Luxury Tax: pay ${money(RULES.luxuryTax)}.`, 'Free Parking: nothing happens.'],
     },

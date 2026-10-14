@@ -222,10 +222,10 @@ export const MYANMAR_RULES: MapRules = {
   freeStay: false,
   conscription: true,
   merit: true,
-  pot: false,
+  pot: true,
   inflation: true,
-  tolls: false,
-  lottery: false,
+  tolls: true,
+  lottery: true,
   loans: false,
 };
 

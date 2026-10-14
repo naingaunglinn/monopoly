@@ -336,6 +336,7 @@ function CardPanel({ s }: { s: GameState }) {
   // Myanmar map (D102): a bad Chance card can be cancelled with a merit point; the broker can be paid.
   const canCancel = reason(s, { type: 'useMerit' }) === null;
   const broker = card.effect.type === 'broker' ? card.effect.amount : null;
+  const ticket = card.effect.type === 'lottery' ? card.effect.ticket : null;
   return (
     <Panel
       id="card"
@@ -346,8 +347,17 @@ function CardPanel({ s }: { s: GameState }) {
       tone={card.tone === 'good' ? 'good' : card.tone === 'bad' ? 'bad' : 'neutral'}
       className={isChance ? 'card-chance' : 'card-event'}
       actions={
-        broker !== null || canCancel ? (
+        broker !== null || ticket !== null || canCancel ? (
           <span className="inline-actions">
+            {ticket !== null && (
+              <Button
+                id="buy-ticket"
+                label={T.panels.card.ticket(ticket)}
+                reason={reason(s, { type: 'buyTicket' })}
+                showReason
+                action={{ type: 'buyTicket' }}
+              />
+            )}
             {broker !== null && (
               <Button
                 id="broker-pay"
@@ -548,7 +558,9 @@ function DebtPanel({ s }: { s: GameState }) {
         ? T.panels.debt.reason.tax(specialName(r.tax === 'income' ? 'incomeTax' : 'luxuryTax'))
         : r.kind === 'card'
           ? T.panels.debt.reason.card(cardTitle(r.cardId))
-          : T.panels.debt.reason.jailFine;
+          : r.kind === 'toll'
+            ? T.panels.debt.reason.toll(spaceName(s, r.space))
+            : T.panels.debt.reason.jailFine;
   return (
     <Panel
       id="debt"

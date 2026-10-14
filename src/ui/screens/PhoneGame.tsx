@@ -27,8 +27,8 @@ import { ActivePanel } from '../panels/DecisionPanels';
 import { chatRequest, useOnline } from '../session/online';
 import { canAct, openRules, openSheet, useAnimationSpeed, useApp, useUi } from '../store';
 import { money, recapLine, T } from '../strings';
-import { names } from '../view';
-import { Board, GameMenu, Modifiers, PrimaryButton, showTradeButton } from './GameScreen';
+import { hasBoardNews, names } from '../view';
+import { Board, GameMenu, Modifiers, PotLine, PrimaryButton, showTradeButton } from './GameScreen';
 
 /** The board's layout size on phones: the 1280 x 720 desktop board (below its top bar), scaled as a whole. */
 export const CANVAS_W = 1280;
@@ -426,7 +426,8 @@ function Sheet({ s }: { s: GameState }) {
             <FocusCard s={s} fallback={position} />
           </div>
         )}
-        {tab === 'players' && (s.flow.modifiers.length > 0 || s.economy.inflation > 0) && (
+        {tab === 'players' && <PotLine s={s} />}
+        {tab === 'players' && hasBoardNews(s) && (
           <Modifiers s={s} className="stage-modifiers phone-modifiers" />
         )}
         {tab === 'players' && <PlayersColumn s={s} />}

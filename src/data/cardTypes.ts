@@ -58,7 +58,13 @@ export type CardEffect =
   /** Myanmar map: every player skips their next turn, except `company`'s owner and players in military service. */
   | { type: 'fuelShortage'; company: CompanyId }
   /** Myanmar map: inflation rises by `step` percent now. */
-  | { type: 'inflation'; step: number };
+  | { type: 'inflation'; step: number }
+  /** Myanmar map (D103): the player may buy a ticket for `ticket` and roll two dice for a prize. */
+  | { type: 'lottery'; ticket: number }
+  /** Myanmar map: one die; odd destroys the buildings of `odd`, even those of `even`, unpaid. */
+  | { type: 'earthquake'; odd: CountryId; even: CountryId }
+  /** Myanmar map: every player puts `amount` into the community pot. */
+  | { type: 'potDonation'; amount: number };
 
 export type CardEffectType = CardEffect['type'];
 

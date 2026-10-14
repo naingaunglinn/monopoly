@@ -131,12 +131,15 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
     >
       {kind === 'corner' && (
         <span className="tile-corner-body">
-          {Icon && (
+          {/* The Refuge shows its pot instead of its sign (Myanmar map, D103). */}
+          {Icon && !v.value && (
             <span className="sign sign-lg" aria-hidden="true">
               <Icon />
             </span>
           )}
           <span className="tile-name">{v.name}</span>
+          {/* Myanmar map: the Refuge shows the community pot (D103). */}
+          {v.value && <span className="tile-value tile-corner-value">{v.value}</span>}
         </span>
       )}
       {kind === 'card' && (

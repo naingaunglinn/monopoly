@@ -2,6 +2,7 @@
 // straight JSON round trip.
 import type { BoardShape } from '../data/balance.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
+import type { CountryId } from '../data/countries.js';
 import type { MapId, TaxKind } from '../data/board.js';
 import type { TokenKind } from '../data/players.js';
 
@@ -76,7 +77,12 @@ export type MoneyReason =
   /** Myanmar map: paying or fleeing military service, and the bonus for serving (D102). */
   | 'draft'
   /** Myanmar map: a donation for merit (D102). */
-  | 'merit';
+  | 'merit'
+  /** Myanmar map (D103): tolls, the community pot, money sent home from the border, the lottery. */
+  | 'toll'
+  | 'pot'
+  | 'remittance'
+  | 'lottery';
 
 /** Something that changed a player's cash while it was not their turn (shown at turn start). */
 export interface RecapItem {
@@ -250,7 +256,9 @@ export type DebtReason =
   | { kind: 'rent'; space: number }
   | { kind: 'tax'; tax: TaxKind }
   | { kind: 'card'; cardId: string }
-  | { kind: 'jailFine' };
+  | { kind: 'jailFine' }
+  /** Myanmar map: passing a toll road or gate (D103). */
+  | { kind: 'toll'; space: number };
 
 export interface DebtItem {
   debtor: number;
@@ -264,7 +272,9 @@ export interface DebtItem {
 export type Resume =
   | { kind: 'afterResolution' }
   | { kind: 'jailMove'; total: number }
-  | { kind: 'passTurn' };
+  | { kind: 'passTurn' }
+  /** Myanmar map: tolls paid on the way, the landing is resolved now (D103). */
+  | { kind: 'landing'; rentFactor: number | null };
 
 export type Notice =
   | { kind: 'vacation'; player: number }
@@ -402,6 +412,8 @@ export type Action =
   | { type: 'donate'; give: boolean }
   /** Myanmar map: spend a merit point to skip this rent or cancel this bad Chance card. */
   | { type: 'useMerit' }
+  /** Myanmar map: buy the lottery ticket on the card (D103). */
+  | { type: 'buyTicket' }
   /** Myanmar map: pay the broker on the card instead of going to the Military camp. */
   | { type: 'brokerPay' }
   | { type: 'endTurn' }
@@ -428,7 +440,7 @@ export type GameEvent =
   | { type: 'turnStarted'; player: number }
   | { type: 'turnSkipped'; player: number }
   | { type: 'turnEnded'; player: number }
-  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company'; doubles: boolean }
+  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company' | 'lottery'; doubles: boolean }
   | { type: 'moved'; player: number; from: number; to: number; path: number[]; direction: 1 | -1; by: 'dice' | 'card' }
   | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'flee' | 'debug' }
   | { type: 'passedStart'; player: number; amount: number }
@@ -487,6 +499,13 @@ export type GameEvent =
   /** Fuel shortage: these players skip their next turn. */
   | { type: 'fuelShortage'; players: number[]; cardId: string }
   | { type: 'inflationRose'; rate: number; by: 'round' | 'card' }
+  // Myanmar map (D103)
+  | { type: 'tollPaid'; from: number; to: number; space: number; amount: number }
+  | { type: 'potAdded'; player: number; amount: number; pot: number }
+  | { type: 'potTaken'; player: number; amount: number }
+  | { type: 'remittance'; player: number; amount: number }
+  | { type: 'lotteryDrawn'; player: number; dice: Dice; total: number; prize: number }
+  | { type: 'earthquake'; die: number; region: CountryId; spaces: number[] }
   | { type: 'debugApplied'; op: DebugOp['op'] };
 
 export type GameEventType = GameEvent['type'];

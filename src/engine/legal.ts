@@ -195,6 +195,12 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       }
       return wrong();
     }
+    case 'buyTicket': {
+      if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type !== 'lottery') return wrong();
+      return me.cash >= effect.ticket ? null : makeError('notEnoughCash', { needed: effect.ticket, have: me.cash });
+    }
     case 'brokerPay': {
       if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
       const effect = cardById(pending.cardId).effect;
@@ -372,6 +378,7 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'CardReveal':
       consider({ type: 'confirmCard' });
       consider({ type: 'brokerPay' });
+      consider({ type: 'buyTicket' });
       consider({ type: 'useMerit' });
       break;
     case 'BuildOffer':

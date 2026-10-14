@@ -1,7 +1,7 @@
 // Debt and bankruptcy (spec 7.3, 7.4). Payments go through a queue processed in order; the head
 // of the queue may belong to any player (card effects can put other players in debt).
 import { CITY_BY_SPACE } from '../data/board.js';
-import { discardCard } from './cards.js';
+import { cardById, discardCard } from './cards.js';
 import {
   type Ctx,
   changeCash,
@@ -11,7 +11,8 @@ import {
   propertiesOwnedBy,
   transfer,
 } from './core.js';
-import { afterResolution, endGame, leaveJail, moveSteps, passTurn } from './phases.js';
+import { toPot } from './myanmar.js';
+import { afterResolution, endGame, leaveJail, moveSteps, passTurn, resolveLanding } from './phases.js';
 import { sellRefund } from './rent.js';
 import type { DebtItem, GameState, MoneyReason, Resume } from './types.js';
 
@@ -34,6 +35,8 @@ function moneyReason(debt: DebtItem): MoneyReason {
       return 'card';
     case 'jailFine':
       return 'jailFine';
+    case 'toll':
+      return 'toll';
   }
 }
 
@@ -55,6 +58,11 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
         amount: debt.amount,
         reason: reason.tax === 'income' ? 'incomeTax' : 'luxuryTax',
       });
+      // Myanmar map: taxes go into the community pot (D103).
+      toPot(c, debt.debtor, debt.amount);
+      break;
+    case 'toll':
+      emit(c, { type: 'tollPaid', from: debt.debtor, to: debt.creditor as number, space: reason.space, amount: debt.amount });
       break;
     case 'jailFine':
       emit(c, { type: 'feePaid', player: debt.debtor, amount: debt.amount, reason: 'jailFine' });
@@ -62,6 +70,7 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
     case 'card':
       if (debt.creditor === null) {
         emit(c, { type: 'cardCash', player: debt.debtor, amount: -debt.amount, cardId: reason.cardId });
+        if (cardById(reason.cardId).effect.type === 'potDonation') toPot(c, debt.debtor, debt.amount);
       } else {
         emit(c, { type: 'cardTransfer', from: debt.debtor, to: debt.creditor, amount: debt.amount, cardId: reason.cardId });
       }
@@ -119,6 +128,13 @@ function runResume(c: Ctx, resume: Resume | null): void {
   }
   if (resume.kind === 'passTurn') {
     passTurn(c);
+    return;
+  }
+  if (resume.kind === 'landing') {
+    // Myanmar map: the tolls on the way are paid; now the landing (D103).
+    c.rentFactor = resume.rentFactor ?? undefined;
+    resolveLanding(c);
+    c.rentFactor = undefined;
     return;
   }
   // Forced Jail fine paid: leave and move the rolled total.

@@ -5924,3 +5924,65 @@ ol.rules-lines {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Myanmar map: the community pot (D103), on the Refuge corner and, on phones, in the open middle
+   of the board. */
+.tile-corner-value {
+  font-weight: 700;
+}
+
+.pot-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  width: fit-content;
+}
+
+.pot-line svg {
+  color: var(--amber-ink);
+}
+
+.pot-line-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.phone-sheet-body .pot-line {
+  margin-bottom: 8px;
+}
+
+.pot-plaque {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 22px;
+  border: 2px solid var(--gold);
+  border-radius: var(--r-panel);
+  background: rgba(18, 67, 107, 0.88);
+  color: #fff;
+  pointer-events: none;
+}
+
+.pot-plaque-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-ocean-soft);
+}
+
+.pot-plaque-amount {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+}

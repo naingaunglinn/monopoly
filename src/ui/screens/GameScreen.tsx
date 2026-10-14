@@ -3,6 +3,7 @@
 import {
   ArrowLeftRight,
   BookOpen,
+  Coins,
   Copy,
   FastForward,
   Hammer,
@@ -22,7 +23,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
-import { BOARD, LAYOUT, MAP } from '../../data/board';
+import { BOARD, LAYOUT, MAP, RULES } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
@@ -79,7 +80,7 @@ import {
 } from '../store';
 import { GAME_TITLE, modifierLabel, money, recapLine, T } from '../strings';
 import { canOfferHere } from '../trading';
-import { legalTypes, names, playerName, primarySpec } from '../view';
+import { hasBoardNews, legalTypes, names, playerName, primarySpec } from '../view';
 
 /** The Menu button and its popover: settings, then Save and New game (local) or invite and leave (online). */
 export function GameMenu({ s, compact = false }: { s: GameState; compact?: boolean }) {
@@ -219,6 +220,18 @@ function ChatButton() {
       <span className="btn-label tb-label">{T.chat.title}</span>
       <UnreadBadge count={online.unread} />
     </button>
+  );
+}
+
+/** Myanmar map: the community pot, always shown in the middle of the board (spec 7.9, D103). */
+export function PotLine({ s }: { s: GameState }) {
+  if (!RULES.pot) return null;
+  return (
+    <p className="pot-line" title={T.top.potTitle}>
+      <Coins size={15} aria-hidden="true" />
+      <span>{T.top.potLabel}</span>
+      <span className="pot-line-amount money">{money(s.economy.pot)}</span>
+    </p>
   );
 }
 
@@ -498,8 +511,9 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
         {!online && <FocusCard s={s} fallback={position} />}
         <div className="stage-side">
           {online && s.players.length >= 5 && <RoundCounter s={s} className="tb-round stage-round" />}
-          {online && (s.flow.modifiers.length > 0 || s.economy.inflation > 0) && <Modifiers s={s} className="stage-modifiers" />}
+          {online && hasBoardNews(s) && <Modifiers s={s} className="stage-modifiers" />}
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
+          <PotLine s={s} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
         </div>
@@ -568,6 +582,13 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
       ))}
       <div className="ocean">
         {MAP.id === 'myanmar' ? <RiverArt /> : <OceanArt />}
+        {/* Myanmar map, phones: the open middle of the board shows the community pot (D103). */}
+        {!hud && RULES.pot && (
+          <div className="pot-plaque" aria-hidden="true">
+            <span className="pot-plaque-label">{T.top.potLabel}</span>
+            <span className="pot-plaque-amount money">{money(s.economy.pot)}</span>
+          </div>
+        )}
         <TokenLayer s={s} />
         {hud && <Hud s={s} compactLog={compactLog} />}
         {hud && online && <FloatingFocusCard s={s} />}

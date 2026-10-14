@@ -223,6 +223,8 @@ export function sensibleBot(ctx: BotContext): Action {
       if (merit && me.merit >= 2) return merit;
       const broker = has('brokerPay');
       if (broker && me.cash > SIM.sensibleJailFeeAbove) return broker;
+      const ticket = has('buyTicket');
+      if (ticket && me.cash > SIM.sensibleJailFeeAbove) return ticket;
       return { type: 'confirmCard' };
     }
     case 'BuildOffer':

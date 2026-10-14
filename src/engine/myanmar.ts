@@ -1,14 +1,16 @@
-// The Myanmar map's own rules, stage 2 (owner's spec 7.1 to 7.4, D102): military service instead
-// of Jail, merit from the pagodas, the four company events and inflation. Nothing here runs on the
-// World map: every entry point is reached only when the map in play has the rule (RULES).
+// The Myanmar map's own rules (owner's spec section 7). Stage 2 (D102): military service instead of
+// Jail, merit from the pagodas, the four company events and inflation. Stage 3 (D103): the
+// earthquake, tolls, the lottery, the community pot and remittance. Nothing here runs on the World
+// map: every entry point is reached only when the map in play has the rule (RULES).
 import { MYANMAR, roundMoney } from '../data/balance.js';
-import { COMPANIES, RULES, SPACES } from '../data/board.js';
+import { AIRPORT_BY_SPACE, COMPANIES, COUNTRY_CITIES, RULES, SPACES } from '../data/board.js';
 import type { CompanyId } from '../data/companies.js';
 import { MYANMAR_TRANSPORT } from '../data/myanmar.js';
 import { addModifier, cardById, discardCard } from './cards.js';
 import { changeCash, currentPlayer, emit, livingPlayers, playerById, type Ctx } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
-import { afterResolution, passTurn, teleport } from './phases.js';
+import { afterResolution, passTurn, rollDice, teleport } from './phases.js';
+import { rollDie } from './rng.js';
 import type { DraftChoice, GameState, Player } from './types.js';
 
 /** Paying to stay out of service costs a tenth of the player's cash, and at least 500 lakh. */
@@ -78,6 +80,7 @@ export function chooseDraft(c: Ctx, how: DraftChoice): void {
     case 'pay':
       cost = draftPayCost(p.cash);
       changeCash(c, p.id, -cost, 'draft');
+      toPot(c, p.id, cost);
       break;
     case 'hide':
       p.draft = { status: 'hiding', turns: MYANMAR.draftHideTurns };
@@ -88,6 +91,7 @@ export function chooseDraft(c: Ctx, how: DraftChoice): void {
     case 'flee':
       cost = MYANMAR.draftFleeCost;
       changeCash(c, p.id, -cost, 'draft');
+      toPot(c, p.id, cost);
       // Straight to the border: no landing there and no Start money on the way.
       teleport(c, p.id, borderSpace(), 'flee');
       p.draft = { status: 'fled', turns: MYANMAR.draftFleeTurns };
@@ -200,6 +204,7 @@ export function payBroker(c: Ctx, cardId: string, amount: number): void {
   s.flow.pending = null;
   changeCash(c, p.id, -amount, 'card', { cardId });
   emit(c, { type: 'cardCash', player: p.id, amount: -amount, cardId });
+  toPot(c, p.id, amount);
   afterResolution(c);
 }
 
@@ -238,6 +243,21 @@ export function applyMyanmarEffect(c: Ctx, cardId: string): boolean {
       s.economy.inflation += effect.step;
       emit(c, { type: 'inflationRose', rate: s.economy.inflation, by: 'card' });
       break;
+    case 'lottery':
+      // OK without buying: no ticket.
+      break;
+    case 'earthquake': {
+      const forced = s.meta.forcedDice.shift();
+      const die = forced ? forced[0] : rollDie(s);
+      const region = die % 2 === 1 ? effect.odd : effect.even;
+      const spaces = COUNTRY_CITIES[region].filter((sp) => (s.properties[sp]?.level ?? 0) > 0);
+      for (const sp of spaces) (s.properties[sp] as { level: number }).level = 0;
+      emit(c, { type: 'earthquake', die, region, spaces });
+      break;
+    }
+    case 'potDonation':
+      for (const q of livingPlayers(s)) queueDebt(c, { debtor: q.id, creditor: null, amount: effect.amount, reason: { kind: 'card', cardId } });
+      break;
     default:
       return false;
   }
@@ -266,4 +286,71 @@ export function tradeBlockedFor(s: GameState, player: number): boolean {
 export function boostedCompany(cardId: string): CompanyId | null {
   const effect = cardById(cardId).effect;
   return effect.type === 'blackout' ? effect.company : null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Stage 3 (D103)
+
+/** Taxes and fines go into the community pot in the middle of the board (spec 7.9). */
+export function toPot(c: Ctx, player: number, amount: number): void {
+  if (!RULES.pot || amount <= 0) return;
+  c.s.economy.pot += amount;
+  emit(c, { type: 'potAdded', player, amount, pot: c.s.economy.pot });
+}
+
+/** Landing on the Refuge takes everything in the pot. */
+export function takePot(c: Ctx): void {
+  const s = c.s;
+  if (!RULES.pot || s.economy.pot <= 0) return;
+  const p = currentPlayer(s);
+  const amount = s.economy.pot;
+  s.economy.pot = 0;
+  changeCash(c, p.id, amount, 'pot');
+  emit(c, { type: 'potTaken', player: p.id, amount });
+}
+
+/**
+ * Tolls on a move (spec 7.7): passing over, not landing on, the Expressway or the Muse Border Gate
+ * costs 20 lakh for its owner: never when it has no owner, is the mover's own, is mortgaged, or its
+ * owner is hiding or serving (they collect no rent then either).
+ */
+export function tollsOnPath(s: GameState, mover: number, path: readonly number[]): Array<{ space: number; owner: number }> {
+  if (!RULES.tolls) return [];
+  const out: Array<{ space: number; owner: number }> = [];
+  for (const space of path.slice(0, -1)) {
+    const transport = AIRPORT_BY_SPACE.get(space) as { toll?: boolean } | undefined;
+    if (!transport?.toll) continue;
+    const ps = s.properties[space];
+    if (!ps || ps.owner === null || ps.owner === mover || ps.mortgaged) continue;
+    const owner = s.players[ps.owner];
+    if (!owner || owner.bankrupt || inService(owner)) continue;
+    out.push({ space, owner: ps.owner });
+  }
+  return out;
+}
+
+/** The lottery card (spec 7.8): pay for a ticket, roll two dice, win by the total. */
+export function buyTicket(c: Ctx, cardId: string, ticket: number): void {
+  const s = c.s;
+  const p = currentPlayer(s);
+  discardCard(s, cardId);
+  s.flow.pending = null;
+  changeCash(c, p.id, -ticket, 'lottery');
+  const dice = rollDice(c);
+  const total = dice[0] + dice[1];
+  emit(c, { type: 'diceRolled', player: p.id, dice, purpose: 'lottery', doubles: false });
+  const prize = MYANMAR.lotteryPrizes.find((tier) => total >= tier.min)?.prize ?? 0;
+  if (prize > 0) changeCash(c, p.id, prize, 'lottery');
+  emit(c, { type: 'lotteryDrawn', player: p.id, dice, total, prize });
+  afterResolution(c);
+}
+
+/** Each round a player who fled to the border receives money from home (spec 7.10). */
+export function remittance(c: Ctx): void {
+  if (!RULES.conscription) return;
+  for (const p of livingPlayers(c.s)) {
+    if (p.draft?.status !== 'fled') continue;
+    changeCash(c, p.id, MYANMAR.remittance, 'remittance');
+    emit(c, { type: 'remittance', player: p.id, amount: MYANMAR.remittance });
+  }
 }

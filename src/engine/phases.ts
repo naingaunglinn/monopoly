@@ -1,6 +1,6 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
-import { BALANCE, roundMoney } from '../data/balance.js';
+import { BALANCE, MYANMAR, roundMoney } from '../data/balance.js';
 import { BOARD, COUNTRY_CITIES, LAYOUT, propertyKind, RULES, SPACES } from '../data/board.js';
 import { startAuction } from './auction.js';
 import { discardCard, drawCard } from './cards.js';
@@ -16,7 +16,7 @@ import {
   prop,
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
-import { callUp, inService, offerDonation, roundInflation } from './myanmar.js';
+import { callUp, inService, offerDonation, remittance, roundInflation, takePot, tollsOnPath } from './myanmar.js';
 import { computeWinners } from './networth.js';
 import { airportRent, cityRent } from './rent.js';
 import { rollDie } from './rng.js';
@@ -108,6 +108,7 @@ export function passTurn(c: Ctx): void {
     s.turn.roundNumber += 1;
     emit(c, { type: 'roundStarted', round: s.turn.roundNumber });
     roundInflation(c);
+    remittance(c);
   }
   beginTurn(c, next);
 }
@@ -173,6 +174,16 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
     changeCash(c, playerId, RULES.startBonus, 'start');
     emit(c, { type: 'passedStart', player: playerId, amount: RULES.startBonus });
   }
+  // Myanmar map: tolls for the roads and gates passed are paid first, then the landing (D103).
+  const tolls = tollsOnPath(c.s, playerId, path);
+  if (tolls.length > 0) {
+    for (const toll of tolls) {
+      queueDebt(c, { debtor: playerId, creditor: toll.owner, amount: MYANMAR.toll, reason: { kind: 'toll', space: toll.space } });
+    }
+    c.s.flow.resume = { kind: 'landing', rentFactor: c.rentFactor ?? null };
+    settleDebts(c);
+    return;
+  }
   resolveLanding(c);
 }
 
@@ -226,6 +237,8 @@ export function resolveLanding(c: Ctx): void {
       return;
     case 'vacation':
       if (s.meta.settings.vacation) startVacation(c, p.id);
+      // Myanmar map: the Refuge takes the community pot (D103).
+      takePot(c);
       afterResolution(c);
       return;
     case 'temple':

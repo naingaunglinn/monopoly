@@ -303,7 +303,29 @@ function myanmarStage2(
     'mm-rent-merit': rent,
     'mm-chance-cancel': rollTo(merit(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-call-up' }), 1), at.chance),
     'mm-broker': rollTo(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-broker' }), at.chance),
-    'mm-inflation': inflated,
+    'mm-inflation': tweak(inflated, (d) => void (d.economy.pot = 1250)),
+    ...myanmarStage3(mm, at),
+  };
+}
+
+/** Stage 3 of the Myanmar map (D103): the lottery, the community pot and tolls. */
+function myanmarStage3(
+  mm: (settings?: Partial<Settings>, seed?: number) => GameState,
+  at: { chance: number; news: number },
+): Record<string, GameState> {
+  const expressway = sp('Yangon–Mandalay Expressway');
+  const falam = sp('Falam');
+  const toll = (() => {
+    let s = own(own(cash(mm(), 0, 5), [expressway], 1), [falam], 0);
+    s = dbg(s, { op: 'movePlayer', player: 0, space: expressway - 2 });
+    s = dbg(s, { op: 'setNextDice', dice: [1, 3] });
+    return act(s, { type: 'roll' });
+  })();
+  return {
+    'mm-lottery': rollTo(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-lottery' }), at.chance),
+    'mm-earthquake': rollTo(dbg(mm(), { op: 'forceCard', deck: 'event', cardId: 'mm-event-earthquake' }), at.news),
+    'mm-toll-debt': toll,
+    'mm-pot-phone': tweak(mm(), (d) => void (d.economy.pot = 2400)),
   };
 }
 

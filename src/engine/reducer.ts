@@ -24,7 +24,7 @@ import {
   setRentDue,
   teleport,
 } from './phases.js';
-import { chooseDraft, donate, leaveDraft, payBroker, skipDraftTurn, useMerit } from './myanmar.js';
+import { buyTicket, chooseDraft, donate, leaveDraft, payBroker, skipDraftTurn, useMerit } from './myanmar.js';
 import { removePlayer } from './remove.js';
 import { companyRent } from './rent.js';
 import { applyTrade, tradeBlocker } from './trade.js';
@@ -213,6 +213,12 @@ function apply(c: Ctx, action: Action): void {
     case 'useMerit':
       useMerit(c);
       return;
+    case 'buyTicket': {
+      if (pending?.kind !== 'card') return;
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type === 'lottery') buyTicket(c, pending.cardId, effect.ticket);
+      return;
+    }
     case 'brokerPay': {
       if (pending?.kind !== 'card') return;
       const effect = cardById(pending.cardId).effect;

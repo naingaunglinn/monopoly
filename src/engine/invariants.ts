@@ -42,6 +42,8 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     if (p.draft && (!Number.isInteger(p.draft.turns) || p.draft.turns < 1)) errors.push(`${p.name} has ${p.draft.turns} turns of service left`);
     if (!RULES.conscription && (p.draft !== null || p.merit !== 0)) errors.push(`${p.name} has military service or merit on this map`);
   }
+  if (!Number.isInteger(s.economy.pot) || s.economy.pot < 0) errors.push(`the pot holds ${s.economy.pot}`);
+  if (!RULES.pot && s.economy.pot !== 0) errors.push('a pot on a map without one');
   const current = s.players[s.turn.currentPlayerIndex];
   if (!current) errors.push('no current player');
   else if (current.bankrupt && phase !== 'GameOver') {

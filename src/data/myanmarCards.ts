@@ -94,6 +94,17 @@ export const MYANMAR_CHANCE: readonly CardData[] = [
     tone: 'neutral',
     effect: { type: 'meritFee', amount: MYANMAR.festivalDonation },
   },
+  {
+    id: 'mm-chance-lottery',
+    deck: 'chance',
+    title: 'Buy a lottery ticket?',
+    titleMy: 'ထီထိုးမလား?',
+    text: 'Pay 10 lakh for a ticket and roll two dice: 12 wins 3,000 lakh, 10 or 11 wins 500, 7 to 9 wins 100, 2 to 6 nothing. Or let it go.',
+    textMy: '၁၀ သိန်း ပေးပြီး ထီထိုးရင် အန်စာ ၂ လုံး လှိမ့်မယ်။ ၁၂ ဆို ၃,၀၀၀ သိန်း၊ ၁၀ သို့မဟုတ် ၁၁ ဆို ၅၀၀၊ ၇ မှ ၉ ဆို ၁၀၀၊ ၂ မှ ၆ ဆို ဘာမှ မရ။ မထိုးလည်း ရတယ်။',
+    icon: 'dice',
+    tone: 'neutral',
+    effect: { type: 'lottery', ticket: MYANMAR.lotteryTicket },
+  },
 ];
 
 export const MYANMAR_NEWS: readonly CardData[] = [
@@ -173,6 +184,28 @@ export const MYANMAR_NEWS: readonly CardData[] = [
     icon: 'trendUp',
     tone: 'neutral',
     effect: { type: 'inflation', step: MYANMAR.inflationStep },
+  },
+  {
+    id: 'mm-event-earthquake',
+    deck: 'event',
+    title: 'Earthquake',
+    titleMy: 'ငလျင် လှုပ်',
+    text: 'One die is rolled. 1, 3 or 5: every building in the Mandalay region falls. 2, 4 or 6: every building in Anyar falls. Nothing is paid back.',
+    textMy: 'အန်စာ ၁ လုံး လှိမ့်မယ်။ ၁၊ ၃၊ ၅ ဆို မန္တလေး အုပ်စု အိမ်/ဟိုတယ် အားလုံး ပြုတ်မယ်။ ၂၊ ၄၊ ၆ ဆို အညာ အုပ်စု အိမ်/ဟိုတယ် အားလုံး ပြုတ်မယ်။ ပြန်ပိုက်ဆံ မရ။',
+    icon: 'storm',
+    tone: 'bad',
+    effect: { type: 'earthquake', odd: 'mmMandalay', even: 'mmAnyar' },
+  },
+  {
+    id: 'mm-event-donation',
+    deck: 'event',
+    title: 'Community donation',
+    titleMy: 'ရပ်ကွက် လှူဒါန်းပွဲ',
+    text: 'Every player puts 50 lakh into the community pot.',
+    textMy: 'ကစားသူတိုင်း ၅၀ သိန်းစီ အိုးထဲ ထည့်ရမယ်။',
+    icon: 'group',
+    tone: 'neutral',
+    effect: { type: 'potDonation', amount: MYANMAR.potDonation },
   },
 ];
 
