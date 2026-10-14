@@ -195,7 +195,7 @@ function spec(s: GameState, label: string, action: Action): PrimarySpec {
 export function primarySpec(s: GameState): PrimarySpec | null {
   const notice = s.flow.notices[0];
   if (notice) return spec(s, notice.kind === 'bankruptcy' ? T.play.continue : T.play.ok, { type: 'acknowledge' });
-  if (s.flow.phase === 'GameOver' || s.flow.trade) return null;
+  if (s.flow.phase === 'GameOver' || s.flow.trade || s.flow.loan) return null;
   const pending = s.flow.pending;
   switch (s.flow.phase) {
     case 'PassDevice':

@@ -101,6 +101,32 @@ test('stage 2 by clicking: the call-up choice, the pagoda donation (B key), meri
   expect(log.errors).toEqual([]);
 });
 
+test('a loan by clicking: ask, accept, see it listed with its collateral marked, pay it back', async ({ page }) => {
+  const log = trackErrors(page);
+  const states = myanmarStates();
+  const state = () => page.evaluate(() => (window as unknown as { __GM__: { getState: () => any } }).__GM__.getState());
+  const owned = states['mm-loan-request'] as never as { flow: { loan: unknown } };
+  // The same board without the request on the table.
+  const start = JSON.parse(JSON.stringify(owned));
+  start.flow.loan = null;
+  await loadState(page, start, '?seed=42');
+  await page.locator('#act-loan').click();
+  await page.locator('#loan-amount').fill('400');
+  await page.locator('#loan-rate').fill('10');
+  await page.locator('#loan-term').fill('4');
+  await page.locator('.loan-pick-row', { hasText: 'Falam' }).click();
+  await page.locator('#loan-send').click();
+  await expect(page.locator('[data-panel="loan"]')).toBeVisible();
+  await page.locator('#loan-accept').click();
+  await expect.poll(async () => (await state()).economy.loans.length).toBe(1);
+  await expect(page.locator('.tile', { hasText: 'Falam' }).locator('.pledge-marker')).toBeVisible();
+  await page.locator('.player-card').first().click();
+  await expect(page.locator('.loans-list')).toContainText('Mia owes Leo');
+  await page.locator('[id^="loan-repay-"]').click();
+  await expect.poll(async () => (await state()).economy.loans.length).toBe(0);
+  expect(log.errors).toEqual([]);
+});
+
 test('online: the host picks Myanmar in the lobby; each device keeps its own language', async ({ browser }) => {
   const ONLINE = 'http://localhost:4175';
   const open = async () => {
@@ -167,6 +193,14 @@ for (const size of SIZES) {
         for (const [name, state] of Object.entries(states)) {
           await loadState(page, state, '?seed=42', { language: lang });
           await shot(page, size, `${name}-${lang}`);
+          if (name === 'mm-loan-active') {
+            await page.locator('.player-card').first().click();
+            await shot(page, size, `loans-list-${lang}`);
+            await page.keyboard.press('Escape');
+            await page.locator('#act-loan').click();
+            await shot(page, size, `loan-builder-${lang}`);
+            await page.keyboard.press('Escape');
+          }
           if (name === 'mm-mid-game') {
             await page.locator('#tb-rules').click();
             await shot(page, size, `rule-guide-${lang}`);

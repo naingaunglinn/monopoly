@@ -5986,3 +5986,131 @@ ol.rules-lines {
   font-size: 34px;
   font-weight: 700;
 }
+
+/* Myanmar map: collateral for a loan, in the spot of the build mark (D104). */
+.pledge-marker {
+  background: var(--amber-ink);
+}
+
+/* Myanmar map: loans (D104). The request is a promissory note; the list shows each debt now. */
+/* Room above the note for the "New terms" stamp, which sits on its top edge like the trade slip's. */
+.loan-note-wrap {
+  padding-top: 12px;
+}
+
+.loan-note-frame {
+  position: relative;
+}
+
+.loan-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px dashed var(--tile-line);
+  border-radius: var(--r-tile);
+  background: #fffdf5;
+}
+
+.loan-parties {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.loan-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.loan-amount {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.loan-terms {
+  margin: 0;
+  font-weight: 600;
+}
+
+.loan-collateral-label {
+  margin: 6px 0 0;
+}
+
+.loan-collateral,
+.loan-pick,
+.loans-list ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loan-collateral li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loan-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.loan-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loan-field .text-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.loan-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loan-pick-row.is-blocked {
+  color: var(--muted-ink);
+}
+
+.loans-list {
+  margin-top: 12px;
+}
+
+.loan-row {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--tile-line);
+  border-radius: var(--r-tile);
+  background: var(--tile);
+}
+
+.loan-row .btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.loan-row-who {
+  font-weight: 700;
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .loan-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

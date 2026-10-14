@@ -33,6 +33,8 @@ export type Sheet =
   | { kind: 'properties'; player: number }
   /** The trade builder: a new offer, or (`counter`) an answer to the offer on the table (D99). */
   | { kind: 'trade'; counter?: boolean }
+  /** Myanmar map: ask for a loan, or (`counter`) new terms for the request on the table (D104). */
+  | { kind: 'loan'; counter?: boolean }
   | { kind: 'results' }
   | { kind: 'settings' }
   | null;

@@ -39,6 +39,7 @@ import {
   useUi,
 } from '../store';
 import { LanguageField } from '../components/Fields';
+import { LoansList } from '../panels/LoanPanel';
 import { money, quickHelp as quickHelpText, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { defaultTrader, negotiation, tradersHere } from '../trading';
 import { countryOfSpace, playerName, spaceName } from '../view';
@@ -298,6 +299,7 @@ export function PropertyList({ s, player }: { s: GameState; player: number }) {
         </div>
       )}
       <PropertyGroups s={s} player={player} />
+      <LoansList s={s} player={player} />
       {(p.jailCards.length > 0 || p.houseVouchers.length > 0) && (
         <p className="muted">
           {T.properties.held}: {p.jailCards.length > 0 ? `${p.jailCards.length} × ${T.players.jailCard}` : ''}

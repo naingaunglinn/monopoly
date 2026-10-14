@@ -1,10 +1,10 @@
 // One board tile. Compact by design: the Focus Card shows the details at full size.
 // An owned property takes a tint of its owner's colour behind the text, so white tiles are the
 // ones still for sale (D54). The owner marker stays: ownership is never colour alone.
-import { Hammer } from 'lucide-react';
+import { Hammer, Link2 } from 'lucide-react';
 import { memo, type KeyboardEvent } from 'react';
 import { gridPosition, groupName } from '../../data/board';
-import type { GameState } from '../../engine';
+import { isPledged, type GameState } from '../../engine';
 import { ownedTileColor, PATH_TINT, tint } from '../contrast';
 import { useDisplay } from '../display';
 import { PHONE_QUERY } from '../hooks';
@@ -55,6 +55,7 @@ function describe(s: GameState, index: number): string {
   if (v.value) parts.push(v.value);
   if (v.level > 0) parts.push(T.tile.level(v.level));
   if (v.canBuildNow) parts.push(T.tile.canBuild);
+  if (isPledged(s, index)) parts.push(T.loan.pledged);
   return parts.join(', ');
 }
 
@@ -64,6 +65,7 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
   const pos = gridPosition(index);
   const kind = tileKind(index);
   const rest = isRestSpace(s, index);
+  const pledged = isPledged(s, index);
   const Icon = spaceIcon(v.space, rest);
   const isCity = v.space.type === 'city';
   const isProperty = isPropertySpace(v.space.type);
@@ -171,6 +173,12 @@ function TileImpl({ s, index, ring, focusable, onNavigate }: TileProps) {
       {v.canBuildNow && (
         <span className="can-build-marker" title={T.tile.canBuild}>
           <Hammer aria-hidden="true" />
+        </span>
+      )}
+      {/* Myanmar map: collateral for a loan (D104); its region cannot be built on, so the build mark never shows with it. */}
+      {pledged && (
+        <span className="can-build-marker pledge-marker" title={T.loan.pledged}>
+          <Link2 aria-hidden="true" />
         </span>
       )}
       {display.stamp?.space === index && (

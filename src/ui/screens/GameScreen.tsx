@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   BookOpen,
   Coins,
+  HandCoins,
   Copy,
   FastForward,
   Hammer,
@@ -58,6 +59,7 @@ import { Box, chatRequest, inviteLink, leaveToStart, useOnline, usePending, type
 import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
+import { LoanBuilder, openLoanSheet } from '../panels/LoanPanel';
 import {
   app,
   askConfirm,
@@ -404,8 +406,13 @@ function RefusalLine() {
  * The Trade button: for any player this device acts for, on anyone's turn (D99). Not while an offer
  * is on the table (its panel has the answers), nor for a debtor, whose debt panel has its own.
  */
+/** Myanmar map: the Loan button, where the Trade button would be (D104). */
+export function showLoanButton(s: GameState): boolean {
+  return RULES.loans && showTradeButton(s);
+}
+
 export function showTradeButton(s: GameState): boolean {
-  if (s.flow.trade || !canOfferHere(s)) return false;
+  if (s.flow.trade || s.flow.loan || !canOfferHere(s)) return false;
   const debtor = s.flow.phase === 'Debt' ? (s.flow.debts[0]?.debtor ?? null) : null;
   return debtor === null || !canAct(debtor);
 }
@@ -432,6 +439,9 @@ function ActionBar({ s }: { s: GameState }) {
             icon={<ArrowLeftRight size={16} aria-hidden="true" />}
             onClick={() => openSheet({ kind: 'trade' })}
           />
+        )}
+        {showLoanButton(s) && (
+          <Button id="act-loan" label={T.loan.button} icon={<HandCoins size={16} aria-hidden="true" />} onClick={() => openLoanSheet()} />
         )}
         {s.flow.phase !== 'GameOver' && (
           <Button id="act-props" label={T.play.myProperties} onClick={() => openSheet({ kind: 'properties', player: owner })} />
@@ -489,7 +499,8 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   // The next game starts on the chat again.
   useEffect(() => () => feedTab.set('chat'), []);
   const chatOpen = online !== null && feed === 'chat';
-  const pending = s.flow.notices.length > 0 || s.flow.trade !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
+  const pending =
+    s.flow.notices.length > 0 || s.flow.trade !== null || s.flow.loan !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
   const dice = shownDice(s, display);
@@ -644,7 +655,7 @@ function useKeyboard(): void {
       } else if (key === ' ' || key === 'enter') {
         // A focused control keeps its own Space/Enter; board tiles pass it to the primary button.
         if (target?.closest('button:not(.tile), a, [role="switch"], summary')) return;
-        if (s.flow.trade || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
+        if (s.flow.trade || s.flow.loan || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
         // Online, Space does nothing while another device decides.
         if (!canAct(decisionMaker(s))) return;
         const spec = primarySpec(s);
@@ -700,7 +711,7 @@ function useYourTurn(s: GameState, online: OnlineState | null): string | null {
     // The airport chime, once the move that led here has played.
     afterAnimation(() => playCue('yourTurn'));
     setBanner(
-      s.flow.trade ? T.online.yourTrade(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
+      s.flow.trade ? T.online.yourTrade(name) : s.flow.loan ? T.online.yourLoan(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
     );
     try {
       const activated = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive;
@@ -800,7 +811,7 @@ export function GameScreen() {
         </>
       )}
       {showPass && <PassDevice key={s.turn.turnNumber} s={s} />}
-      {handover && !s.flow.trade && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
+      {handover && !s.flow.trade && !s.flow.loan && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
       {banner && !handover && (
         <div className="turn-banner" role="status" key={banner}>
           {banner}
@@ -808,6 +819,7 @@ export function GameScreen() {
       )}
       {s.flow.trade && <TradeHandover key={`trade-${s.meta.logSeq}`} s={s} />}
       {u.sheet?.kind === 'trade' && <TradeBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
+      {u.sheet?.kind === 'loan' && <LoanBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
       <QuickHelpPopover />

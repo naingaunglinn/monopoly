@@ -205,6 +205,7 @@ export const T = {
     yourTurn: (name: string) => `Your turn, ${name}`,
     yourBid: (name: string) => `Your bid, ${name}`,
     yourTrade: (name: string) => `${name}, a trade offer for you`,
+    yourLoan: (name: string) => `${name}, a loan offer for you`,
     yourDecision: (name: string) => `${name}, your decision`,
     titleYourTurn: 'Your turn',
     tradeWaiting: (name: string) => `Waiting for ${name} to answer your offer`,
@@ -626,6 +627,39 @@ export const T = {
     get notTradeable() {
       return byMap('Free Stay tokens and Free House cards cannot be traded.', 'Merit points cannot be traded.');
     },
+  },
+  // Myanmar map: loans between players (D104)
+  loan: {
+    button: 'Loan',
+    title: 'Ask for a loan',
+    counterTitle: (name: string) => `New loan terms for ${name}`,
+    borrower: 'Borrower',
+    lender: 'Ask',
+    amount: 'Amount',
+    rate: 'Interest each round',
+    term: 'Rounds to pay back',
+    collateral: 'Collateral',
+    collateralHint: 'If the loan is not paid back in time, the lender takes these. Until then they cannot be built on, mortgaged or traded.',
+    noCollateral: 'Nothing can be pledged now: it must be yours, unmortgaged, with no buildings in its region.',
+    send: 'Ask for the loan',
+    sendCounter: 'Send new terms',
+    cancel: 'Cancel',
+    request: (borrower: string, lender: string) => `${borrower} asks ${lender} for a loan`,
+    counterBetween: (from: string, to: string) => `${from}’s new loan terms for ${to}`,
+    stamp: (round: number) => (round > 1 ? `New terms ${round}` : 'New terms'),
+    lends: (lender: string, borrower: string) => `${lender} lends ${borrower}`,
+    terms: (rate: number, term: number) => `${rate}% a round · ${plural(term, 'round', 'rounds')}`,
+    cap: (amount: number) => `Never more than ${money(amount)} owed`,
+    accept: 'Accept',
+    counter: 'New terms',
+    reject: 'Reject',
+    withdraw: 'Withdraw request',
+    listTitle: 'Loans',
+    owes: (borrower: string, lender: string) => `${borrower} owes ${lender}`,
+    owedNow: 'Owed now',
+    roundsLeft: (n: number) => (n === 0 ? 'Due at the next round' : `${plural(n, 'round', 'rounds')} left`),
+    payBack: (amount: number) => `Pay back · ${money(amount)}`,
+    pledged: 'Pledged for a loan',
   },
   properties: {
     title: (name: string) => `${name}’s properties`,
@@ -1326,7 +1360,8 @@ export type RuleTopicId =
   | 'online'
   /** Myanmar map only (D102). */
   | 'merit'
-  | 'companyEvents';
+  | 'companyEvents'
+  | 'loans';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1565,6 +1600,20 @@ export function ruleTopics(): readonly RuleTopic[] {
             'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
             `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
             `A player who fled to the border receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'loans',
+          title: 'Loans',
+          lines: [
+            'Ask another player for a loan whenever the game is between decisions, even on someone else’s turn: the amount, the interest each round, the rounds to pay it back, and at least one of your properties as collateral.',
+            'The other player accepts, rejects or answers with new terms. Only one offer, trade or loan, is on the table at a time.',
+            `Interest is simple: each round adds the rate on the amount lent, up to ${MYANMAR.loanMaxMultiple} times the amount at most. The rate is at most ${MYANMAR.loanMaxRatePercent}% a round.`,
+            `Pay back on your own turn from the Loans list. Passing Start pays back ${MYANMAR.loanStartRepayPercent}% of the debt when you have the cash.`,
+            'Not paid back in time, the collateral goes to the lender. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
+            'Collateral cannot be mortgaged or traded, and its region cannot be built on, until the loan is paid back. A chain on the tile marks it.',
           ],
         }
       : null,

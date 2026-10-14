@@ -74,10 +74,12 @@ players, the log and your properties. Decisions open there too.
    wins. Normal game: the last player who is not bankrupt wins.
 
 **Two maps.** Beside **New game** on the setup screen (and in an online lobby) choose **World** or
-**Myanmar**. The Myanmar map has 48 spaces, 25 cities in nine regions, prices in lakh of kyat, a
-Military camp instead of Jail and no Free Stay tokens; its city names and cards can be read in
-Burmese (**Names and cards** on the setup screen, in the lobby and in the menu, chosen on each
-device). Its own rules arrive in stages (spec section 19).
+**Myanmar**. The Myanmar map has 48 spaces, 25 cities in nine regions and prices in lakh of kyat. It
+has its own rules (spec section 19): military service instead of Jail, merit from the pagodas, news
+about the companies, inflation, earthquakes, tolls, a lottery, a community pot and loans between
+players (the **Loan** button beside Trade). It has no Free Stay tokens. Its city names and cards can
+be read in Burmese (**Names and cards** on the setup screen, in the lobby and in the menu, chosen on
+each device).
 
 Press **Rules** (or R) at any time for the full rule guide. Shortcuts: B buys, P passes, T opens
 trade, Esc closes optional panels. Hover or tap a tile to see its details; click a player card to see

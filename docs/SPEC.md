@@ -1224,7 +1224,7 @@ Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen b
 | 1 | Board, 25 cities, 4 transport spaces, 4 companies, money in lakh, Burmese/English names and cards | Done (D101) |
 | 2 | Military service, merit, the four company events (and inflation, which the Inflation card needs) | Done (D102) |
 | 3 | Earthquake, tolls, lottery, community pot, remittance | Done (D103) |
-| 4 | Loans | To do |
+| 4 | Loans | Done (D104) |
 
 ### Board
 

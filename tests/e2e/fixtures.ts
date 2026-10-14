@@ -326,7 +326,19 @@ function myanmarStage3(
     'mm-earthquake': rollTo(dbg(mm(), { op: 'forceCard', deck: 'event', cardId: 'mm-event-earthquake' }), at.news),
     'mm-toll-debt': toll,
     'mm-pot-phone': tweak(mm(), (d) => void (d.economy.pot = 2400)),
+    ...myanmarLoans(mm),
   };
+}
+
+/** Stage 4 of the Myanmar map (D104): loans. */
+function myanmarLoans(mm: (settings?: Partial<Settings>, seed?: number) => GameState): Record<string, GameState> {
+  const [falam, hakha, bhamo] = [sp('Falam'), sp('Hakha'), sp('Bhamo')];
+  const owned = own(own(mm(), [falam, hakha], 0), [bhamo], 1);
+  const offer = { from: 0, to: 1, lender: 1, borrower: 0, amount: 600, ratePercent: 8, term: 6, collateral: [falam, hakha] };
+  const asked = act(owned, { type: 'requestLoan', offer });
+  const countered = act(asked, { type: 'counterLoan', offer: { ...offer, from: 1, to: 0, ratePercent: 12, collateral: [falam, hakha] } });
+  const lent = tweak(act(asked, { type: 'respondLoan', accept: true }), (d) => void (d.turn.roundNumber = 3));
+  return { 'mm-loan-request': asked, 'mm-loan-counter': countered, 'mm-loan-active': lent };
 }
 
 /**
