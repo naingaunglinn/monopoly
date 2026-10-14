@@ -237,8 +237,9 @@ export function myanmarStates(): Record<string, GameState> {
     const pagoda = BOARD.find((x) => x.type === 'temple' && x.index >= 7)?.index as number;
     const region = own(mm(), [mandalay, meiktila, pyinOoLwin], 0);
     const camp = (() => {
+      // Called up, player 0 serves; at their next turn the skipped-turn panel shows (D102).
       let s = rollTo(mm({ playerCount: 2, auction: false }), SPACES.goToJail);
-      s = act(s, { type: 'endTurn' });
+      s = act(s, { type: 'draftChoose', how: 'serve' }, { type: 'endTurn' });
       s = act(rollTo(s, SPACES.jail), { type: 'endTurn' });
       return s;
     })();
@@ -255,10 +256,55 @@ export function myanmarStates(): Record<string, GameState> {
       'mm-chance': rollTo(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-call-up' }), chance),
       'mm-news': rollTo(dbg(mm(), { op: 'forceCard', deck: 'event', cardId: 'mm-event-tourism' }), news),
       'mm-camp': camp,
+      ...myanmarStage2(mm, { chance, news, pagoda, mandalay, meiktila, pyinOoLwin }),
     };
   } finally {
     setActiveMap('world');
   }
+}
+
+/** A copy of a state changed by `fn` (for set-ups the debug actions cannot make). */
+function tweak(s: GameState, fn: (d: GameState) => void): GameState {
+  const d = JSON.parse(JSON.stringify(s)) as GameState;
+  fn(d);
+  return d;
+}
+
+/** Stage 2 of the Myanmar map (D102): military service, merit, company news and inflation. */
+function myanmarStage2(
+  mm: (settings?: Partial<Settings>, seed?: number) => GameState,
+  at: { chance: number; news: number; pagoda: number; mandalay: number; meiktila: number; pyinOoLwin: number },
+): Record<string, GameState> {
+  const merit = (s: GameState, n: number) => tweak(s, (d) => void ((d.players[0] as GameState['players'][number]).merit = n));
+  const called = rollTo(merit(cash(mm(), 0, 8000), 1), SPACES.goToJail);
+  const serving = tweak(mm(), (d) => {
+    const p = d.players[0] as GameState['players'][number];
+    p.draft = { status: 'serving', turns: 1 };
+    p.merit = 1;
+    d.flow.phase = 'TurnStart';
+    d.flow.pending = { kind: 'draftSkip' };
+  });
+  const fuel = tweak(mm(), (d) => {
+    (d.players[0] as GameState['players'][number]).skipNextTurn = true;
+    d.flow.phase = 'TurnStart';
+    d.flow.pending = { kind: 'vacationSkip' };
+  });
+  const rent = rollTo(merit(level(own(mm(), [at.mandalay, at.meiktila, at.pyinOoLwin], 1), [[at.mandalay, 1], [at.meiktila, 1], [at.pyinOoLwin, 1]]), 2), at.mandalay);
+  const news = act(rollTo(dbg(mm(), { op: 'forceCard', deck: 'event', cardId: 'mm-event-blackout' }), at.news), { type: 'confirmCard' });
+  const inflated = tweak(news, (d) => {
+    d.economy.inflation = 20;
+    (d.players[1] as GameState['players'][number]).merit = 3;
+    (d.players[2] as GameState['players'][number]).draft = { status: 'hiding', turns: 2 };
+  });
+  return {
+    'mm-draft-choice': called,
+    'mm-draft-skip': serving,
+    'mm-fuel-skip': fuel,
+    'mm-rent-merit': rent,
+    'mm-chance-cancel': rollTo(merit(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-call-up' }), 1), at.chance),
+    'mm-broker': rollTo(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-broker' }), at.chance),
+    'mm-inflation': inflated,
+  };
 }
 
 /**

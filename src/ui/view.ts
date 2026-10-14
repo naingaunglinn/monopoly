@@ -11,6 +11,7 @@ import {
   RULES,
   type SpaceData,
 } from '../data/board';
+import { MYANMAR } from '../data/balance';
 import { pick } from '../data/lang';
 import { COUNTRY_BY_ID, type CountryData, type FlagCode } from '../data/countries';
 import {
@@ -62,6 +63,12 @@ export function spaceShortName(s: GameState | null, index: number): string {
 /** One-line tiles: an airport shows its country beside a plane icon. */
 export function rowTileName(s: GameState | null, index: number): string {
   return AIRPORT_BY_SPACE.has(index) ? propertyShortName(index) : spaceShortName(s, index);
+}
+
+/** In Jail, or (Myanmar map) in military service: the words for it, or null. */
+export function heldLabel(p: Player): string | null {
+  if (p.draft) return T.players.draft(p.draft.status, p.draft.turns);
+  return p.inJail ? T.players.inJail : null;
 }
 
 export function playerName(s: GameState, id: number | null): string {
@@ -186,12 +193,20 @@ export function primarySpec(s: GameState): PrimarySpec | null {
     case 'PassDevice':
       return spec(s, T.play.ready, { type: 'ready' });
     case 'TurnStart':
-      return pending?.kind === 'vacationSkip'
+      // Myanmar map (D102): the call-up choice has no single next step; its panel holds the choices.
+      if (pending?.kind === 'draftChoice') return null;
+      return pending?.kind === 'vacationSkip' || pending?.kind === 'draftSkip'
         ? spec(s, T.play.ok, { type: 'acknowledge' })
         : spec(s, T.play.rollForDoubles, { type: 'rollForDoubles' });
     case 'AwaitRoll':
       return spec(s, s.turn.dice && s.turn.rollsLeft > 0 ? T.play.extraRoll : T.play.rollDice, { type: 'roll' });
     case 'BuyDecision':
+      // Myanmar map: a pagoda donation; with too little cash the big button declines it.
+      if (pending?.kind === 'donation') {
+        return validateAction(s, { type: 'donate', give: true }) === null
+          ? spec(s, T.panels.donation.give(MYANMAR.meritDonation), { type: 'donate', give: true })
+          : spec(s, T.panels.donation.no, { type: 'donate', give: false });
+      }
       // Too little cash to buy: the big button passes, so the game always has a way on (D95).
       if (validateAction(s, { type: 'buy' }) !== null) return spec(s, T.play.pass, { type: 'decline' });
       return spec(s, T.play.buy, { type: 'buy' });
@@ -207,6 +222,10 @@ export function primarySpec(s: GameState): PrimarySpec | null {
     case 'CompanyRoll':
       return spec(s, T.panels.company.roll, { type: 'rollCompanyDice' });
     case 'CardReveal':
+      // The broker card: OK means refusing to pay, so the button says where it leads.
+      if (pending?.kind === 'card' && cardById(pending.cardId).effect.type === 'broker') {
+        return spec(s, T.panels.card.toCamp, { type: 'confirmCard' });
+      }
       return spec(s, T.play.ok, { type: 'confirmCard' });
     case 'BuildOffer':
       return spec(s, T.play.done, { type: 'finishBuilding' });

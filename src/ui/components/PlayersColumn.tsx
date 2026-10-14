@@ -8,8 +8,9 @@ import { shownCash, useDisplay, type FloatAmount } from '../display';
 import { amHost, hostControl, isSeatConnected, useOnline, usePresenceClock, type OnlineState } from '../session/online';
 import { askConfirm, openSheet, showToast } from '../store';
 import { money, signedMoney, T } from '../strings';
+import { heldLabel } from '../view';
 import { TokenChip } from './glyphs';
-import { jailIcon } from './icons';
+import { jailIcon, Pagoda } from './icons';
 import { VoiceBadge } from './Voice';
 
 export interface SeatNet {
@@ -62,6 +63,7 @@ function PlayerCard({
   net: SeatNet | null;
 }) {
   const JailSign = jailIcon(Lock);
+  const held = heldLabel(p);
   const cities = citiesOwnedBy(s, p.id);
   const airports = airportsOwnedBy(s, p.id);
   const companies = companiesOwnedBy(s, p.id);
@@ -74,7 +76,7 @@ function PlayerCard({
         style={{ ['--player' as string]: p.color }}
         onClick={() => openSheet({ kind: 'properties', player: p.id })}
         aria-label={`${T.players.open(p.name)}. ${money(cash)}${isCurrent ? `, ${T.players.current}` : ''}${
-          p.inJail ? `, ${T.players.inJail}` : ''
+          held ? `, ${held}` : ''
         }${p.skipNextTurn ? `, ${T.players.onVacation}` : ''}${p.bankrupt ? `, ${T.players.bankrupt}` : ''}`}
         aria-current={isCurrent ? 'true' : undefined}
         data-player={p.id}
@@ -135,10 +137,10 @@ function PlayerCard({
               {net.proxyMine ? T.online.youPlayFor : T.online.playedBy(net.proxyName)}
             </span>
           )}
-          {p.inJail && (
+          {held && (
             <span className="badge badge-jail">
               <JailSign aria-hidden="true" />
-              {T.players.inJail}
+              {held}
             </span>
           )}
           {p.skipNextTurn && (
@@ -158,6 +160,13 @@ function PlayerCard({
               <IdCard aria-hidden="true" />
               {p.jailCards.length}
               <span className="sr-only">{T.players.jailCard}</span>
+            </span>
+          )}
+          {p.merit > 0 && (
+            <span className="badge badge-soft" title={T.players.merit(p.merit)}>
+              <Pagoda aria-hidden="true" />
+              {p.merit}
+              <span className="sr-only">{T.players.merit(p.merit)}</span>
             </span>
           )}
           {p.houseVouchers.length > 0 && (

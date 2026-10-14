@@ -1672,7 +1672,7 @@ select {
 }
 
 .app[data-names='my'] {
-  --cash-scale: 0.78;
+  --cash-scale: 0.7;
 }
 
 /* Burmese card titles: smaller and with room for the script's stacked marks (D101). */
@@ -5374,6 +5374,11 @@ ol.rules-lines {
   list-style: none;
 }
 
+/* Phones: active events and the Myanmar inflation rate above the players (D102). */
+.phone-modifiers {
+  margin-bottom: 8px;
+}
+
 /* The play area and the chat side by side; no player column. */
 .hud.is-room {
   grid-template-columns: minmax(0, 1fr);
@@ -5882,4 +5887,40 @@ ol.rules-lines {
 /* The trade panel's title already names who answers ("Mia offers you a trade"). */
 .phone-panel .trade-panel .panel-whose {
   display: none;
+}
+
+/* Myanmar map: the call-up choices, each beside what it costs and what follows (D102). */
+.draft-intro {
+  margin: 0 0 8px;
+}
+
+.draft-options {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-option {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.draft-option .btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.draft-hint {
+  font-size: var(--fs-small);
+  color: var(--muted-ink);
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .draft-option {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

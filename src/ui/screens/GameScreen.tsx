@@ -17,6 +17,7 @@ import {
   Save,
   Volume2,
   VolumeX,
+  TrendingUp,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -222,11 +223,18 @@ function ChatButton() {
 }
 
 /** Active events (rent and building cost modifiers) as chips. */
-function Modifiers({ s, className }: { s: GameState; className: string }) {
+export function Modifiers({ s, className }: { s: GameState; className: string }) {
   return (
     <ul className={className} aria-label={T.top.modifiersLabel}>
+      {/* Myanmar map: the inflation rate is always shown once there is any (spec 7.4, D102). */}
+      {s.economy.inflation > 0 && (
+        <li key="inflation" className="chip chip-up" title={T.top.inflationTitle}>
+          <TrendingUp size={13} aria-hidden="true" />
+          {T.top.inflation(s.economy.inflation)}
+        </li>
+      )}
       {s.flow.modifiers.map((m) => (
-        <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
+        <li key={`${m.type}-${m.cardId}`} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
           <Layers size={13} aria-hidden="true" />
           {modifierLabel(m.type, m.factor, m.cardId)}
         </li>
@@ -490,7 +498,7 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
         {!online && <FocusCard s={s} fallback={position} />}
         <div className="stage-side">
           {online && s.players.length >= 5 && <RoundCounter s={s} className="tb-round stage-round" />}
-          {online && s.flow.modifiers.length > 0 && <Modifiers s={s} className="stage-modifiers" />}
+          {online && (s.flow.modifiers.length > 0 || s.economy.inflation > 0) && <Modifiers s={s} className="stage-modifiers" />}
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
@@ -604,6 +612,11 @@ function useKeyboard(): void {
         dispatch({ type: 'buy' });
       } else if (key === 'p' && validateAction(s, { type: 'decline' }) === null) {
         dispatch({ type: 'decline' });
+      } else if (key === 'b' && validateAction(s, { type: 'donate', give: true }) === null) {
+        // Myanmar map: the pagoda donation answers to the same keys (D102).
+        dispatch({ type: 'donate', give: true });
+      } else if (key === 'p' && validateAction(s, { type: 'donate', give: false }) === null) {
+        dispatch({ type: 'donate', give: false });
       } else if (key === 't' && showTradeButton(s)) {
         e.preventDefault();
         openSheet({ kind: 'trade' });

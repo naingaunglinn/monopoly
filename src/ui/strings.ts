@@ -137,6 +137,8 @@ export const T = {
     saved: 'Game saved',
     saveFailed: 'Saving failed: this browser blocks storage.',
     modifiersLabel: 'Active events',
+    inflation: (rate: number) => `Inflation +${rate}%`,
+    inflationTitle: 'City rents are this much higher than printed. The owner of KBZ Bank pays without it.',
     until: (name: string) => `Until ${name}’s next turn`,
     sound: 'Sound effects',
     soundOn: 'Sound effects on',
@@ -344,7 +346,9 @@ export const T = {
     get inJail() {
       return byMap('In Jail', 'In the camp');
     },
-    onVacation: 'On vacation',
+    get onVacation() {
+      return byMap('On vacation', 'No fuel');
+    },
     bankrupt: 'Bankrupt',
     /** A bankrupt player's chip in the top bar (room play). */
     out: 'Out',
@@ -353,6 +357,9 @@ export const T = {
       return byMap('Get Out of Jail card', 'Call-up exemption card');
     },
     voucher: 'Free House card',
+    merit: (n: number) => plural(n, 'merit point', 'merit points'),
+    draft: (status: 'hiding' | 'serving' | 'fled', turns: number) =>
+      status === 'hiding' ? `Hiding, ${plural(turns, 'turn', 'turns')}` : status === 'serving' ? `In the army, ${plural(turns, 'turn', 'turns')}` : 'At the border',
     open: (name: string) => `Open ${name}’s properties`,
   },
   log: {
@@ -440,6 +447,7 @@ export const T = {
       amount: 'Amount',
       toBank: 'Paid to the bank',
       freeStay: (left: number) => `Use Free Stay (${left} left)`,
+      merit: (left: number) => `Skip it with a merit point (${left} left)`,
       freeStayHint: 'A Free Stay token skips the rent on another player’s city.',
     },
     company: {
@@ -474,6 +482,9 @@ export const T = {
         return byMap('Event', 'News');
       },
       boarding: 'Boarding pass',
+      cancelMerit: 'Cancel it with a merit point',
+      brokerPay: (amount: number) => `Pay ${money(amount)}`,
+      toCamp: 'Go to the Military camp',
       get news() {
         return byMap('World news', 'Myanmar news');
       },
@@ -494,8 +505,47 @@ export const T = {
     vacation: {
       title: 'Vacation',
       landed: (name: string) => `${name} is on vacation. Their next turn will be skipped.`,
-      skipTitle: (name: string) => `${name} is on vacation`,
-      skip: 'This turn is skipped. Rent still comes in as usual.',
+      skipTitle: (name: string) => byMap(`${name} is on vacation`, `${name} has no fuel`),
+      get skip() {
+        return byMap('This turn is skipped. Rent still comes in as usual.', 'Fuel shortage: this turn is skipped. Rent still comes in as usual.');
+      },
+    },
+    // Myanmar map (D102)
+    draft: {
+      title: (name: string) => `${name} is called up`,
+      intro: 'Choose how to deal with military service. During service no rent comes in, except at the border.',
+      pay: (amount: number) => `Pay ${money(amount)}`,
+      get payHint() {
+        return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
+      },
+      hide: 'Hide',
+      hideHint: `Skip ${MYANMAR.draftHideTurns} turns. No rent meanwhile.`,
+      flee: (amount: number) => `Flee to the border · ${money(amount)}`,
+      fleeHint: `To the Muse Border Gate. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
+      serve: 'Serve',
+      get serveHint() {
+        return `Skip ${MYANMAR.draftServeTurns} turns. No rent meanwhile. ${money(MYANMAR.draftServeBonus)} on return.`;
+      },
+      merit: 'Use a merit point',
+      meritHint: 'Free at once.',
+      card: 'Use Call-up exemption card',
+      cardHint: 'Free at once.',
+      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled') =>
+        status === 'hiding' ? `${name} is in hiding` : status === 'serving' ? `${name} is serving in the army` : `${name} is at the border`,
+      skip: (left: number) => (left > 0 ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.` : 'This turn is skipped. Free after it.'),
+      noRent: 'No rent comes in meanwhile.',
+      rentStill: 'Rent still comes in.',
+      bonus: (amount: number) => `Back from the army after this turn: ${signedMoney(amount)}.`,
+      leaveMerit: 'Leave now with a merit point',
+      leaveCard: 'Leave now with the exemption card',
+    },
+    donation: {
+      title: (name: string) => `Donate at ${name}?`,
+      text: (amount: number) => `Donate ${money(amount)} for 1 merit point.`,
+      have: (merit: number, max: number) => `Merit points: ${merit} of ${max}`,
+      uses: 'A merit point frees you from military service, skips one rent, or cancels a bad Chance card.',
+      give: (amount: number) => `Donate ${money(amount)}`,
+      no: 'No thanks',
     },
     debt: {
       title: (name: string) => `${name} owes money`,
@@ -1215,7 +1265,10 @@ export type RuleTopicId =
   | 'debt'
   | 'winning'
   | 'controls'
-  | 'online';
+  | 'online'
+  /** Myanmar map only (D102). */
+  | 'merit'
+  | 'companyEvents';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1383,8 +1436,8 @@ export function ruleTopics(): readonly RuleTopic[] {
       lines: myanmar
         ? [
             'Land on Chance or News to draw a card, then do what it says.',
-            'Chance mostly affects you: money, movement and the Military camp.',
-            'News is Myanmar news. Some cards change the rent of a region or close a transport space until the next turn of the player who drew it. Active news shows at the top of the screen.',
+            'Chance mostly affects you: money, movement, merit and military service. A merit point cancels a bad Chance card.',
+            'News is Myanmar news. Some cards change rents or trading until the next turn of the player who drew it. Active news shows at the top of the screen.',
             'Call-up exemption: keep it until you need it. You can trade it.',
           ]
         : [
@@ -1409,14 +1462,15 @@ export function ruleTopics(): readonly RuleTopic[] {
         },
     {
       id: 'jail',
-      title: byMap('Jail', 'Military camp'),
+      title: byMap('Jail', 'Military service'),
       lines: myanmar
         ? [
-            'You go to the Military camp from the Call-up letter space, from a card, or by rolling three doubles in one turn.',
-            `To leave: pay ${money(BALANCE.jailFine)}, use a Call-up exemption card, or roll doubles.`,
-            'Rolling doubles moves you out by that roll, with no extra roll.',
-            `After three failed rolls you must pay ${money(BALANCE.jailFine)} and move.`,
-            'In the camp you still collect rent, trade and bid.',
+            'You are called up by the Call-up letter space, by a Chance card, or by rolling three doubles in one turn. You go to the Military camp and choose at once:',
+            `Pay a tenth of your cash, at least ${money(MYANMAR.draftPayMin)}, and you are free.`,
+            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns and collect no rent.`,
+            `Flee: ${money(MYANMAR.draftFleeCost)} takes you to the Muse Border Gate. You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
+            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns, collect no rent, and get ${money(MYANMAR.draftServeBonus)} on return.`,
+            'A merit point or a Call-up exemption card frees you at once, also at the start of a skipped turn.',
             'Landing on the Military camp during a normal move is just visiting.',
           ]
         : [
@@ -1428,6 +1482,29 @@ export function ruleTopics(): readonly RuleTopic[] {
             'Landing on the Jail space during a normal move is just visiting.',
           ],
     },
+    myanmar
+      ? {
+          id: 'merit',
+          title: 'Merit',
+          lines: [
+            `Land on a pagoda (Shwedagon, Kyaiktiyo or Mahamuni) and you may donate ${money(MYANMAR.meritDonation)} for 1 merit point. You keep at most ${MYANMAR.meritMax}.`,
+            'Spend a merit point to leave military service at once, to skip one rent owed to a player, or to cancel a bad Chance card.',
+            'Merit points cannot be traded.',
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'companyEvents',
+          title: 'Company news and inflation',
+          lines: [
+            'Blackout: until the next turn of the player who drew it, city rents are halved and YESC earns double.',
+            'Internet cut: until then only the owner of MPT can offer trades. Offers can still be accepted or rejected.',
+            'Fuel shortage: every player skips their next turn, except the owner of Denko and players in military service.',
+            `Inflation: city rents rise ${MYANMAR.inflationStep}% for the rest of the game, and again after every ${MYANMAR.inflationEvery} rounds. The rate shows at the top of the screen. The owner of KBZ Bank pays city rent without it.`,
+          ],
+        }
+      : null,
     myanmar
       ? null
       : {
@@ -1442,7 +1519,7 @@ export function ruleTopics(): readonly RuleTopic[] {
       lines: myanmar
         ? [
             `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}. ${specialName('luxuryTax')}: pay ${money(RULES.luxuryTax)}.`,
-            'Pagodas and the Refuge: nothing happens.',
+            'Pagodas: you may donate for a merit point. The Refuge: nothing happens.',
           ]
         : [`Income Tax: pay ${money(RULES.incomeTax)}. Luxury Tax: pay ${money(RULES.luxuryTax)}.`, 'Free Parking: nothing happens.'],
     },

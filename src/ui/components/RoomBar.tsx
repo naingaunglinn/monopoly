@@ -18,8 +18,9 @@ import { shownCash, useDisplay, type FloatAmount } from '../display';
 import { usePresenceClock, type OnlineState } from '../session/online';
 import { openSheet } from '../store';
 import { money, signedMoney, T } from '../strings';
+import { heldLabel } from '../view';
 import { TokenChip } from './glyphs';
-import { jailIcon } from './icons';
+import { jailIcon, Pagoda } from './icons';
 import { seatNet, type SeatNet } from './PlayersColumn';
 import { VoiceBadge } from './Voice';
 
@@ -62,7 +63,7 @@ function statusWords(p: Player, net: SeatNet | null): string[] {
     p.bankrupt ? T.players.bankrupt : null,
     net?.offline ? T.online.disconnected : null,
     net?.proxyName ? (net.proxyMine ? T.online.youPlayFor : T.online.playedBy(net.proxyName)) : null,
-    p.inJail ? T.players.inJail : null,
+    heldLabel(p),
     p.skipNextTurn ? T.players.onVacation : null,
   ].filter((w): w is string => w !== null);
 }
@@ -114,12 +115,13 @@ function MeChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
             {s.meta.settings.freeStay && <Count icon={BedDouble} n={p.freeStay} label={T.players.freeStay(p.freeStay)} />}
             {p.jailCards.length > 0 && <Count icon={IdCard} n={p.jailCards.length} label={T.players.jailCard} />}
             {p.houseVouchers.length > 0 && <Count icon={House} n={p.houseVouchers.length} label={T.players.voucher} />}
+            {p.merit > 0 && <Count icon={Pagoda} n={p.merit} label={T.players.merit(p.merit)} />}
           </span>
         )}
-        {p.inJail && (
-          <span className="badge badge-jail tb-badge" title={T.players.inJail}>
+        {heldLabel(p) && (
+          <span className="badge badge-jail tb-badge" title={heldLabel(p) ?? undefined}>
             <JailSign aria-hidden="true" />
-            <span className="tb-badge-label">{T.players.inJail}</span>
+            <span className="tb-badge-label">{heldLabel(p)}</span>
           </span>
         )}
         {p.skipNextTurn && (
@@ -142,7 +144,7 @@ function statusSign(p: Player, net: SeatNet | null): { kind: string; Icon: Lucid
   if (p.bankrupt) return null;
   if (net?.proxyName) return { kind: 'proxy', Icon: Gamepad2 };
   if (net?.offline) return { kind: 'offline', Icon: WifiOff };
-  if (p.inJail) return { kind: 'jail', Icon: jailIcon(Lock) };
+  if (heldLabel(p)) return { kind: 'jail', Icon: jailIcon(Lock) };
   if (p.skipNextTurn) return { kind: 'vacation', Icon: TreePalm };
   return null;
 }

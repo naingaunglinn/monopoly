@@ -176,6 +176,9 @@ export function goBankrupt(c: Ctx, playerId: number, creditor: number | null): v
   p.inJail = false;
   p.jailAttempts = 0;
   p.skipNextTurn = false;
+  // Myanmar map: service and merit end with the player (D102).
+  p.draft = null;
+  p.merit = 0;
   p.recap = [];
 
   // Debts owed by or to this player are void now.

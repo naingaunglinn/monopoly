@@ -16,13 +16,14 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useState } from 'react';
-import { BALANCE } from '../../data/balance';
+import { BALANCE, MYANMAR } from '../../data/balance';
 import { CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, groupName, propertyPrice } from '../../data/board';
 import {
   buildQuote,
   canRaiseMoney,
   cardById,
   cityRent,
+  draftPayCost,
   minimumBid,
   ranking,
   validateAction,
@@ -34,7 +35,7 @@ import { Button } from '../components/Button';
 import { DeedSummary } from '../components/FocusCard';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
-import { CARD_ICONS, COMPANY_ICONS, jailIcon } from '../components/icons';
+import { CARD_ICONS, COMPANY_ICONS, jailIcon, Pagoda } from '../components/icons';
 import { leaveToStart } from '../session/online';
 import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
 import { levelText, money, rentCalcText, signedMoney, specialName, T } from '../strings';
@@ -210,6 +211,8 @@ function RentPanel({ s }: { s: GameState }) {
             <Button id="use-free-stay" label={T.panels.rent.freeStay(payer.freeStay)} action={{ type: 'useFreeStay' }} />
             <QuickHelpButton topic="freeStay" label={T.panels.rent.freeStayHint} />
           </span>
+        ) : reason(s, { type: 'useMerit' }) === null ? (
+          <Button id="use-merit" label={T.panels.rent.merit(payer.merit)} action={{ type: 'useMerit' }} />
         ) : null
       }
     >
@@ -330,6 +333,9 @@ function CardPanel({ s }: { s: GameState }) {
   const Icon = CARD_ICONS[card.icon];
   const kept = card.effect.type === 'getOutOfJail' || card.effect.type === 'freeHouseVoucher';
   const isChance = card.deck === 'chance';
+  // Myanmar map (D102): a bad Chance card can be cancelled with a merit point; the broker can be paid.
+  const canCancel = reason(s, { type: 'useMerit' }) === null;
+  const broker = card.effect.type === 'broker' ? card.effect.amount : null;
   return (
     <Panel
       id="card"
@@ -339,6 +345,22 @@ function CardPanel({ s }: { s: GameState }) {
       help="cards"
       tone={card.tone === 'good' ? 'good' : card.tone === 'bad' ? 'bad' : 'neutral'}
       className={isChance ? 'card-chance' : 'card-event'}
+      actions={
+        broker !== null || canCancel ? (
+          <span className="inline-actions">
+            {broker !== null && (
+              <Button
+                id="broker-pay"
+                label={T.panels.card.brokerPay(broker)}
+                reason={reason(s, { type: 'brokerPay' })}
+                showReason
+                action={{ type: 'brokerPay' }}
+              />
+            )}
+            {canCancel && <Button id="use-merit" label={T.panels.card.cancelMerit} action={{ type: 'useMerit' }} />}
+          </span>
+        ) : null
+      }
     >
       {isChance ? (
         <div className={`boarding-pass tone-${card.tone}`}>
@@ -395,6 +417,90 @@ function JailPanel({ s }: { s: GameState }) {
     >
       <p className="fact-strong">{T.panels.jail.attempts(me.jailAttempts, BALANCE.jailMaxAttempts)}</p>
       {me.jailAttempts === BALANCE.jailMaxAttempts - 1 && <p className="warn-text">{T.panels.jail.lastAttempt}</p>}
+    </Panel>
+  );
+}
+
+/** Myanmar map: just called up, the player chooses one way to deal with military service (D102). */
+function DraftChoicePanel({ s }: { s: GameState }) {
+  const me = s.players[s.turn.currentPlayerIndex] as Player;
+  const options: Array<{ how: 'pay' | 'hide' | 'flee' | 'serve' | 'merit' | 'card'; label: string; hint: string }> = [
+    { how: 'pay', label: T.panels.draft.pay(draftPayCost(me.cash)), hint: T.panels.draft.payHint },
+    { how: 'hide', label: T.panels.draft.hide, hint: T.panels.draft.hideHint },
+    { how: 'flee', label: T.panels.draft.flee(MYANMAR.draftFleeCost), hint: T.panels.draft.fleeHint },
+    { how: 'serve', label: T.panels.draft.serve, hint: T.panels.draft.serveHint },
+  ];
+  if (me.merit > 0) options.push({ how: 'merit', label: T.panels.draft.merit, hint: T.panels.draft.meritHint });
+  if (me.jailCards.length > 0) options.push({ how: 'card', label: T.panels.draft.card, hint: T.panels.draft.cardHint });
+  return (
+    <Panel id="draft" icon={jailIcon(LockKeyhole)} title={T.panels.draft.title(me.name)} whose={me} help="jail" tone="warn">
+      <p className="draft-intro">{T.panels.draft.intro}</p>
+      <ul className="draft-options">
+        {options.map((o) => {
+          const action = { type: 'draftChoose', how: o.how } as const;
+          return (
+            <li key={o.how} className="draft-option">
+              <Button id={`draft-${o.how}`} label={o.label} reason={reason(s, action)} action={action} />
+              <span className="draft-hint">{o.hint}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </Panel>
+  );
+}
+
+/** Myanmar map: a turn in military service is skipped; a merit point or the card ends it now. */
+function DraftSkipPanel({ s }: { s: GameState }) {
+  const me = s.players[s.turn.currentPlayerIndex] as Player;
+  const draft = me.draft;
+  if (!draft) return null;
+  const left = draft.turns - 1;
+  return (
+    <Panel
+      id="draft-skip"
+      icon={jailIcon(LockKeyhole)}
+      title={T.panels.draft.skipTitle(me.name, draft.status)}
+      whose={me}
+      help="jail"
+      tone="neutral"
+      actions={
+        me.merit > 0 || me.jailCards.length > 0 ? (
+          <span className="inline-actions">
+            {me.merit > 0 && <Button id="leave-merit" label={T.panels.draft.leaveMerit} action={{ type: 'leaveDraft', how: 'merit' }} />}
+            {me.jailCards.length > 0 && <Button id="leave-card" label={T.panels.draft.leaveCard} action={{ type: 'leaveDraft', how: 'card' }} />}
+          </span>
+        ) : null
+      }
+    >
+      <p className="fact-strong">{T.panels.draft.skip(left)}</p>
+      <p>{draft.status === 'fled' ? T.panels.draft.rentStill : T.panels.draft.noRent}</p>
+      {draft.status === 'serving' && left === 0 && <p>{T.panels.draft.bonus(MYANMAR.draftServeBonus)}</p>}
+    </Panel>
+  );
+}
+
+/** Myanmar map: landed on a pagoda, the player may donate for a merit point. */
+function DonationPanel({ s, space }: { s: GameState; space: number }) {
+  const me = s.players[s.turn.currentPlayerIndex] as Player;
+  return (
+    <Panel
+      id="donation"
+      icon={Pagoda}
+      title={T.panels.donation.title(spaceName(s, space))}
+      whose={me}
+      help="merit"
+      tone="good"
+      actions={<Button id="donation-no" label={T.panels.donation.no} keyHint="P" action={{ type: 'donate', give: false }} />}
+    >
+      <dl className="facts">
+        <div className="fact">
+          <dt>{T.panels.donation.text(MYANMAR.meritDonation)}</dt>
+          <dd className="fact-big money">{money(MYANMAR.meritDonation)}</dd>
+        </div>
+        <p className="fact-strong">{T.panels.donation.have(me.merit, MYANMAR.meritMax)}</p>
+        <p className="fact-hint">{T.panels.donation.uses}</p>
+      </dl>
     </Panel>
   );
 }
@@ -551,8 +657,11 @@ export function ActivePanel({ s }: { s: GameState }) {
   const pending = s.flow.pending;
   switch (s.flow.phase) {
     case 'TurnStart':
+      if (pending?.kind === 'draftChoice') return <DraftChoicePanel s={s} />;
+      if (pending?.kind === 'draftSkip') return <DraftSkipPanel s={s} />;
       return pending?.kind === 'vacationSkip' ? <VacationSkipPanel s={s} /> : <JailPanel s={s} />;
     case 'BuyDecision':
+      if (pending?.kind === 'donation') return <DonationPanel s={s} space={pending.space} />;
       return pending?.kind === 'buy' ? <BuyPanel s={s} space={pending.space} /> : null;
     case 'Auction':
       return <AuctionPanel s={s} />;

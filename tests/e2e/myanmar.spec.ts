@@ -79,6 +79,28 @@ test('choose the Myanmar map: a 48-space board in lakh, its corners, and names i
   expect(log.errors).toEqual([]);
 });
 
+test('stage 2 by clicking: the call-up choice, the pagoda donation (B key), merit on rent', async ({ page }) => {
+  const log = trackErrors(page);
+  const states = myanmarStates();
+  const state = () => page.evaluate(() => (window as unknown as { __GM__: { getState: () => any } }).__GM__.getState());
+  await loadState(page, states['mm-draft-choice'] as never, '?seed=42');
+  await expect(page.locator('[data-panel="draft"]')).toBeVisible();
+  await expect(page.locator('#draft-pay')).toContainText('800 lakh');
+  await page.locator('#draft-hide').click();
+  await expect.poll(async () => (await state()).players[0].draft).toEqual({ status: 'hiding', turns: 2 });
+  await expect(page.locator('.player-card').first()).toContainText('Hiding, 2 turns');
+
+  await loadState(page, states['mm-pagoda'] as never, '?seed=42');
+  await expect(page.locator('[data-panel="donation"]')).toBeVisible();
+  await page.keyboard.press('b');
+  await expect.poll(async () => (await state()).players[0].merit).toBe(1);
+
+  await loadState(page, states['mm-rent-merit'] as never, '?seed=42');
+  await page.locator('#use-merit').click();
+  await expect.poll(async () => (await state()).players[0].merit).toBe(1);
+  expect(log.errors).toEqual([]);
+});
+
 test('online: the host picks Myanmar in the lobby; each device keeps its own language', async ({ browser }) => {
   const ONLINE = 'http://localhost:4175';
   const open = async () => {

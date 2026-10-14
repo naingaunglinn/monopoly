@@ -1222,8 +1222,8 @@ Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen b
 | Stage | Contents | Status |
 | --- | --- | --- |
 | 1 | Board, 25 cities, 4 transport spaces, 4 companies, money in lakh, Burmese/English names and cards | Done (D101) |
-| 2 | Military service, merit, the four company events | To do |
-| 3 | Inflation, earthquake, tolls, lottery, community pot, remittance | To do |
+| 2 | Military service, merit, the four company events (and inflation, which the Inflation card needs) | Done (D102) |
+| 3 | Earthquake, tolls, lottery, community pot, remittance | To do |
 | 4 | Loans | To do |
 
 ### Board
@@ -1253,10 +1253,10 @@ Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen b
 
 ### The eleven features
 
-1. **Military service** (instead of Jail). A player is called up by the Call-up letter corner, by the Chance card "On the conscription list", or by three doubles in a row. On arriving they choose one of five ways: **pay** 10% of their cash (at least 500 lakh) and go free at once; **hide**, free, skipping 2 turns and collecting no rent; **flee**, 800 lakh, moving to the Muse Border Gate and skipping 1 turn, still collecting rent; **serve**, free, skipping 3 turns and collecting no rent, with 300 lakh on return; **use a merit point** and go free at once. During military service a player collects no rent, except one who fled. *(Stage 2; until then the Military camp works as the World map's Jail.)*
+1. **Military service** (instead of Jail). A player is called up by the Call-up letter corner, by the Chance card "On the conscription list", or by three doubles in a row. On arriving they choose one of five ways: **pay** 10% of their cash (at least 500 lakh) and go free at once; **hide**, free, skipping 2 turns and collecting no rent; **flee**, 800 lakh, moving to the Muse Border Gate and skipping 1 turn, still collecting rent; **serve**, free, skipping 3 turns and collecting no rent, with 300 lakh on return; **use a merit point** and go free at once. During military service a player collects no rent, except one who fled. *(Stage 2.)*
 2. **Merit**. The three pagodas (Shwedagon, Kyaiktiyo, Mahamuni): landing there, a player may donate 200 lakh for 1 merit point; at most 3 are kept. A merit point may be spent at any time to leave military service at once, to skip one rent payment, or to cancel one bad Chance card. *(Stage 2.)*
 3. **Company events** (News cards): **Blackout**: this round every city's rent is 50% lower, and YESC's owner earns double. **Internet cut**: this round nobody may trade or take a loan, except MPT's owner. **Fuel shortage**: every player skips a turn, except Denko's owner. **Inflation**: see 4; KBZ Bank's owner is not affected. *(Stage 2.)*
-4. **Inflation**. After every 5 rounds every city's rent rises 10%; cash in hand does not. The current rate (for example +30%) is always shown. *(Stage 3.)*
+4. **Inflation**. After every 5 rounds every city's rent rises 10%; cash in hand does not. The current rate (for example +30%) is always shown. *(Built in stage 2, with the Inflation card.)*
 5. **Earthquake** (News card): one die is rolled; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund. *(Stage 3.)*
 6. **Money in lakh**, never `$` (for example 830 lakh), and a **Burmese / English switch** for city names and card texts. *(Stage 1.)*
 7. **Tolls**. Passing (not landing on) the Expressway or the Muse Border Gate costs 20 lakh, paid to its owner; nothing when it has no owner or is the player's own. *(Stage 3.)*
