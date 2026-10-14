@@ -7,6 +7,7 @@ import type { CountryId } from '../data/countries.js';
 import type { MyanmarTransport } from '../data/myanmar.js';
 import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
 import { airportsOwnedBy, companiesOwnedBy, ownsCountry } from './core.js';
+import { boostedCompany, inflationFactor } from './myanmar.js';
 import type { Dice, GameState, RentCalc } from './types.js';
 
 export function modifierFactor(s: GameState, type: ModifierType): number | null {
@@ -42,6 +43,15 @@ function transportFactor(s: GameState, space: number): number | null {
   return factor;
 }
 
+/** Myanmar map: a modifier that raises one company's rent (YESC during a blackout). */
+function companyBoost(s: GameState, company: string): number | null {
+  let factor: number | null = null;
+  for (const m of s.flow.modifiers) {
+    if (m.type === 'companyBoost' && boostedCompany(m.cardId) === company) factor = (factor ?? 1) * m.factor;
+  }
+  return factor;
+}
+
 function applyFactor(amount: number, factor: number | null): number {
   return factor === null ? amount : roundMoney(amount * factor);
 }
@@ -51,12 +61,15 @@ export interface RentQuote {
   calc: RentCalc;
 }
 
-/** Rent for a city with its current owner, ignoring the mortgage (callers check that). */
-export function cityRent(s: GameState, space: number): RentQuote {
+/**
+ * Rent for a city with its current owner, ignoring the mortgage (callers check that). `payer`
+ * matters only on the Myanmar map, where the owner of KBZ Bank pays without inflation (D102).
+ */
+export function cityRent(s: GameState, space: number, payer: number | null = null): RentQuote {
   const city = CITY_BY_SPACE.get(space);
   const p = s.properties[space];
   if (!city || !p || p.owner === null) throw new Error(`No owned city at ${space}`);
-  const factor = combine(modifierFactor(s, 'cityRent'), groupFactor(s, city.country));
+  const factor = combine(combine(modifierFactor(s, 'cityRent'), groupFactor(s, city.country)), inflationFactor(s, payer));
   if (!ownsCountry(s, p.owner, city.country)) {
     return { amount: applyFactor(city.baseRent, factor), calc: { kind: 'cityBase', baseRent: city.baseRent, factor } };
   }
@@ -90,7 +103,7 @@ export function companyRent(s: GameState, space: number, dice: Dice): RentQuote 
     RULES.companyMultipliers && owner !== null
       ? (RULES.companyMultipliers[companiesOwnedBy(s, owner) - 1] ?? company.multiplier)
       : company.multiplier;
-  const factor = modifierFactor(s, 'companyRent');
+  const factor = combine(modifierFactor(s, 'companyRent'), companyBoost(s, company.id));
   return {
     amount: applyFactor(total * multiplier, factor),
     calc: { kind: 'company', dice, total, multiplier, factor },

@@ -98,6 +98,8 @@ export const SIM = {
   sensibleFreeStayAbove: 150,
   sensibleJailFeeAbove: 1000,
   sensibleUnmortgageAbove: 1500,
+  /** Myanmar map: the sensible bot spends a merit point on rent of at least this much. */
+  sensibleMeritRentAbove: 400,
   /** Non-progress actions (trade, mortgage, sell...) a bot may take before it must make progress. */
   botFreeActionsPerDecision: 4,
 } as const;
@@ -135,6 +137,13 @@ export const MYANMAR = {
   /** Donated at a pagoda for one merit point. */
   meritDonation: 200,
   meritMax: 3,
+  /** The broker card: paid to stay off the conscription list. */
+  brokerFee: 500,
+  /** The pagoda festival card: donated for one merit point. */
+  festivalDonation: 100,
+  /** Blackout: city rents are multiplied by this, YESC's by the next. */
+  blackoutCityFactor: 0.5,
+  blackoutCompanyFactor: 2,
 
   // Stage 3 (spec 7.4 to 7.10, D104)
   /** City rents rise this many percent... */
@@ -211,10 +220,10 @@ export const MYANMAR_RULES: MapRules = {
   airportRent: MYANMAR.transportRent,
   companyMultipliers: MYANMAR.companyMultipliers,
   freeStay: false,
-  conscription: false,
-  merit: false,
+  conscription: true,
+  merit: true,
   pot: false,
-  inflation: false,
+  inflation: true,
   tolls: false,
   lottery: false,
   loans: false,

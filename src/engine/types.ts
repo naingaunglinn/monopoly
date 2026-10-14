@@ -72,7 +72,11 @@ export type MoneyReason =
   | 'jailFine'
   | 'trade'
   | 'bankruptcy'
-  | 'debug';
+  | 'debug'
+  /** Myanmar map: paying or fleeing military service, and the bonus for serving (D102). */
+  | 'draft'
+  /** Myanmar map: a donation for merit (D102). */
+  | 'merit';
 
 /** Something that changed a player's cash while it was not their turn (shown at turn start). */
 export interface RecapItem {
@@ -231,7 +235,16 @@ export type Pending =
   | { kind: 'companyRoll'; space: number; owner: number }
   | { kind: 'card'; deck: DeckId; cardId: string }
   | { kind: 'build'; space: number }
-  | { kind: 'debt' };
+  | { kind: 'debt' }
+  /** Myanmar map: just called up, the player chooses how to deal with military service (D102). */
+  | { kind: 'draftChoice' }
+  /** Myanmar map: a turn spent hiding, serving or at the border is skipped (D102). */
+  | { kind: 'draftSkip' }
+  /** Myanmar map: landed on a pagoda, the player may donate for merit (D102). */
+  | { kind: 'donation'; space: number };
+
+/** The five ways out of military service, and the Call-up exemption card (spec 7.1, D102). */
+export type DraftChoice = 'pay' | 'hide' | 'flee' | 'serve' | 'merit' | 'card';
 
 export type DebtReason =
   | { kind: 'rent'; space: number }
@@ -381,6 +394,16 @@ export type Action =
   | { type: 'counterTrade'; offer: TradeOffer }
   /** The player who made the offer on the table takes it back (D99). */
   | { type: 'withdrawTrade' }
+  /** Myanmar map (D102): the choice on being called up. */
+  | { type: 'draftChoose'; how: DraftChoice }
+  /** Myanmar map: leave military service now, at the start of a skipped turn. */
+  | { type: 'leaveDraft'; how: 'merit' | 'card' }
+  /** Myanmar map: donate at a pagoda for a merit point, or not. */
+  | { type: 'donate'; give: boolean }
+  /** Myanmar map: spend a merit point to skip this rent or cancel this bad Chance card. */
+  | { type: 'useMerit' }
+  /** Myanmar map: pay the broker on the card instead of going to the Military camp. */
+  | { type: 'brokerPay' }
   | { type: 'endTurn' }
   | { type: 'setPassDevice'; on: boolean }
   | { type: 'setAnimationSpeed'; speed: AnimationSpeed }
@@ -407,7 +430,7 @@ export type GameEvent =
   | { type: 'turnEnded'; player: number }
   | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company'; doubles: boolean }
   | { type: 'moved'; player: number; from: number; to: number; path: number[]; direction: 1 | -1; by: 'dice' | 'card' }
-  | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'debug' }
+  | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'flee' | 'debug' }
   | { type: 'passedStart'; player: number; amount: number }
   | { type: 'landed'; player: number; space: number }
   | { type: 'money'; player: number; delta: number; reason: MoneyReason; counterparty: number | null }
@@ -454,6 +477,16 @@ export type GameEvent =
   | { type: 'playerRemoved'; player: number }
   | { type: 'gameOver'; winners: number[]; reason: EndReason }
   | { type: 'settingChanged'; setting: 'passDevice' | 'animationSpeed' }
+  // Myanmar map (D102)
+  | { type: 'draftChosen'; player: number; how: DraftChoice; cost: number }
+  | { type: 'draftEnded'; player: number; how: 'done' | 'merit' | 'card'; bonus: number }
+  | { type: 'meritGained'; player: number; merit: number }
+  /** Rent not collected: the owner is in military service, or the payer spent a merit point. */
+  | { type: 'rentWaived'; player: number; space: number; owner: number; amount: number; why: 'draft' | 'merit' }
+  | { type: 'cardCancelled'; player: number; cardId: string }
+  /** Fuel shortage: these players skip their next turn. */
+  | { type: 'fuelShortage'; players: number[]; cardId: string }
+  | { type: 'inflationRose'; rate: number; by: 'round' | 'card' }
   | { type: 'debugApplied'; op: DebugOp['op'] };
 
 export type GameEventType = GameEvent['type'];
@@ -494,7 +527,11 @@ export type ErrorCode =
   | 'tradeCash'
   | 'tradeCards'
   | 'noUnmortgageInDebt'
-  | 'invalidAction';
+  | 'invalidAction'
+  /** Myanmar map (D102). */
+  | 'noMerit'
+  | 'meritFull'
+  | 'tradeBlocked';
 
 export type ErrorParams = Record<string, string | number>;
 

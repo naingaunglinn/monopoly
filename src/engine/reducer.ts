@@ -4,7 +4,7 @@ import { BALANCE } from '../data/balance.js';
 import { COUNTRY_CITIES, useMap } from '../data/board.js';
 import { foldBid, placeBid } from './auction.js';
 import { doBuild, doMortgage, doSell, doUnmortgage } from './building.js';
-import { applyCard, discardCard } from './cards.js';
+import { applyCard, cardById, discardCard } from './cards.js';
 import { type Ctx, changeCash, cloneState, countryOf, currentPlayer, deepCopy, emit, prop } from './core.js';
 import { canRaiseMoney, goBankrupt, payHeadDebt, settleDebts } from './debt.js';
 import { freeActor, validateAction } from './legal.js';
@@ -24,6 +24,7 @@ import {
   setRentDue,
   teleport,
 } from './phases.js';
+import { chooseDraft, donate, leaveDraft, payBroker, skipDraftTurn, useMerit } from './myanmar.js';
 import { removePlayer } from './remove.js';
 import { companyRent } from './rent.js';
 import { applyTrade, tradeBlocker } from './trade.js';
@@ -60,6 +61,11 @@ function apply(c: Ctx, action: Action): void {
     case 'acknowledge':
       if (s.flow.notices.length > 0) {
         s.flow.notices.shift();
+        return;
+      }
+      // Myanmar map: a turn in military service (D102).
+      if (pending?.kind === 'draftSkip') {
+        skipDraftTurn(c);
         return;
       }
       // Vacation: this turn is skipped exactly once.
@@ -193,6 +199,24 @@ function apply(c: Ctx, action: Action): void {
       if (action.accept && tradeBlocker(s, offer) === null) applyTrade(c, offer);
       else emit(c, { type: 'tradeRejected', from: offer.from, to: offer.to });
       bankruptIfStuck(c);
+      return;
+    }
+    case 'draftChoose':
+      chooseDraft(c, action.how);
+      return;
+    case 'leaveDraft':
+      leaveDraft(c, action.how);
+      return;
+    case 'donate':
+      donate(c, action.give);
+      return;
+    case 'useMerit':
+      useMerit(c);
+      return;
+    case 'brokerPay': {
+      if (pending?.kind !== 'card') return;
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type === 'broker') payBroker(c, pending.cardId, effect.amount);
       return;
     }
     case 'endTurn':

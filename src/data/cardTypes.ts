@@ -13,7 +13,11 @@ export type ModifierType =
   /** Myanmar map: rent of some regions (the card names them). */
   | 'groupRent'
   /** Myanmar map: rent of one kind of transport (the card names it). */
-  | 'transportRent';
+  | 'transportRent'
+  /** Myanmar map: one company's rent (the card names it), e.g. YESC during a blackout. */
+  | 'companyBoost'
+  /** Myanmar map: no trading, except by the owner of the company the card names. */
+  | 'noTrade';
 export type AssetKind = 'airport' | 'company' | 'city';
 
 export type MoveTarget =
@@ -42,7 +46,19 @@ export type CardEffect =
   /** Myanmar map: these regions' city rents are multiplied until the drawer's next turn. */
   | { type: 'groupRent'; groups: readonly CountryId[]; factor: number }
   /** Myanmar map: this kind of transport earns nothing until the drawer's next turn. */
-  | { type: 'transportClosed'; kind: TransportKind };
+  | { type: 'transportClosed'; kind: TransportKind }
+  /** Myanmar map (D102): pay `amount` or go to the Military camp. */
+  | { type: 'broker'; amount: number }
+  /** Myanmar map: pay `amount` and gain a merit point (none above the maximum). */
+  | { type: 'meritFee'; amount: number }
+  /** Myanmar map: city rents × `cityFactor` and `company`'s rent × `companyFactor` until the drawer's next turn. */
+  | { type: 'blackout'; cityFactor: number; company: CompanyId; companyFactor: number }
+  /** Myanmar map: nobody but `company`'s owner may offer trades until the drawer's next turn. */
+  | { type: 'noTrade'; company: CompanyId }
+  /** Myanmar map: every player skips their next turn, except `company`'s owner and players in military service. */
+  | { type: 'fuelShortage'; company: CompanyId }
+  /** Myanmar map: inflation rises by `step` percent now. */
+  | { type: 'inflation'; step: number };
 
 export type CardEffectType = CardEffect['type'];
 

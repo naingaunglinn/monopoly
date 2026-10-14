@@ -5,6 +5,7 @@ import { COUNTRY_CITIES, propertyPrice } from '../data/board';
 import {
   buildBlocker,
   countryOf,
+  draftPayCost,
   netWorth,
   tradeBlocker,
   type Action,
@@ -167,6 +168,19 @@ export function sensibleBot(ctx: BotContext): Action {
     case 'PassDevice':
       return { type: 'ready' };
     case 'TurnStart':
+      // Myanmar map, called up (D102): a merit point, the exemption card, paying if cash allows, else hiding.
+      if (s.flow.pending?.kind === 'draftChoice') {
+        const choose = (how: string) => legal.find((a) => a.type === 'draftChoose' && a.how === how) as Action | undefined;
+        const pay = choose('pay');
+        const payCost = pay ? draftPayCost(me.cash) : Infinity;
+        return (
+          choose('merit') ??
+          choose('card') ??
+          (me.cash - payCost >= SIM.sensibleJailFeeAbove ? pay : undefined) ??
+          choose('hide') ??
+          (concrete(legal)[0] as Action)
+        );
+      }
       return (
         has('useJailCard') ??
         (me.cash > SIM.sensibleJailFeeAbove ? has('payJailFine') : undefined) ??
@@ -176,6 +190,11 @@ export function sensibleBot(ctx: BotContext): Action {
     case 'AwaitRoll':
       return unmortgage() ?? (buildAvailable() ? { type: 'openBuild' } : { type: 'roll' });
     case 'BuyDecision': {
+      if (s.flow.pending?.kind === 'donation') {
+        return me.cash > SIM.sensibleUnmortgageAbove && has('donate') && legal.some((a) => a.type === 'donate' && a.give)
+          ? { type: 'donate', give: true }
+          : { type: 'donate', give: false };
+      }
       const space = s.flow.pending?.kind === 'buy' ? s.flow.pending.space : -1;
       const buy = has('buy');
       return buy && me.cash - propertyPrice(space) >= SIM.sensibleKeepCash ? buy : { type: 'decline' };
@@ -191,12 +210,21 @@ export function sensibleBot(ctx: BotContext): Action {
     case 'RentDue': {
       const rent = s.flow.pending?.kind === 'rent' ? s.flow.pending.rent : null;
       const freeStay = has('useFreeStay');
-      return freeStay && rent && rent.amount > SIM.sensibleFreeStayAbove ? freeStay : { type: 'payRent' };
+      if (freeStay && rent && rent.amount > SIM.sensibleFreeStayAbove) return freeStay;
+      // Myanmar map: a merit point on a big rent.
+      const merit = has('useMerit');
+      return merit && rent && rent.amount >= SIM.sensibleMeritRentAbove ? merit : { type: 'payRent' };
     }
     case 'CompanyRoll':
       return { type: 'rollCompanyDice' };
-    case 'CardReveal':
+    case 'CardReveal': {
+      // Myanmar map: cancel a bad card with spare merit; pay the broker when cash allows.
+      const merit = has('useMerit');
+      if (merit && me.merit >= 2) return merit;
+      const broker = has('brokerPay');
+      if (broker && me.cash > SIM.sensibleJailFeeAbove) return broker;
       return { type: 'confirmCard' };
+    }
     case 'BuildOffer':
       return has('build') ?? { type: 'finishBuilding' };
     case 'Debt': {

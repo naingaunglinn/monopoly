@@ -1,8 +1,8 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import { BALANCE, BOARD_SIZE } from '../data/balance.js';
+import { BALANCE, BOARD_SIZE, MYANMAR } from '../data/balance.js';
 import { AIRPORTS, groupName, MAP, RULES, type SpecialType } from '../data/board.js';
-import { MYANMAR_TRANSPORT } from '../data/myanmar.js';
+import { MYANMAR_COMPANIES, MYANMAR_TRANSPORT } from '../data/myanmar.js';
 import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
 import { burmeseDigits, language, pick } from '../data/lang.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
@@ -799,7 +799,15 @@ const MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
   buildCost: 'Build cost',
   groupRent: 'City rent',
   transportRent: 'Transport rent',
+  companyBoost: 'Company rent',
+  noTrade: 'Trading closed',
 };
+
+/** A Myanmar company's name in the device's language. */
+function companyName(id: string): string {
+  const company = MYANMAR_COMPANIES.find((c) => c.id === id);
+  return company ? pick(company.shortName, company.shortNameMy) : id;
+}
 
 /** "A and B", "A, B and C". */
 function andList(items: string[]): string {
@@ -812,6 +820,8 @@ export function modifierLabel(type: ModifierType, factor: number, cardId: string
   const change = `${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
   const effect = cardId ? MYANMAR_CARD_BY_ID.get(cardId)?.effect : undefined;
   if (effect?.type === 'groupRent') return `${andList(effect.groups.map(groupName))} rent ${change}`;
+  if (effect?.type === 'blackout' && type === 'companyBoost') return `${companyName(effect.company)} rent ${change}`;
+  if (effect?.type === 'noTrade') return `Only the ${companyName(effect.company)} owner trades`;
   if (effect?.type === 'transportClosed') {
     const transport = MYANMAR_TRANSPORT.find((t) => t.kind === effect.kind);
     return transport ? `${pick(transport.name, transport.nameMy)} closed` : `${MODIFIER_NAMES[type]} ${change}`;
@@ -877,6 +887,9 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
     byMap(`${p(x, 'player')} doesn't have that many Get Out of Jail cards.`, `${p(x, 'player')} doesn't have that many Call-up exemption cards.`),
   noUnmortgageInDebt: () => 'Pay your debt before unmortgaging.',
   invalidAction: () => 'That action is not available.',
+  noMerit: () => 'You have no merit point.',
+  meritFull: () => `You already hold ${MYANMAR.meritMax} merit points, the most anyone keeps.`,
+  tradeBlocked: () => 'The internet is cut: only the owner of MPT can offer trades until it is back.',
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -932,6 +945,8 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   trade: 'trade',
   bankruptcy: 'bankruptcy',
   debug: 'debug',
+  draft: 'military service',
+  merit: 'donation',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -1109,6 +1124,40 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return e.winners.length > 1
         ? `Game over: shared win for ${e.winners.map(who).join(' and ')}.`
         : `Game over: ${who(e.winners[0] ?? 0)} wins.`;
+    case 'draftChosen':
+      switch (e.how) {
+        case 'pay':
+          return `${who(e.player)} paid ${money(e.cost)} to stay out of military service.`;
+        case 'hide':
+          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped, no rent.`;
+        case 'serve':
+          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, no rent, ${money(MYANMAR.draftServeBonus)} on return.`;
+        case 'flee':
+          return `${who(e.player)} fled to the border for ${money(e.cost)}.`;
+        case 'merit':
+          return `${who(e.player)} spent a merit point and is free.`;
+        case 'card':
+          return `${who(e.player)} used a Call-up exemption card and is free.`;
+      }
+      return null;
+    case 'draftEnded':
+      if (e.how === 'merit') return `${who(e.player)} spent a merit point to leave military service.`;
+      if (e.how === 'card') return `${who(e.player)} used a Call-up exemption card to leave military service.`;
+      return e.bonus > 0 ? `${who(e.player)} is back from the army: ${signedMoney(e.bonus)}.` : `${who(e.player)} is free again.`;
+    case 'meritGained':
+      return `${who(e.player)} now has ${plural(e.merit, 'merit point', 'merit points')}.`;
+    case 'rentWaived':
+      return e.why === 'draft'
+        ? `${who(e.owner)} is in military service: no rent for ${n.space(e.space)}.`
+        : `${who(e.player)} spent a merit point: no rent for ${n.space(e.space)}.`;
+    case 'cardCancelled':
+      return `${who(e.player)} spent a merit point to cancel ${n.cardTitle(e.cardId)}.`;
+    case 'fuelShortage':
+      return e.players.length > 0
+        ? `Fuel shortage: ${andList(e.players.map(who))} skip their next turn.`
+        : 'Fuel shortage: nobody has to skip a turn.';
+    case 'inflationRose':
+      return `Inflation: city rents are now +${e.rate}%.`;
     case 'debugApplied':
       return `Debug: ${e.op}.`;
   }

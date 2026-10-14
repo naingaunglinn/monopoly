@@ -19,6 +19,7 @@ import {
   playersInTurnOrderFrom,
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { applyMyanmarEffect } from './myanmar.js';
 import { afterResolution, moveSteps, sendToJail, startVacation, teleport } from './phases.js';
 import { shuffleInPlace } from './rng.js';
 import type { ActiveModifier, Decks, GameState, Settings } from './types.js';
@@ -266,6 +267,15 @@ export function applyCard(c: Ctx, cardId: string): void {
     case 'transportClosed':
       addModifier(c, { type: 'transportRent', factor: 0, cardId, drawnBy: p.id });
       break;
+    case 'broker':
+    case 'meritFee':
+    case 'blackout':
+    case 'noTrade':
+    case 'fuelShortage':
+    case 'inflation':
+      // Myanmar map, stage 2 (D102): the effect continues the turn itself.
+      applyMyanmarEffect(c, cardId);
+      return;
   }
   s.flow.resume = { kind: 'afterResolution' };
   settleDebts(c);

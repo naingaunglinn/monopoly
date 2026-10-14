@@ -1,12 +1,13 @@
 // Who decides now, what they may do, and why anything else is refused. legalActions() and
 // reduce() share validateAction(), so the UI, the bots and the reducer always agree.
-import { BALANCE } from '../data/balance.js';
-import { BOARD, COUNTRY_CITIES, propertyPrice, useMap } from '../data/board.js';
+import { BALANCE, MYANMAR } from '../data/balance.js';
+import { BOARD, COUNTRY_CITIES, propertyPrice, RULES, useMap } from '../data/board.js';
 import { COUNTRY_BY_ID } from '../data/countries.js';
 import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
 import { cardById, isKnownCard } from './cards.js';
 import { countryOf, currentPlayer, livingPlayers, makeError } from './core.js';
+import { cancellableCard, draftChoiceBlocker, draftPayCost, tradeBlockedFor } from './myanmar.js';
 import { canOfferBuild } from './phases.js';
 import { tradeBlocker } from './trade.js';
 import type { Action, EngineError, GameState, LegalAction, Player } from './types.js';
@@ -29,7 +30,8 @@ export function freeActor(s: GameState): number | null {
   if (s.flow.notices.length > 0 || s.flow.trade !== null) return null;
   switch (s.flow.phase) {
     case 'TurnStart':
-      return s.flow.pending?.kind === 'jailChoice' ? s.turn.currentPlayerIndex : null;
+      // The Jail choice and the call-up choice (Myanmar map) leave time to raise money.
+      return s.flow.pending?.kind === 'jailChoice' || s.flow.pending?.kind === 'draftChoice' ? s.turn.currentPlayerIndex : null;
     case 'AwaitRoll':
     case 'AwaitEndTurn':
     case 'BuildOffer':
@@ -141,6 +143,7 @@ export function validateAction(s: GameState, action: Action): EngineError | null
         // A counter-offer goes back the other way: from the partner to the player who offered.
         const offer = action.offer;
         if (!offer || typeof offer !== 'object' || offer.from !== trade.to || offer.to !== trade.from) return makeError('invalidAction');
+        if (tradeBlockedFor(s, offer.from)) return makeError('tradeBlocked');
         return tradeBlocker(s, offer);
       }
       case 'withdrawTrade':
@@ -158,7 +161,46 @@ export function validateAction(s: GameState, action: Action): EngineError | null
     case 'ready':
       return phase === 'PassDevice' ? null : wrong();
     case 'acknowledge':
-      return phase === 'TurnStart' && pending?.kind === 'vacationSkip' ? null : wrong();
+      return phase === 'TurnStart' && (pending?.kind === 'vacationSkip' || pending?.kind === 'draftSkip') ? null : wrong();
+    case 'draftChoose': {
+      if (phase !== 'TurnStart' || pending?.kind !== 'draftChoice') return wrong();
+      if (!['pay', 'hide', 'flee', 'serve', 'merit', 'card'].includes(action.how)) return makeError('invalidAction');
+      const blocked = draftChoiceBlocker(me, action.how);
+      if (blocked === 'cash') {
+        const needed = action.how === 'pay' ? draftPayCost(me.cash) : MYANMAR.draftFleeCost;
+        return makeError('notEnoughCash', { needed, have: me.cash });
+      }
+      if (blocked === 'merit') return makeError('noMerit');
+      if (blocked === 'card') return makeError('noJailCard');
+      return null;
+    }
+    case 'leaveDraft':
+      if (phase !== 'TurnStart' || pending?.kind !== 'draftSkip') return wrong();
+      if (action.how === 'merit') return me.merit > 0 ? null : makeError('noMerit');
+      if (action.how === 'card') return me.jailCards.length > 0 ? null : makeError('noJailCard');
+      return makeError('invalidAction');
+    case 'donate':
+      if (phase !== 'BuyDecision' || pending?.kind !== 'donation' || typeof action.give !== 'boolean') return wrong();
+      if (!action.give) return null;
+      if (me.merit >= MYANMAR.meritMax) return makeError('meritFull');
+      return me.cash >= MYANMAR.meritDonation ? null : makeError('notEnoughCash', { needed: MYANMAR.meritDonation, have: me.cash });
+    case 'useMerit': {
+      if (!RULES.merit) return wrong();
+      // A rent owed to a player, or a bad Chance card (spec 7.2).
+      if (phase === 'RentDue' && pending?.kind === 'rent' && pending.rent.creditor !== null) {
+        return (s.players[pending.rent.payer] as Player).merit > 0 ? null : makeError('noMerit');
+      }
+      if (phase === 'CardReveal' && pending?.kind === 'card' && cancellableCard(pending.cardId)) {
+        return me.merit > 0 ? null : makeError('noMerit');
+      }
+      return wrong();
+    }
+    case 'brokerPay': {
+      if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type !== 'broker') return wrong();
+      return me.cash >= effect.amount ? null : makeError('notEnoughCash', { needed: effect.amount, have: me.cash });
+    }
     case 'payJailFine':
       if (phase !== 'TurnStart' || pending?.kind !== 'jailChoice') return wrong();
       return me.cash >= BALANCE.jailFine ? null : makeError('notEnoughCash', { needed: BALANCE.jailFine, have: me.cash });
@@ -175,7 +217,7 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       return me.cash >= price ? null : makeError('notEnoughCash', { needed: price, have: me.cash });
     }
     case 'decline':
-      return phase === 'BuyDecision' ? null : wrong();
+      return phase === 'BuyDecision' && pending?.kind === 'buy' ? null : wrong();
     case 'bid': {
       if (phase !== 'Auction' || pending?.kind !== 'auction') return wrong();
       const a = pending.auction;
@@ -241,6 +283,8 @@ export function validateAction(s: GameState, action: Action): EngineError | null
         const waiting = decisionMaker(s);
         return makeError('tradeWait', { player: waiting === null ? '' : (s.players[waiting]?.name ?? '') });
       }
+      // Myanmar map: during an internet cut only the owner of MPT may offer (D102).
+      if (tradeBlockedFor(s, action.offer.from)) return makeError('tradeBlocked');
       return tradeBlocker(s, action.offer);
     }
     case 'respondTrade':
@@ -276,7 +320,8 @@ export function legalActions(s: GameState): LegalAction[] {
     return [
       { type: 'respondTrade', accept: true },
       { type: 'respondTrade', accept: false },
-      { type: 'counterTrade', offer: null },
+      // Myanmar map: during an internet cut only the owner of MPT may counter (D102).
+      ...(tradeBlockedFor(s, s.flow.trade.to) ? [] : [{ type: 'counterTrade', offer: null } as const]),
     ];
   }
   const out: LegalAction[] = [];
@@ -290,7 +335,13 @@ export function legalActions(s: GameState): LegalAction[] {
       break;
     case 'TurnStart':
       if (pending?.kind === 'vacationSkip') consider({ type: 'acknowledge' });
-      else {
+      else if (pending?.kind === 'draftChoice') {
+        for (const how of ['pay', 'hide', 'flee', 'serve', 'merit', 'card'] as const) consider({ type: 'draftChoose', how });
+      } else if (pending?.kind === 'draftSkip') {
+        consider({ type: 'acknowledge' });
+        consider({ type: 'leaveDraft', how: 'merit' });
+        consider({ type: 'leaveDraft', how: 'card' });
+      } else {
         consider({ type: 'payJailFine' });
         consider({ type: 'useJailCard' });
         consider({ type: 'rollForDoubles' });
@@ -303,6 +354,8 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'BuyDecision':
       consider({ type: 'buy' });
       consider({ type: 'decline' });
+      consider({ type: 'donate', give: true });
+      consider({ type: 'donate', give: false });
       break;
     case 'Auction':
       for (const amount of auctionBidOptions(s)) consider({ type: 'bid', amount });
@@ -311,12 +364,15 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'RentDue':
       consider({ type: 'payRent' });
       consider({ type: 'useFreeStay' });
+      consider({ type: 'useMerit' });
       break;
     case 'CompanyRoll':
       consider({ type: 'rollCompanyDice' });
       break;
     case 'CardReveal':
       consider({ type: 'confirmCard' });
+      consider({ type: 'brokerPay' });
+      consider({ type: 'useMerit' });
       break;
     case 'BuildOffer':
       if (pending?.kind === 'build') {
@@ -342,7 +398,7 @@ export function legalActions(s: GameState): LegalAction[] {
       if (ps.mortgaged) consider({ type: 'unmortgage', space });
       else consider({ type: 'mortgage', space });
     });
-    if (livingPlayers(s).length > 1) out.push({ type: 'proposeTrade', offer: null });
+    if (livingPlayers(s).length > 1 && !tradeBlockedFor(s, actor)) out.push({ type: 'proposeTrade', offer: null });
   }
   return out;
 }
@@ -357,7 +413,9 @@ export function legalActionsFor(s: GameState, player: number): LegalAction[] {
   const p = s.players[player];
   if (!p || p.bankrupt || s.flow.notices.length > 0 || s.flow.phase === 'GameOver') return out;
   if (s.flow.trade?.from === player) out.push({ type: 'withdrawTrade' });
-  if (tradingOpen(s) && !out.some((a) => a.type === 'proposeTrade')) out.push({ type: 'proposeTrade', offer: null });
+  if (tradingOpen(s) && !tradeBlockedFor(s, player) && !out.some((a) => a.type === 'proposeTrade')) {
+    out.push({ type: 'proposeTrade', offer: null });
+  }
   return out;
 }
 

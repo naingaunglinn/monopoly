@@ -1,15 +1,15 @@
 // Invariants checked after every simulated action (spec section 15) and when loading a save.
-import { BALANCE } from '../data/balance.js';
-import { COUNTRIES, COUNTRY_CITIES, isProperty, LAYOUT, useMap } from '../data/board.js';
+import { BALANCE, MYANMAR } from '../data/balance.js';
+import { COUNTRIES, COUNTRY_CITIES, isProperty, LAYOUT, RULES, useMap } from '../data/board.js';
 import { cardsForSettings } from './cards.js';
 import { legalActions } from './legal.js';
 import { PHASES, type GameState, type Pending } from './types.js';
 
 const PENDING_FOR_PHASE: Readonly<Record<GameState['flow']['phase'], readonly (Pending['kind'] | null)[]>> = {
   PassDevice: [null],
-  TurnStart: ['jailChoice', 'vacationSkip'],
+  TurnStart: ['jailChoice', 'vacationSkip', 'draftChoice', 'draftSkip'],
   AwaitRoll: [null],
-  BuyDecision: ['buy'],
+  BuyDecision: ['buy', 'donation'],
   Auction: ['auction'],
   RentDue: ['rent'],
   CompanyRoll: ['companyRoll'],
@@ -38,6 +38,9 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     if (p.position < 0 || p.position >= LAYOUT.size) errors.push(`${p.name} position ${p.position}`);
     if (p.freeStay < 0 || p.freeStay > BALANCE.freeStayMax) errors.push(`${p.name} holds ${p.freeStay} Free Stay`);
     if (p.bankrupt && p.cash !== 0) errors.push(`bankrupt ${p.name} has cash`);
+    if (!Number.isInteger(p.merit) || p.merit < 0 || p.merit > MYANMAR.meritMax) errors.push(`${p.name} holds ${p.merit} merit`);
+    if (p.draft && (!Number.isInteger(p.draft.turns) || p.draft.turns < 1)) errors.push(`${p.name} has ${p.draft.turns} turns of service left`);
+    if (!RULES.conscription && (p.draft !== null || p.merit !== 0)) errors.push(`${p.name} has military service or merit on this map`);
   }
   const current = s.players[s.turn.currentPlayerIndex];
   if (!current) errors.push('no current player');

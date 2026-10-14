@@ -1,6 +1,8 @@
 // The Myanmar map's Chance and News cards (owner's spec, section 8), in English and Burmese. Each
-// card states its exact effect. Cards arrive with the rules they need: stage 1 has these; the
-// conscription, merit, company, lottery and pot cards follow in later stages (D101 to D104).
+// card states its exact effect. Cards arrive with the rules they need: stage 1 (D101) and stage 2
+// (military service, merit, the company events and inflation, D102) are here; the lottery,
+// earthquake and pot cards follow in stage 3.
+import { MYANMAR } from './balance.js';
 import type { CardData } from './cardTypes.js';
 
 export const MYANMAR_CHANCE: readonly CardData[] = [
@@ -70,6 +72,28 @@ export const MYANMAR_CHANCE: readonly CardData[] = [
     tone: 'good',
     effect: { type: 'moveTo', target: { kind: 'space', index: 0 } },
   },
+  {
+    id: 'mm-chance-broker',
+    deck: 'chance',
+    title: 'A broker calls',
+    titleMy: 'ပွဲစားက ဖုန်းဆက်လာတယ်',
+    text: 'Pay 500 lakh and your name comes off the conscription list. Or refuse, and go to the Military camp.',
+    textMy: '၅၀၀ သိန်း ပေးရင် စစ်မှုထမ်း စာရင်းက နာမည် ထွက်မယ်။ မပေးရင် စစ်မှုထမ်းစခန်းသို့ သွားရမယ်။',
+    icon: 'jail',
+    tone: 'bad',
+    effect: { type: 'broker', amount: MYANMAR.brokerFee },
+  },
+  {
+    id: 'mm-chance-festival',
+    deck: 'chance',
+    title: 'Pagoda festival',
+    titleMy: 'ဘုရားပွဲ လှူဒါန်း',
+    text: 'Donate 100 lakh to the pagoda festival and gain 1 merit point. Nobody keeps more than 3.',
+    textMy: 'ဘုရားပွဲကို ၁၀၀ သိန်း လှူပြီး ကုသိုလ် ၁ မှတ် ရမယ်။ ကုသိုလ် အများဆုံး ၃ မှတ်ပဲ သိမ်းလို့ရတယ်။',
+    icon: 'gift',
+    tone: 'neutral',
+    effect: { type: 'meritFee', amount: MYANMAR.festivalDonation },
+  },
 ];
 
 export const MYANMAR_NEWS: readonly CardData[] = [
@@ -105,6 +129,50 @@ export const MYANMAR_NEWS: readonly CardData[] = [
     icon: 'truck',
     tone: 'neutral',
     effect: { type: 'transportClosed', kind: 'border' },
+  },
+  {
+    id: 'mm-event-blackout',
+    deck: 'event',
+    title: 'Blackout',
+    titleMy: 'မီးပျက်',
+    text: 'Until your next turn every city rent is halved, and YESC earns double.',
+    textMy: 'နောက်တစ်ကြိမ် သင့်အလှည့် မရောက်မချင်း မြို့အားလုံး ငှားခ တစ်ဝက် ကျပြီး YESC ဝင်ငွေ ၂ ဆ ရမယ်။',
+    icon: 'power',
+    tone: 'neutral',
+    effect: { type: 'blackout', cityFactor: MYANMAR.blackoutCityFactor, company: 'yesc', companyFactor: MYANMAR.blackoutCompanyFactor },
+  },
+  {
+    id: 'mm-event-internet',
+    deck: 'event',
+    title: 'Internet cut',
+    titleMy: 'အင်တာနက် ဖြတ်',
+    text: 'Until your next turn only the owner of MPT can offer trades.',
+    textMy: 'နောက်တစ်ကြိမ် သင့်အလှည့် မရောက်မချင်း MPT ပိုင်သူ တစ်ယောက်ပဲ ရောင်းဝယ်လဲလှယ်ဖို့ ကမ်းလှမ်းလို့ ရမယ်။',
+    icon: 'telecom',
+    tone: 'neutral',
+    effect: { type: 'noTrade', company: 'mpt' },
+  },
+  {
+    id: 'mm-event-fuel',
+    deck: 'event',
+    title: 'Fuel shortage',
+    titleMy: 'ဓာတ်ဆီ ပြတ်',
+    text: 'Every player skips their next turn, except the owner of Denko and players in military service.',
+    textMy: 'Denko ပိုင်သူနဲ့ စစ်မှုထမ်းနေသူတွေ မှလွဲ၍ ကစားသူတိုင်း နောက်အလှည့် တစ်ခု ကျော်ရမယ်။',
+    icon: 'oil',
+    tone: 'neutral',
+    effect: { type: 'fuelShortage', company: 'denko' },
+  },
+  {
+    id: 'mm-event-inflation',
+    deck: 'event',
+    title: 'Inflation',
+    titleMy: 'ငွေကြေးဖောင်းပွ',
+    text: 'City rents rise 10% from now on. The owner of KBZ Bank pays city rent without inflation.',
+    textMy: 'အခုကစပြီး မြို့ငှားခတွေ ၁၀% တက်မယ်။ KBZ ဘဏ် ပိုင်သူက မြို့ငှားခ ပေးတဲ့အခါ ဖောင်းပွမှု မခံရ။',
+    icon: 'trendUp',
+    tone: 'neutral',
+    effect: { type: 'inflation', step: MYANMAR.inflationStep },
   },
 ];
 

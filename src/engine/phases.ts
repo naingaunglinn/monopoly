@@ -16,6 +16,7 @@ import {
   prop,
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { callUp, inService, offerDonation, roundInflation } from './myanmar.js';
 import { computeWinners } from './networth.js';
 import { airportRent, cityRent } from './rent.js';
 import { rollDie } from './rng.js';
@@ -63,7 +64,11 @@ export function beginTurn(c: Ctx, seat: number): void {
 export function enterTurnStart(c: Ctx): void {
   const s = c.s;
   const p = currentPlayer(s);
-  if (p.skipNextTurn) {
+  if (p.draft) {
+    // Myanmar map: a turn in military service (hiding, serving or at the border) is skipped (D102).
+    s.flow.phase = 'TurnStart';
+    s.flow.pending = { kind: 'draftSkip' };
+  } else if (p.skipNextTurn) {
     s.flow.phase = 'TurnStart';
     s.flow.pending = { kind: 'vacationSkip' };
   } else if (p.inJail) {
@@ -102,6 +107,7 @@ export function passTurn(c: Ctx): void {
     }
     s.turn.roundNumber += 1;
     emit(c, { type: 'roundStarted', round: s.turn.roundNumber });
+    roundInflation(c);
   }
   beginTurn(c, next);
 }
@@ -171,7 +177,7 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
 }
 
 /** Moves straight to a space without passing World Start (Jail, Vacation). */
-export function teleport(c: Ctx, playerId: number, to: number, reason: 'jail' | 'vacation' | 'debug'): void {
+export function teleport(c: Ctx, playerId: number, to: number, reason: 'jail' | 'vacation' | 'flee' | 'debug'): void {
   const p = playerById(c.s, playerId);
   const from = p.position;
   p.position = to;
@@ -222,6 +228,10 @@ export function resolveLanding(c: Ctx): void {
       if (s.meta.settings.vacation) startVacation(c, p.id);
       afterResolution(c);
       return;
+    case 'temple':
+      // Myanmar map: a donation for merit is offered (D102).
+      if (!offerDonation(c, space.index)) afterResolution(c);
+      return;
     default:
       // World Start (paid while moving), Jail (just visiting), Free Parking.
       afterResolution(c);
@@ -247,12 +257,20 @@ function resolveProperty(c: Ctx, space: number): void {
     return;
   }
   const kind = propertyKind(space);
+  // Myanmar map: an owner hiding or serving in the army collects no rent (D102).
+  const owner = s.players[ps.owner];
+  if (owner && inService(owner)) {
+    const amount = kind === 'city' ? cityRent(s, space, p.id).amount : kind === 'airport' ? airportRent(s, space).amount : 0;
+    emit(c, { type: 'rentWaived', player: p.id, space, owner: ps.owner, amount, why: 'draft' });
+    afterResolution(c);
+    return;
+  }
   if (kind === 'company') {
     s.flow.phase = 'CompanyRoll';
     s.flow.pending = { kind: 'companyRoll', space, owner: ps.owner };
     return;
   }
-  const quote = kind === 'city' ? cityRent(s, space) : airportRent(s, space);
+  const quote = kind === 'city' ? cityRent(s, space, p.id) : airportRent(s, space);
   // A card that moved the player here may multiply the rent (Myanmar's nearest airport card).
   const extra = c.rentFactor ?? null;
   setRentDue(c, {
@@ -318,6 +336,11 @@ export function endOfMove(c: Ctx): void {
 // Jail (5.11) and Vacation (5.12)
 
 export function sendToJail(c: Ctx, reason: 'space' | 'card' | 'doubles'): void {
+  // The Myanmar map calls the player up for military service instead (D102).
+  if (RULES.conscription) {
+    callUp(c, reason);
+    return;
+  }
   const s = c.s;
   const p = currentPlayer(s);
   teleport(c, p.id, SPACES.jail, 'jail');
