@@ -1,0 +1,756 @@
+{
+  "players": [
+    {
+      "id": 0,
+      "name": "Mia",
+      "color": "#E5484D",
+      "token": "globe",
+      "cash": 4000,
+      "position": 7,
+      "freeStay": 3,
+      "inJail": false,
+      "jailAttempts": 0,
+      "skipNextTurn": false,
+      "jailCards": [],
+      "houseVouchers": [],
+      "bankrupt": false,
+      "bankruptOrder": null,
+      "recap": []
+    },
+    {
+      "id": 1,
+      "name": "Leo",
+      "color": "#3E63DD",
+      "token": "plane",
+      "cash": 4000,
+      "position": 0,
+      "freeStay": 3,
+      "inJail": false,
+      "jailAttempts": 0,
+      "skipNextTurn": false,
+      "jailCards": [],
+      "houseVouchers": [],
+      "bankrupt": false,
+      "bankruptOrder": null,
+      "recap": []
+    },
+    {
+      "id": 2,
+      "name": "Aung",
+      "color": "#30A46C",
+      "token": "compass",
+      "cash": 4000,
+      "position": 0,
+      "freeStay": 3,
+      "inJail": false,
+      "jailAttempts": 0,
+      "skipNextTurn": false,
+      "jailCards": [],
+      "houseVouchers": [],
+      "bankrupt": false,
+      "bankruptOrder": null,
+      "recap": []
+    },
+    {
+      "id": 3,
+      "name": "Sofia",
+      "color": "#F76B15",
+      "token": "crown",
+      "cash": 4000,
+      "position": 0,
+      "freeStay": 3,
+      "inJail": false,
+      "jailAttempts": 0,
+      "skipNextTurn": false,
+      "jailCards": [],
+      "houseVouchers": [],
+      "bankrupt": false,
+      "bankruptOrder": null,
+      "recap": []
+    }
+  ],
+  "properties": [
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": 0,
+      "level": 2,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": 0,
+      "level": 2,
+      "mortgaged": false
+    },
+    {
+      "owner": 0,
+      "level": 2,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": 1,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": 1,
+      "level": 0,
+      "mortgaged": true
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": 2,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    null,
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    },
+    {
+      "owner": null,
+      "level": 0,
+      "mortgaged": false
+    }
+  ],
+  "decks": {
+    "chanceDeck": [
+      "chance-architect-friend",
+      "chance-exchange-rate",
+      "chance-cherry-blossom",
+      "chance-express-train",
+      "chance-golden-pagodas",
+      "chance-tour-guide",
+      "chance-beach-calling",
+      "chance-tailwind",
+      "chance-coast-to-coast",
+      "chance-excess-baggage",
+      "chance-visa-fee",
+      "chance-diplomatic-pass",
+      "chance-couch-surfing",
+      "chance-hotel-safe",
+      "chance-group-dinner",
+      "chance-scenic-railway",
+      "chance-embassy-letter",
+      "chance-wrong-exit",
+      "chance-lost-luggage",
+      "chance-missed-connection",
+      "chance-business-meeting",
+      "chance-round-the-world",
+      "chance-customs-trouble",
+      "chance-photo-prize",
+      "chance-standby-seat",
+      "chance-duty-free-refund",
+      "chance-airport-snacks",
+      "chance-gate-change",
+      "chance-shortcut",
+      "chance-friendly-host",
+      "chance-building-permit",
+      "chance-carnival",
+      "chance-forgot-passport"
+    ],
+    "chanceDiscard": [],
+    "eventDeck": [
+      "event-crowdfunding-hit",
+      "event-network-outage",
+      "event-economic-slowdown",
+      "event-transport-strike",
+      "event-business-expansion",
+      "event-medical-expense",
+      "event-currency-crisis",
+      "event-salary-bonus",
+      "event-logistics-upgrade",
+      "event-rice-export-boom",
+      "event-trade-dispute",
+      "event-grain-shortage",
+      "event-banking-scandal",
+      "event-natural-disaster",
+      "event-holiday-peak",
+      "event-shipping-boom",
+      "event-electricity-crisis",
+      "event-construction-discount",
+      "event-global-market-boom",
+      "event-oil-crash",
+      "event-commodity-rally",
+      "event-trade-agreement",
+      "event-construction-costs-rise",
+      "event-airport-promotion",
+      "event-port-congestion",
+      "event-property-tax-reform",
+      "event-telecom-boom",
+      "event-finance-rally",
+      "event-charity-gala",
+      "event-global-recession",
+      "event-oil-boom",
+      "event-heritage-grants",
+      "event-tax-refund"
+    ],
+    "eventDiscard": [
+      "event-tourism-boom"
+    ]
+  },
+  "turn": {
+    "currentPlayerIndex": 1,
+    "doublesCount": 0,
+    "landedCity": null,
+    "turnNumber": 2,
+    "roundNumber": 1,
+    "roundStartSeat": 0,
+    "rollsLeft": 1,
+    "dice": null,
+    "recap": []
+  },
+  "flow": {
+    "phase": "AwaitRoll",
+    "pending": null,
+    "trade": {
+      "from": 1,
+      "to": 2,
+      "give": {
+        "properties": [
+          11
+        ],
+        "cash": 120,
+        "jailCards": 0
+      },
+      "get": {
+        "properties": [
+          21
+        ],
+        "cash": 0,
+        "jailCards": 0
+      }
+    },
+    "notices": [],
+    "debts": [],
+    "resume": null,
+    "modifiers": [
+      {
+        "type": "cityRent",
+        "factor": 1.25,
+        "cardId": "event-tourism-boom",
+        "drawnBy": 0
+      }
+    ]
+  },
+  "meta": {
+    "schemaVersion": 3,
+    "settings": {
+      "playerCount": 4,
+      "playerNames": [
+        "Mia",
+        "Leo",
+        "Aung",
+        "Sofia",
+        "Player 5",
+        "Player 6"
+      ],
+      "playerColors": [
+        "#E5484D",
+        "#3E63DD",
+        "#30A46C",
+        "#F76B15",
+        "#8E4EC6",
+        "#0E9C9C"
+      ],
+      "startingMoney": 4000,
+      "mode": "quick",
+      "roundLimit": 50,
+      "freeStay": true,
+      "vacation": true,
+      "auction": true,
+      "chance": true,
+      "event": true,
+      "randomFirstPlayer": false,
+      "passDevice": false,
+      "animationSpeed": "normal",
+      "board": {
+        "spaces": 60,
+        "shape": "square"
+      }
+    },
+    "seed": 2026,
+    "rngState": 3087662879,
+    "winner": null,
+    "endReason": null,
+    "log": [
+      {
+        "seq": 1,
+        "turn": 0,
+        "round": 1,
+        "event": {
+          "type": "gameStarted",
+          "firstPlayer": 0
+        }
+      },
+      {
+        "seq": 2,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "turnStarted",
+          "player": 0
+        }
+      },
+      {
+        "seq": 3,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 4,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 5,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 6,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 7,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 8,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 9,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 10,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 11,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setLevel"
+        }
+      },
+      {
+        "seq": 12,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 13,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setMortgaged"
+        }
+      },
+      {
+        "seq": 14,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 15,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setOwner"
+        }
+      },
+      {
+        "seq": 16,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "forceCard"
+        }
+      },
+      {
+        "seq": 17,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "teleported",
+          "player": 0,
+          "from": 0,
+          "to": 0,
+          "reason": "debug"
+        }
+      },
+      {
+        "seq": 18,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "movePlayer"
+        }
+      },
+      {
+        "seq": 19,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "debugApplied",
+          "op": "setNextDice"
+        }
+      },
+      {
+        "seq": 20,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "diceRolled",
+          "player": 0,
+          "dice": [
+            3,
+            4
+          ],
+          "purpose": "move",
+          "doubles": false
+        }
+      },
+      {
+        "seq": 21,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "moved",
+          "player": 0,
+          "from": 0,
+          "to": 7,
+          "path": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "direction": 1,
+          "by": "dice"
+        }
+      },
+      {
+        "seq": 22,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "cardDrawn",
+          "player": 0,
+          "deck": "event",
+          "cardId": "event-tourism-boom"
+        }
+      },
+      {
+        "seq": 23,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "modifierStarted",
+          "modifier": {
+            "type": "cityRent",
+            "factor": 1.25,
+            "cardId": "event-tourism-boom",
+            "drawnBy": 0
+          }
+        }
+      },
+      {
+        "seq": 24,
+        "turn": 1,
+        "round": 1,
+        "event": {
+          "type": "turnEnded",
+          "player": 0
+        }
+      },
+      {
+        "seq": 25,
+        "turn": 2,
+        "round": 1,
+        "event": {
+          "type": "turnStarted",
+          "player": 1
+        }
+      },
+      {
+        "seq": 26,
+        "turn": 2,
+        "round": 1,
+        "event": {
+          "type": "tradeProposed",
+          "from": 1,
+          "to": 2
+        }
+      }
+    ],
+    "logSeq": 26,
+    "forcedDice": [],
+    "forcedCards": {
+      "chance": null,
+      "event": null
+    },
+    "stats": {
+      "housesBuilt": 0,
+      "hotelsBuilt": 0,
+      "bankruptcies": 0
+    }
+  }
+}
