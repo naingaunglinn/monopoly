@@ -1,7 +1,11 @@
 // Chance deck: a traveller's luck. Each card states its exact effect in plain words.
 // Fixed cash effects sum to zero; at most 2 copies of Go To Jail, Go to Vacation,
 // Get Out of Jail, Free House and Roll again (spec section 6).
+import { BALANCE } from './balance.js';
 import type { CardData } from './cardTypes.js';
+
+/** The World Start pay as the cards say it ($1,000). */
+const START = `$${BALANCE.startBonus.toLocaleString('en-US')}`;
 
 export const CHANCE_CARDS: readonly CardData[] = [
   {
@@ -62,7 +66,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-gate-change',
     deck: 'chance',
     title: 'Gate change',
-    text: 'Your flight leaves from another terminal. Move forward to the nearest airport. Collect $500 if you pass World Start.',
+    text: `Your flight leaves from another terminal. Move forward to the nearest airport. Collect ${START} if you pass World Start.`,
     icon: 'flight',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'nearestAirport' } },
@@ -71,7 +75,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-standby-seat',
     deck: 'chance',
     title: 'Standby seat',
-    text: 'A standby seat opens up at the last minute. Move forward to the nearest airport. Collect $500 if you pass World Start.',
+    text: `A standby seat opens up at the last minute. Move forward to the nearest airport. Collect ${START} if you pass World Start.`,
     icon: 'flight',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'nearestAirport' } },
@@ -80,7 +84,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-business-meeting',
     deck: 'chance',
     title: 'Business meeting',
-    text: 'A client wants to meet you today. Move forward to the nearest company. Collect $500 if you pass World Start.',
+    text: `A client wants to meet you today. Move forward to the nearest company. Collect ${START} if you pass World Start.`,
     icon: 'business',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'nearestCompany' } },
@@ -89,7 +93,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-carnival',
     deck: 'chance',
     title: 'Carnival invitation',
-    text: 'Friends invite you to the carnival. Move forward to Brasília, Brazil. Collect $500 if you pass World Start.',
+    text: `Friends invite you to the carnival. Move forward to Brasília, Brazil. Collect ${START} if you pass World Start.`,
     icon: 'map',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'country', country: 'brazil' } },
@@ -98,7 +102,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-coast-to-coast',
     deck: 'chance',
     title: 'Coast to coast',
-    text: 'Time for the big road trip. Move forward to New York, United States. Collect $500 if you pass World Start.',
+    text: `Time for the big road trip. Move forward to New York, United States. Collect ${START} if you pass World Start.`,
     icon: 'map',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'country', country: 'unitedStates' } },
@@ -107,7 +111,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-cherry-blossom',
     deck: 'chance',
     title: 'Cherry blossom season',
-    text: 'The blossoms are out. Move forward to Tokyo, Japan. Collect $500 if you pass World Start.',
+    text: `The blossoms are out. Move forward to Tokyo, Japan. Collect ${START} if you pass World Start.`,
     icon: 'map',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'country', country: 'japan' } },
@@ -116,7 +120,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-golden-pagodas',
     deck: 'chance',
     title: 'Golden pagodas',
-    text: 'You join a temple tour. Move forward to Yangon, Myanmar. Collect $500 if you pass World Start.',
+    text: `You join a temple tour. Move forward to Yangon, Myanmar. Collect ${START} if you pass World Start.`,
     icon: 'map',
     tone: 'neutral',
     effect: { type: 'moveTo', target: { kind: 'country', country: 'myanmar' } },
@@ -125,7 +129,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-round-the-world',
     deck: 'chance',
     title: 'Round-the-world ticket',
-    text: 'Your ticket brings you home. Move forward to World Start and collect $500.',
+    text: `Your ticket brings you home. Move forward to World Start and collect ${START}.`,
     icon: 'start',
     tone: 'good',
     effect: { type: 'moveTo', target: { kind: 'space', index: 0 } },
@@ -206,7 +210,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-beach-calling',
     deck: 'chance',
     title: 'The beach is calling',
-    text: 'Go straight to Vacation. Do not collect $500. Your next turn is skipped.',
+    text: `Go straight to Vacation. Do not collect ${START}. Your next turn is skipped.`,
     icon: 'vacation',
     tone: 'bad',
     effect: { type: 'goToVacation' },
@@ -215,7 +219,7 @@ export const CHANCE_CARDS: readonly CardData[] = [
     id: 'chance-customs-trouble',
     deck: 'chance',
     title: 'Customs trouble',
-    text: 'Customs finds something odd in your bag. Go straight to Jail. Do not collect $500.',
+    text: `Customs finds something odd in your bag. Go straight to Jail. Do not collect ${START}.`,
     icon: 'jail',
     tone: 'bad',
     effect: { type: 'goToJail' },

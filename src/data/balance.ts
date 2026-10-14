@@ -19,8 +19,8 @@ export const BOARD_SIZE: number = 60;
 export const BOARD_SHAPE: BoardShape = 'square';
 
 export const BALANCE = {
-  /** Paid for passing or landing on World Start (forward moves only). */
-  startBonus: 500,
+  /** Paid for passing or landing on World Start (forward moves only). $1,000 at the owner's request (D100). */
+  startBonus: 1000,
   incomeTax: 300,
   luxuryTax: 500,
 

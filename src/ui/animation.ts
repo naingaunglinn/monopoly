@@ -1,7 +1,7 @@
 // The animation player (spec section 13, paced per D51). The engine has already produced the final
 // state; this replays the events of the last action on top of the previous state: dice tumble, the
 // token hopping space by space with the path lit in the player's colour, the World Start flash
-// with +$500 floating up as the token passes, landing glow, counting cash, floating amounts, coin,
+// with the World Start pay floating up as the token passes, landing glow, counting cash, floating amounts, coin,
 // stamp and pips. Any click, tap or key press finishes it at once, and that input is swallowed so it
 // cannot also press a button. Speed: Normal uses DURATIONS, Fast halves them, Off is instant. With
 // prefers-reduced-motion, movement and bounces are off (fades stay, at most 150 ms) unless the
@@ -157,7 +157,7 @@ export function playBatch(
   const cash = prev.players.map((p) => p.cash);
   const finalCash = next.players.map((p) => p.cash);
   let t = 0;
-  /** When the token passes World Start in this batch (the +$500 floats up then). */
+  /** When the token passes World Start in this batch (its pay floats up then). */
   let startAt: number | null = null;
   /** The latest end of any effect that does not move the timeline on (floats, coin, stamp, pips). */
   let end = 0;

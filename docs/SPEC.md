@@ -297,7 +297,7 @@ Implement these rules as written. They follow standard Monopoly except where thi
 2. Turn start. If this turn is to be skipped (Vacation), show a short notice, clear the flag and pass the turn. If the player is in Jail, show the Jail choices (5.11).
 3. Roll two dice.
 4. A third double in the same turn sends the player to Jail and ends the turn.
-5. Move clockwise one space at a time. Collect $500 when passing or landing on World Start.
+5. Move clockwise one space at a time. Collect $1,000 when passing or landing on World Start (D100; it was $500).
 6. Resolve the space (5.4). A card may move the player again; resolve the new space too.
 7. If the player stands on their own city in a complete country, offer building on that city only (5.8).
 8. Settle any debt (section 7), then check bankruptcy and the win condition.
@@ -322,7 +322,7 @@ During their own turn, whenever no decision is pending, the player may also view
 | Another player's company | Roll two new dice and pay total × multiplier |
 | Own property | Nothing to pay; a city may offer building (5.8) |
 | Chance or Event | Draw the top card and apply it (section 6) |
-| World Start | +$500, never doubled with passing |
+| World Start | +$1,000, never doubled with passing |
 | Income Tax | Pay $300 to the bank |
 | Luxury Tax | Pay $500 to the bank |
 | Jail | Just visiting; nothing happens |
@@ -403,7 +403,7 @@ The build panel lists every city of the country with its buildings, its rent now
 
 ### 5.13 World Start
 
-- $500 for passing or landing, by dice or by forward card movement.
+- $1,000 for passing or landing, by dice or by forward card movement (owner change, D100; it was $500).
 - Nothing for moving backward or for going to Jail.
 
 ### 5.14 Mortgage
@@ -444,7 +444,7 @@ Card fields: `id`, `deck`, `title`, `text`, `icon`, `tone` (good, bad or neutral
 
 ### Rules
 
-- Nearest means the next one clockwise from the player. Forward movement past World Start pays $500.
+- Nearest means the next one clockwise from the player. Forward movement past World Start pays $1,000.
 - After any card movement, resolve the new space fully: rent, buy, build offer or another card.
 - A modifier's factor is between 0.5 and 1.5. It lasts until the drawing player's next turn begins. Only one per type is active; a new one replaces the old. Active modifiers show as chips in the top bar.
 - Held cards (Jail card, house voucher) leave the deck until used.
@@ -806,7 +806,7 @@ Animation explains what happened and never makes a player wait: state changes fi
 | --- | --- | --- |
 | Dice roll | Dice tumble and land, the total appears, then Move N spaces | 700 ms |
 | Token move | One space at a time; path tiles light briefly | 150 ms a step; 90 ms a step for 10 or more spaces |
-| Passing World Start | The Start tile flashes, +$500 floats up, cash counts up | 600 ms |
+| Passing World Start | The Start tile flashes, +$1,000 floats up, cash counts up | 600 ms |
 | Landing | A small bounce and a short glow on the tile | 300 ms |
 | Money change | The number counts to its new value; the signed amount floats beside the player card | 700 ms |
 | Buying | The tile highlights, the owner marker pops in, a Bought stamp shows | 500 ms |
@@ -961,7 +961,7 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 - Land on a property nobody owns: buy it, or let everyone bid for it.
 - Land on someone else's property: pay rent.
 - Own every city of a country and its rent doubles. Then you can build houses, but only on the city you land on.
-- Pass World Start and collect $500.
+- Pass World Start and collect $1,000.
 - Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.
 - The yellow button always shows your next step.
 
@@ -975,7 +975,7 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 
 #### World Start
 
-- Collect $500 each time you pass it or land on it.
+- Collect $1,000 each time you pass it or land on it.
 - You collect nothing when a card moves you backward or when you go to Jail.
 
 #### Buying and auctions

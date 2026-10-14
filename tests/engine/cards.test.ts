@@ -202,13 +202,13 @@ describe('card effects', () => {
     expect(draw(game(), 'chance-business-meeting', LAST_CHANCE).state.players[0]?.position).toBe(nextOf(COMPANY_SPACES, LAST_CHANCE));
     const brazil = draw(game(), 'chance-carnival').state;
     expect(brazil.players[0]?.position).toBe(spaceOf('Brasília'));
-    expect(cashOf(brazil, 0)).toBe(4500);
+    expect(cashOf(brazil, 0)).toBe(4000 + BALANCE.startBonus);
     const usa = draw(game(), 'chance-coast-to-coast').state;
     expect(usa.players[0]?.position).toBe(spaceOf('New York'));
     expect(cashOf(usa, 0)).toBe(4000);
     const start = draw(game(), 'chance-round-the-world').state;
     expect(start.players[0]?.position).toBe(0);
-    expect(cashOf(start, 0)).toBe(4500);
+    expect(cashOf(start, 0)).toBe(4000 + BALANCE.startBonus);
   });
 
   test('a card that moves the player onto rent resolves the rent', () => {

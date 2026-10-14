@@ -634,7 +634,7 @@ export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryT
 
 /** What happens on each special space (Focus Card). */
 export const SPECIAL_TEXT: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
-  start: 'Collect $500 each time you pass or land here moving forward.',
+  start: `Collect ${money(BALANCE.startBonus)} each time you pass or land here moving forward.`,
   chance: 'Draw the top Chance card and do what it says.',
   event: 'Draw the top Event card: world news that can affect everyone.',
   tax: 'Pay the tax to the bank.',
@@ -1044,7 +1044,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'Land on a property nobody owns: buy it, or let everyone bid for it.',
       'Land on someone else’s property: pay rent.',
       'Own every city of a country and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
-      'Pass World Start and collect $500.',
+      `Pass World Start and collect ${money(BALANCE.startBonus)}.`,
       'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
       'The yellow button always shows your next step.',
     ],
@@ -1065,7 +1065,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
     id: 'worldStart',
     title: 'World Start',
     lines: [
-      'Collect $500 each time you pass it or land on it.',
+      `Collect ${money(BALANCE.startBonus)} each time you pass it or land on it.`,
       'You collect nothing when a card moves you backward or when you go to Jail.',
     ],
   },

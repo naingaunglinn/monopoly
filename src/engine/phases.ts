@@ -148,7 +148,7 @@ export function movementRoll(c: Ctx): void {
   moveSteps(c, p.id, dice[0] + dice[1], 'dice');
 }
 
-/** Moves one space at a time. Forward moves pay $500 for passing or landing on World Start. */
+/** Moves one space at a time. Forward moves pay the World Start pay (BALANCE.startBonus) for passing or landing on it. */
 export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 'card'): void {
   const p = playerById(c.s, playerId);
   const direction: 1 | -1 = steps >= 0 ? 1 : -1;
