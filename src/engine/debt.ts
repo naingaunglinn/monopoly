@@ -11,6 +11,7 @@ import {
   propertiesOwnedBy,
   transfer,
 } from './core.js';
+import { bankruptLoans, isPledged } from './loans.js';
 import { toPot } from './myanmar.js';
 import { afterResolution, endGame, leaveJail, moveSteps, passTurn, resolveLanding } from './phases.js';
 import { sellRefund } from './rent.js';
@@ -22,7 +23,8 @@ export function queueDebt(c: Ctx, debt: DebtItem): void {
 
 /** True while the player still has buildings to sell or an unmortgaged property. */
 export function canRaiseMoney(s: GameState, playerId: number): boolean {
-  return s.properties.some((p) => p !== null && p.owner === playerId && (p.level > 0 || !p.mortgaged));
+  // Myanmar map: a property pledged for a loan cannot be mortgaged (D104).
+  return s.properties.some((p, space) => p !== null && p.owner === playerId && (p.level > 0 || (!p.mortgaged && !isPledged(s, space))));
 }
 
 function moneyReason(debt: DebtItem): MoneyReason {
@@ -174,6 +176,8 @@ export function goBankrupt(c: Ctx, playerId: number, creditor: number | null): v
   p.jailCards = [];
   p.houseVouchers = [];
 
+  // Myanmar map: lenders take their collateral before any other creditor or the bank (D104).
+  bankruptLoans(c, playerId);
   const owned = propertiesOwnedBy(s, playerId);
   const cash = p.cash;
   if (heir !== null) {

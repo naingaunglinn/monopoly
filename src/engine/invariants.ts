@@ -3,6 +3,7 @@ import { BALANCE, MYANMAR } from '../data/balance.js';
 import { COUNTRIES, COUNTRY_CITIES, isProperty, LAYOUT, RULES, useMap } from '../data/board.js';
 import { cardsForSettings } from './cards.js';
 import { legalActions } from './legal.js';
+import { loanOwed, loanPartiesAlive } from './loans.js';
 import { PHASES, type GameState, type Pending } from './types.js';
 
 const PENDING_FOR_PHASE: Readonly<Record<GameState['flow']['phase'], readonly (Pending['kind'] | null)[]>> = {
@@ -43,6 +44,20 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     if (!RULES.conscription && (p.draft !== null || p.merit !== 0)) errors.push(`${p.name} has military service or merit on this map`);
   }
   if (!Number.isInteger(s.economy.pot) || s.economy.pot < 0) errors.push(`the pot holds ${s.economy.pot}`);
+  // Myanmar map loans (D104): live parties, collateral the borrower holds unmortgaged, never pledged twice.
+  if (!RULES.loans && (s.economy.loans.length > 0 || s.flow.loan !== null)) errors.push('loans on a map without them');
+  const pledged = new Set<number>();
+  for (const loan of s.economy.loans) {
+    if (!loanPartiesAlive(s, loan)) errors.push(`loan ${loan.id} has a party out of the game`);
+    if (loanOwed(s, loan) <= 0) errors.push(`loan ${loan.id} is paid off but still listed`);
+    for (const space of loan.collateral) {
+      const ps = s.properties[space];
+      if (!ps || ps.owner !== loan.borrower || ps.mortgaged) errors.push(`loan ${loan.id} collateral ${space} is not the borrower's, unmortgaged`);
+      if (pledged.has(space)) errors.push(`space ${space} backs two loans`);
+      pledged.add(space);
+    }
+  }
+  if (s.flow.loan !== null && s.flow.trade !== null) errors.push('a trade and a loan on the table at once');
   if (!RULES.pot && s.economy.pot !== 0) errors.push('a pot on a map without one');
   const current = s.players[s.turn.currentPlayerIndex];
   if (!current) errors.push('no current player');

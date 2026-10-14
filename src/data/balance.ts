@@ -226,7 +226,7 @@ export const MYANMAR_RULES: MapRules = {
   inflation: true,
   tolls: true,
   lottery: true,
-  loans: false,
+  loans: true,
 };
 
 /** Index into `cityRentMultipliers` etc. is the building level. */

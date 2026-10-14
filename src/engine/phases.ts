@@ -16,6 +16,7 @@ import {
   prop,
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { defaultLoans, regionPledged, startRepayments } from './loans.js';
 import { callUp, inService, offerDonation, remittance, roundInflation, takePot, tollsOnPath } from './myanmar.js';
 import { computeWinners } from './networth.js';
 import { airportRent, cityRent } from './rent.js';
@@ -109,6 +110,7 @@ export function passTurn(c: Ctx): void {
     emit(c, { type: 'roundStarted', round: s.turn.roundNumber });
     roundInflation(c);
     remittance(c);
+    defaultLoans(c);
   }
   beginTurn(c, next);
 }
@@ -120,6 +122,7 @@ export function endGame(c: Ctx, reason: EndReason): void {
   s.flow.phase = 'GameOver';
   s.flow.pending = null;
   s.flow.trade = null;
+  s.flow.loan = null;
   s.flow.debts = [];
   s.flow.resume = null;
   s.turn.landedCity = null;
@@ -173,6 +176,8 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
   if (passedStart) {
     changeCash(c, playerId, RULES.startBonus, 'start');
     emit(c, { type: 'passedStart', player: playerId, amount: RULES.startBonus });
+    // Myanmar map: a quarter of each loan is paid back from it, when the cash is there (D104).
+    startRepayments(c, playerId);
   }
   // Myanmar map: tolls for the roads and gates passed are paid first, then the landing (D103).
   const tolls = tollsOnPath(c.s, playerId, path);
@@ -324,6 +329,8 @@ export function canOfferBuild(s: GameState): boolean {
   if (p.position !== space || p.inJail) return false;
   const country = countryOf(space);
   if (country === null || !ownsCountry(s, p.id, country)) return false;
+  // Myanmar map: a region with a city pledged for a loan cannot be built on (D104).
+  if (regionPledged(s, space) !== null) return false;
   return COUNTRY_CITIES[country].some((sp) => (s.properties[sp]?.level ?? 0) < BALANCE.hotelLevel);
 }
 

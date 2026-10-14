@@ -154,7 +154,7 @@ describe('who sends an action', () => {
 
 describe('fuzz: remove a random player at a random moment, then play on', () => {
   function choose(s: GameState, r: number): { action: Action; next: number } {
-    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
     const pick = mulberry32(r);
     return { action: legal[Math.floor(pick.value * legal.length)] as Action, next: pick.next };
   }
@@ -181,7 +181,7 @@ describe('fuzz: remove a random player at a random moment, then play on', () => 
         expect(checkInvariants(s), `seed ${seed} after removal`).toEqual([]);
         expect(s.players[victim]?.bankrupt).toBe(true);
         for (let i = 0; i < 4000 && s.flow.phase !== 'GameOver'; i++) {
-          const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade');
+          const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan');
           expect(legal.length, `seed ${seed}: stuck in ${s.flow.phase}`).toBeGreaterThan(0);
           const c = choose(s, r);
           r = c.next;

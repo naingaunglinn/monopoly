@@ -1,6 +1,7 @@
 // Net worth, winners and the results ranking (spec section 8).
 import { BALANCE, mortgageValue } from '../data/balance.js';
 import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE, useMap } from '../data/board.js';
+import { loanBalance } from './loans.js';
 import type { GameState } from './types.js';
 
 export interface NetWorth {
@@ -51,7 +52,8 @@ export function netWorth(s: GameState, playerId: number): NetWorth {
       nw.companyCount += 1;
     }
   });
-  nw.total = nw.cash + nw.cities + nw.airports + nw.companies + nw.buildings;
+  // Myanmar map: what the player is owed on loans, less what they owe (D104); 0 elsewhere.
+  nw.total = nw.cash + nw.cities + nw.airports + nw.companies + nw.buildings + loanBalance(s, playerId);
   return nw;
 }
 

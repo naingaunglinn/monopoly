@@ -163,7 +163,7 @@ describe('Myanmar rules', () => {
 describe('the World and Myanmar maps in one process', () => {
   /** Plays `steps` legal actions chosen by a seeded picker (no trades: they need an offer). */
   function step(s: GameState, pick: number): GameState {
-    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+    const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
     const action = legal[pick % legal.length] as Action;
     const r = reduce(s, action);
     if (r.error) throw new Error(r.error.reason);

@@ -125,7 +125,7 @@ async function view(h: Harness, code: string): Promise<RoomView> {
 
 /** A legal action for the player who must decide now (no trades: they need an offer). */
 function nextAction(game: GameState, pick = 0): Action {
-  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
   return legal[pick % legal.length] as Action;
 }
 

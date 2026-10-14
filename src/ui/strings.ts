@@ -945,7 +945,16 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   invalidAction: () => 'That action is not available.',
   noMerit: () => 'You have no merit point.',
   meritFull: () => `You already hold ${MYANMAR.meritMax} merit points, the most anyone keeps.`,
-  tradeBlocked: () => 'The internet is cut: only the owner of MPT can offer trades until it is back.',
+  tradeBlocked: () => 'The internet is cut: only the owner of MPT can offer trades or loans until it is back.',
+  loanPending: (x) => `${p(x, 'player')} must answer the loan offer first.`,
+  loanTerms: () =>
+    `A loan needs a whole amount of at least ${money(1)}, a rate of 0 to ${MYANMAR.loanMaxRatePercent}% a round and a term of 1 to ${MYANMAR.loanMaxTerm} rounds.`,
+  loanCollateral: (x) =>
+    p(x, 'name')
+      ? `${p(x, 'name')} cannot be collateral: it must be the borrower’s, unmortgaged, with no buildings in its region.`
+      : 'Pick at least one property of the borrower as collateral.',
+  pledged: (x) => `${p(x, 'name')} is pledged for a loan until it is paid back.`,
+  loanRepay: (x) => `Pay back between ${money(1)} and ${m(x, 'max')}.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -1007,6 +1016,7 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   pot: 'community pot',
   remittance: 'money from home',
   lottery: 'lottery',
+  loan: 'loan',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -1230,6 +1240,28 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return e.prize > 0
         ? `${who(e.player)} drew ${e.total} in the lottery and won ${money(e.prize)}.`
         : `${who(e.player)} drew ${e.total} in the lottery: no prize.`;
+    case 'loanRequested':
+      return `${who(e.from)} asked ${who(e.to)} for a loan.`;
+    case 'loanCountered':
+      return `${who(e.from)} answered ${who(e.to)} with new loan terms.`;
+    case 'loanRejected':
+      return `${who(e.to)} turned down ${who(e.from)}’s loan offer.`;
+    case 'loanWithdrawn':
+      return `${who(e.from)} withdrew their loan offer to ${who(e.to)}.`;
+    case 'loanCancelled':
+      return `The loan talks between ${who(e.from)} and ${who(e.to)} ended.`;
+    case 'loanAccepted':
+      return `${who(e.loan.lender)} lent ${who(e.loan.borrower)} ${money(e.loan.principal)} at ${e.loan.ratePercent}% a round for ${plural(e.loan.term, 'round', 'rounds')}.`;
+    case 'loanRepaid':
+      return e.left > 0
+        ? `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}; ${money(e.left)} still owed.`
+        : `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}: the loan is paid off.`;
+    case 'loanDefaulted':
+      return e.why === 'term'
+        ? `${who(e.borrower)} did not pay back in time: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
+        : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
+    case 'loanForgiven':
+      return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
     case 'earthquake':
       return e.spaces.length > 0
         ? `Earthquake (die ${e.die}): every building in ${groupName(e.region)} fell.`

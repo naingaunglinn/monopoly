@@ -82,7 +82,9 @@ export type MoneyReason =
   | 'toll'
   | 'pot'
   | 'remittance'
-  | 'lottery';
+  | 'lottery'
+  /** Myanmar map: a loan paid out or paid back (D104). */
+  | 'loan';
 
 /** Something that changed a player's cash while it was not their turn (shown at turn start). */
 export interface RecapItem {
@@ -414,6 +416,15 @@ export type Action =
   | { type: 'useMerit' }
   /** Myanmar map: buy the lottery ticket on the card (D103). */
   | { type: 'buyTicket' }
+  /** Myanmar map (D104): ask another player for a loan (`offer.from` is the borrower). */
+  | { type: 'requestLoan'; offer: LoanOffer }
+  /** The answer to the loan offer on the table, with new terms back the other way. */
+  | { type: 'counterLoan'; offer: LoanOffer }
+  | { type: 'respondLoan'; accept: boolean }
+  /** The player who made the loan offer on the table takes it back. */
+  | { type: 'withdrawLoan' }
+  /** The borrower pays back part or all of a loan on their own turn. */
+  | { type: 'repayLoan'; loanId: number; amount: number }
   /** Myanmar map: pay the broker on the card instead of going to the Military camp. */
   | { type: 'brokerPay' }
   | { type: 'endTurn' }
@@ -427,9 +438,11 @@ export type ActionType = Action['type'];
 
 /** legalActions() lists concrete actions, plus trade templates the caller fills in. */
 export type LegalAction =
-  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' }>
+  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' } | { type: 'requestLoan' } | { type: 'counterLoan' }>
   | { type: 'proposeTrade'; offer: null }
-  | { type: 'counterTrade'; offer: null };
+  | { type: 'counterTrade'; offer: null }
+  | { type: 'requestLoan'; offer: null }
+  | { type: 'counterLoan'; offer: null };
 
 // ---------------------------------------------------------------------------------------------
 // Events: what just happened, for animation and the log. State is final when they are emitted.
@@ -506,6 +519,18 @@ export type GameEvent =
   | { type: 'remittance'; player: number; amount: number }
   | { type: 'lotteryDrawn'; player: number; dice: Dice; total: number; prize: number }
   | { type: 'earthquake'; die: number; region: CountryId; spaces: number[] }
+  // Myanmar map: loans (D104)
+  | { type: 'loanRequested'; from: number; to: number }
+  | { type: 'loanCountered'; from: number; to: number }
+  | { type: 'loanRejected'; from: number; to: number }
+  | { type: 'loanWithdrawn'; from: number; to: number }
+  | { type: 'loanCancelled'; from: number; to: number }
+  | { type: 'loanAccepted'; loan: Loan }
+  | { type: 'loanRepaid'; loanId: number; borrower: number; lender: number; amount: number; left: number; auto: boolean }
+  /** Unpaid at the end of its term, or the borrower went bankrupt: the collateral goes to the lender. */
+  | { type: 'loanDefaulted'; loanId: number; borrower: number; lender: number; collateral: number[]; why: 'term' | 'bankruptcy' }
+  /** The lender went bankrupt: the loan is cancelled and its collateral freed. */
+  | { type: 'loanForgiven'; loanId: number; borrower: number; lender: number }
   | { type: 'debugApplied'; op: DebugOp['op'] };
 
 export type GameEventType = GameEvent['type'];
@@ -550,7 +575,13 @@ export type ErrorCode =
   /** Myanmar map (D102). */
   | 'noMerit'
   | 'meritFull'
-  | 'tradeBlocked';
+  | 'tradeBlocked'
+  /** Myanmar map: loans (D104). */
+  | 'loanPending'
+  | 'loanTerms'
+  | 'loanCollateral'
+  | 'pledged'
+  | 'loanRepay';
 
 export type ErrorParams = Record<string, string | number>;
 

@@ -16,6 +16,7 @@ import {
   playerById,
   prop,
 } from './core.js';
+import { isPledged, regionPledged } from './loans.js';
 import { buildCost, sellRefund } from './rent.js';
 import type { EngineError, GameState } from './types.js';
 
@@ -63,6 +64,9 @@ export function buildBlocker(s: GameState, playerId: number, space: number): Eng
   if (mortgaged !== null) {
     return makeError('countryMortgaged', { name: propertyName(mortgaged), country: country.name });
   }
+  // Myanmar map: no building in a region with a city pledged for a loan (D104).
+  const pledged = regionPledged(s, space);
+  if (pledged !== null) return makeError('pledged', { name: propertyName(pledged) });
   if (ps.level >= BALANCE.hotelLevel) return makeError('hasHotel', { name: city.name });
   // Even building: build only on a city at the lowest level in its country.
   if (ps.level > Math.min(...countryLevels(s, city.country))) {
@@ -116,6 +120,7 @@ export function mortgageBlocker(s: GameState, playerId: number, space: number): 
   const name = propertyName(space);
   if (ps.owner !== playerId) return makeError('notOwner', { name });
   if (ps.mortgaged) return makeError('alreadyMortgaged', { name });
+  if (isPledged(s, space)) return makeError('pledged', { name });
   const country = countryOf(space);
   if (country !== null && countryHasBuildings(s, country)) {
     return makeError('countryHasBuildings', { country: COUNTRY_BY_ID[country].name });

@@ -60,7 +60,7 @@ describe('engine contract', () => {
     let s: GameState = createGame({ playerCount: 4 }, 31);
     let r = 1;
     for (let i = 0; i < 600 && s.flow.phase !== 'GameOver'; i++) {
-      const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+      const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
       const pick = mulberry32(r);
       r = pick.next;
       const action = legal[Math.floor(pick.value * legal.length)] as Action;
@@ -78,7 +78,7 @@ describe('engine contract', () => {
     let s: GameState = createGame({ playerCount: 3 }, 8);
     let r = 9;
     for (let i = 0; i < 400 && s.flow.phase !== 'GameOver'; i++) {
-      const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+      const legal = legalActions(s).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
       for (const action of legal) expect(reduce(s, action).error).toBeNull();
       const illegal = reduce(s, { type: 'endTurn' });
       if (s.flow.phase !== 'AwaitEndTurn' || s.flow.notices.length || s.flow.trade) {

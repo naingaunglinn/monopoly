@@ -10,6 +10,7 @@ import {
   makeError,
   transfer,
 } from './core.js';
+import { isPledged } from './loans.js';
 import type { EngineError, GameState, TradeOffer, TradeSide } from './types.js';
 
 function isWholeAmount(n: unknown): n is number {
@@ -55,6 +56,9 @@ export function tradeBlocker(s: GameState, offer: TradeOffer): EngineError | nul
     offer.give.jailCards === 0 &&
     offer.get.jailCards === 0;
   if (empty) return makeError('tradeEmpty');
+  // Myanmar map: a property pledged for a loan stays with its owner (D104).
+  const pledged = all.find((space) => isPledged(s, space));
+  if (pledged !== undefined) return makeError('pledged', { name: propertyName(pledged) });
   return sideBlocker(s, offer.give, offer.from) ?? sideBlocker(s, offer.get, offer.to);
 }
 
