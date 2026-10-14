@@ -8,7 +8,7 @@ import {
   createGame,
   DEFAULT_SETTINGS,
   isThisBoard,
-  legalActions,
+  legalActionsFor,
   normalizeSettings,
   publicView,
   reduce,
@@ -308,6 +308,12 @@ export function startGame(room: Room, seed: number, now: number): Room | OpError
 // ---------------------------------------------------------------------------------------------
 // The game
 
+/** Actions any player may send at any moment, checked against the latest game (D99). */
+export function isOpenAction(action: unknown): boolean {
+  const type = typeof action === 'object' && action !== null ? (action as { type?: unknown }).type : null;
+  return type === 'proposeTrade' || type === 'withdrawTrade';
+}
+
 /** True when the device holding `seat` may act for `player` now: its own seat, or one the host plays for. */
 export function seatControls(room: Room, seat: number, player: number): boolean {
   const target = room.seats[player];
@@ -330,7 +336,10 @@ export function playAction(
   const game = room.game;
   if (!game) return fail('notStarted', 409);
   if (game.flow.phase === 'GameOver') return fail('gameOver', 409);
-  if (expectedVersion !== room.version) return fail('stale', 409);
+  // An offer or taking one back does not depend on the moment it was made: it is checked against
+  // the game as it is now, so a move made meanwhile by someone else does not refuse it (D99).
+  const open = isOpenAction(action);
+  if (!open && expectedVersion !== room.version) return fail('stale', 409);
   if (typeof action !== 'object' || action === null || typeof (action as { type?: unknown }).type !== 'string') {
     return fail('badRequest', 400);
   }
@@ -338,7 +347,7 @@ export function playAction(
   const actor = actorFor(game, a);
   if (actor === null) return fail('illegal', 422);
   if (!seatControls(room, seat, actor)) return fail('notYourTurn', 403);
-  const types = new Set(legalActions(game).map((l) => l.type));
+  const types = new Set(legalActionsFor(game, actor).map((l) => l.type));
   if (!types.has(a.type)) return fail('illegal', 422, validateAction(game, a)?.reason);
   const error = validateAction(game, a);
   if (error) return fail('illegal', 422, error.reason);

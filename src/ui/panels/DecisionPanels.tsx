@@ -41,6 +41,7 @@ import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
 import { levelText, money, rentCalcText, signedMoney, T } from '../strings';
 import { countryOfSpace, decider, playerName, spaceName } from '../view';
 import { Panel, QuickHelpButton } from './Panel';
+import { TradePanel } from './TradePanel';
 
 const reason = (s: GameState, action: Parameters<typeof validateAction>[1]) => validateAction(s, action)?.reason ?? null;
 
@@ -546,6 +547,8 @@ export function WinnerPanel({ s }: { s: GameState }) {
 export function ActivePanel({ s }: { s: GameState }) {
   const notice = s.flow.notices[0];
   if (notice) return <NoticePanel s={s} notice={notice} />;
+  // An offer on the table comes first: the game waits for its answer (D99).
+  if (s.flow.trade) return <TradePanel s={s} />;
   const pending = s.flow.pending;
   switch (s.flow.phase) {
     case 'TurnStart':

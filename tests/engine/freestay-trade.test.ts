@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { decisionMaker, legalActions, type TradeOffer } from '../../src/engine';
+import { actorFor, decisionMaker, legalActions, legalActionsFor, type TradeOffer } from '../../src/engine';
 import { act, cashOf, dbg, edit, eventsOf, fail, game, levels, nextDice, own, rollTo, run, spaceOf, spacesOf } from './helpers';
 
 const CAIRO = spaceOf('Cairo');
@@ -69,6 +69,7 @@ describe('trading', () => {
     expect(legalActions(s)).toEqual([
       { type: 'respondTrade', accept: true },
       { type: 'respondTrade', accept: false },
+      { type: 'counterTrade', offer: null },
     ]);
     expect(fail(s, { type: 'roll' }).code).toBe('tradePending');
     const { state, events } = run(s, { type: 'respondTrade', accept: true });
@@ -159,16 +160,115 @@ describe('trading', () => {
       fail(s, { type: 'proposeTrade', offer: offer({ from: 0, to: 0, give: { properties: [CAIRO], cash: 0, jailCards: 0 } }) })
         .code,
     ).toBe('tradeInvalidPlayer');
-    // Only the current player proposes.
-    expect(
-      fail(s, { type: 'proposeTrade', offer: offer({ from: 1, to: 0, get: { properties: [CAIRO], cash: 0, jailCards: 0 } }) })
-        .code,
-    ).toBe('wrongPhase');
+    // Offers wait while a decision is being made (here: buying), whoever makes them.
     const deciding = rollTo(s, spaceOf('Guadalajara')).state;
     expect(deciding.flow.phase).toBe('BuyDecision');
+    for (const from of [0, 1]) {
+      const error = fail(deciding, { type: 'proposeTrade', offer: offer({ from, to: 1 - from, give: { properties: [], cash: 10, jailCards: 0 } }) });
+      expect(error.code).toBe('tradeWait');
+      expect(error.reason).toBe('Offers can be sent once Player 1 has made their decision.');
+    }
+  });
+});
+
+describe('negotiating (D99)', () => {
+  /** Three players: Mia (0) holds Cairo, Leo (1) Alexandria; it is Mia's turn to roll. */
+  const table = () => own(own(game({ playerCount: 3 }), CAIRO, 0), ALEXANDRIA, 1);
+  const leoAsksForCairo = offer({
+    from: 1,
+    to: 0,
+    give: { properties: [], cash: 150, jailCards: 0 },
+    get: { properties: [CAIRO], cash: 0, jailCards: 0 },
+  });
+
+  test('any player may make an offer on someone else’s turn; the game waits for the answer', () => {
+    const s = table();
+    expect(s.turn.currentPlayerIndex).toBe(0);
+    for (const player of [0, 1, 2]) expect(legalActionsFor(s, player)).toContainEqual({ type: 'proposeTrade', offer: null });
+    expect(actorFor(s, { type: 'proposeTrade', offer: leoAsksForCairo })).toBe(1);
+    const { state, events } = run(s, { type: 'proposeTrade', offer: leoAsksForCairo });
+    expect(eventsOf(events, 'tradeProposed')).toEqual([{ type: 'tradeProposed', from: 1, to: 0 }]);
+    expect(decisionMaker(state)).toBe(0);
+    expect(fail(state, { type: 'roll' }).code).toBe('tradePending');
+    // A second offer waits until this one is answered.
+    expect(fail(state, { type: 'proposeTrade', offer: offer({ from: 2, to: 1, give: { properties: [], cash: 10, jailCards: 0 } }) }).code).toBe(
+      'tradePending',
+    );
+    const after = run(state, { type: 'respondTrade', accept: true }).state;
+    expect(after.properties[CAIRO]?.owner).toBe(1);
+    expect([cashOf(after, 0), cashOf(after, 1)]).toEqual([4150, 3850]);
+    expect(after.flow.phase).toBe('AwaitRoll');
+    expect(after.turn.currentPlayerIndex).toBe(0);
+  });
+
+  test('the partner can answer with a counter-offer, and the first player accepts, rejects or counters again', () => {
+    let s = act(table(), { type: 'proposeTrade', offer: leoAsksForCairo });
+    // Mia wants more: $250 for Cairo.
+    const counter = offer({
+      from: 0,
+      to: 1,
+      give: { properties: [CAIRO], cash: 0, jailCards: 0 },
+      get: { properties: [], cash: 250, jailCards: 0 },
+    });
+    expect(actorFor(s, { type: 'counterTrade', offer: counter })).toBe(0);
+    const countered = run(s, { type: 'counterTrade', offer: counter });
+    expect(eventsOf(countered.events, 'tradeCountered')).toEqual([{ type: 'tradeCountered', from: 0, to: 1 }]);
+    s = countered.state;
+    expect(s.flow.trade).toEqual(counter);
+    expect(decisionMaker(s)).toBe(1);
+    expect(legalActionsFor(s, 0)).toEqual([{ type: 'withdrawTrade' }]);
+    expect(legalActionsFor(s, 2)).toEqual([]);
+    // Leo meets her halfway with a counter of his own...
+    const meet = offer({ from: 1, to: 0, give: { properties: [], cash: 200, jailCards: 0 }, get: { properties: [CAIRO], cash: 0, jailCards: 0 } });
+    s = act(s, { type: 'counterTrade', offer: meet });
+    expect(decisionMaker(s)).toBe(0);
+    // ...and Mia accepts it.
+    s = act(s, { type: 'respondTrade', accept: true });
+    expect(s.properties[CAIRO]?.owner).toBe(1);
+    expect([cashOf(s, 0), cashOf(s, 1)]).toEqual([4200, 3800]);
+    expect(s.flow.trade).toBeNull();
+  });
+
+  test('a counter-offer goes back the other way and is checked like any offer', () => {
+    const s = act(table(), { type: 'proposeTrade', offer: leoAsksForCairo });
+    // Not back to the player who offered.
+    expect(fail(s, { type: 'counterTrade', offer: offer({ from: 0, to: 2, give: { properties: [], cash: 10, jailCards: 0 } }) }).code).toBe(
+      'invalidAction',
+    );
+    // Only what each side owns and can afford.
     expect(
-      fail(deciding, { type: 'proposeTrade', offer: offer({ from: 0, to: 1, give: { properties: [CAIRO], cash: 0, jailCards: 0 } }) })
-        .code,
-    ).toBe('wrongPhase');
+      fail(s, { type: 'counterTrade', offer: offer({ from: 0, to: 1, get: { properties: [], cash: 9000, jailCards: 0 } }) }).code,
+    ).toBe('tradeCash');
+    expect(fail(s, { type: 'counterTrade', offer: offer({ from: 0, to: 1 }) }).code).toBe('tradeEmpty');
+    // No counter without an offer on the table.
+    expect(fail(table(), { type: 'counterTrade', offer: offer({ from: 0, to: 1, give: { properties: [], cash: 10, jailCards: 0 } }) }).code).toBe(
+      'wrongPhase',
+    );
+  });
+
+  test('the player who made the offer can withdraw it; the game goes on', () => {
+    const s = act(table(), { type: 'proposeTrade', offer: leoAsksForCairo });
+    expect(actorFor(s, { type: 'withdrawTrade' })).toBe(1);
+    expect(legalActions(s).map((a) => a.type)).not.toContain('withdrawTrade');
+    const { state, events } = run(s, { type: 'withdrawTrade' });
+    expect(eventsOf(events, 'tradeWithdrawn')).toEqual([{ type: 'tradeWithdrawn', from: 1, to: 0 }]);
+    expect(state.flow.trade).toBeNull();
+    expect(state.properties).toEqual(table().properties);
+    expect(legalActions(state).map((a) => a.type)).toContain('roll');
+    expect(fail(state, { type: 'withdrawTrade' }).code).toBe('wrongPhase');
+  });
+
+  test('another player may offer a debtor a deal that pays their debt', () => {
+    // Mia owes Leo rent she cannot pay; Aung offers $400 for her Cairo.
+    let s = own(own(game({ playerCount: 3 }), CAIRO, 0), [ALEXANDRIA, EGYPT_AIRPORT], 1);
+    s = edit(s, (d) => {
+      (d.players[0] as { cash: number }).cash = 10;
+    });
+    s = act(rollTo(s, EGYPT_AIRPORT).state, { type: 'payRent' });
+    expect(s.flow.phase).toBe('Debt');
+    const deal = offer({ from: 2, to: 0, give: { properties: [], cash: 400, jailCards: 0 }, get: { properties: [CAIRO], cash: 0, jailCards: 0 } });
+    s = act(s, { type: 'proposeTrade', offer: deal }, { type: 'respondTrade', accept: true }, { type: 'payDebt' });
+    expect(s.properties[CAIRO]?.owner).toBe(2);
+    expect(s.flow.phase).toBe('AwaitEndTurn');
   });
 });

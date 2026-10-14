@@ -125,7 +125,7 @@ async function view(h: Harness, code: string): Promise<RoomView> {
 
 /** A legal action for the player who must decide now (no trades: they need an offer). */
 function nextAction(game: GameState, pick = 0): Action {
-  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade') as Action[];
+  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
   return legal[pick % legal.length] as Action;
 }
 
@@ -284,6 +284,42 @@ describe.each(CASES)('$name', (storeCase) => {
       const stale = await h.call('POST', '/api/room?op=action', { code, token: tokens[0], action: { type: 'roll' }, expectedVersion: v.version - 1 });
       expect(stale.status).toBe(409);
       expect(stale.body).toMatchObject({ error: 'stale', version: v.version });
+    });
+
+    test('trading (D99): anyone offers on another player’s turn, everyone sees it, the partner counters, only the offerer withdraws', async () => {
+      const h = harness();
+      const { code, tokens, view: v } = await started(h, ['Mia', 'Leo', 'Aung']);
+      const post = (seat: number, action: unknown, expectedVersion: number) =>
+        h.call('POST', '/api/room?op=action', { code, token: tokens[seat], action, expectedVersion });
+      // It is Mia's turn. Leo offers Aung $50, from a view one version old: an offer is checked
+      // against the game as it is now, so it is not refused as stale.
+      const offer = { from: 1, to: 2, give: { properties: [], cash: 50, jailCards: 0 }, get: { properties: [], cash: 0, jailCards: 0 } };
+      expect((await post(0, { type: 'proposeTrade', offer }, v.version)).body.error).toBe('notYourTurn');
+      const sent = await post(1, { type: 'proposeTrade', offer }, v.version - 1);
+      expect(sent.status, JSON.stringify(sent.body)).toBe(200);
+      // Every device sees the offer on the table; Mia's turn waits for Aung's answer.
+      expect((await view(h, code)).game?.flow.trade).toEqual(offer);
+      const v1 = (await view(h, code)).version;
+      // (The decision is Aung's now, so Mia's device is told it is not her turn.)
+      expect((await post(0, { type: 'roll' }, v1)).body.error).toBe('notYourTurn');
+      // Aung counters (Leo cannot answer for him); then the offer on the table is Aung's.
+      const counter = { from: 2, to: 1, give: { properties: [], cash: 0, jailCards: 0 }, get: { properties: [], cash: 80, jailCards: 0 } };
+      expect((await post(1, { type: 'counterTrade', offer: counter }, v1)).body.error).toBe('notYourTurn');
+      expect((await post(2, { type: 'counterTrade', offer: counter }, v1)).status).toBe(200);
+      const v2 = await view(h, code);
+      expect(v2.game?.flow.trade).toEqual(counter);
+      // Only the player whose offer is on the table can take it back.
+      expect((await post(1, { type: 'withdrawTrade' }, v2.version)).body.error).toBe('notYourTurn');
+      expect((await post(2, { type: 'withdrawTrade' }, v2.version)).status).toBe(200);
+      const v3 = await view(h, code);
+      expect(v3.game?.flow.trade).toBeNull();
+      expect(v3.game?.meta.log.map((e) => e.event.type).filter((t) => t.startsWith('trade'))).toEqual([
+        'tradeProposed',
+        'tradeCountered',
+        'tradeWithdrawn',
+      ]);
+      // The turn goes on.
+      expect((await post(0, { type: 'roll' }, v3.version)).status).toBe(200);
     });
 
     test('two simultaneous actions: exactly one wins, the other changes nothing', async () => {

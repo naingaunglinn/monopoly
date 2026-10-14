@@ -68,7 +68,8 @@ players, the log and your properties. Decisions open there too.
 6. Own every city of a country and its rent doubles. Land on any of its cities and you can build
    houses and hotels on all of them, evenly: a city gets its next house only when every city of the
    country has as many.
-7. Short of money? Sell buildings, mortgage properties or trade with another player.
+7. Short of money? Sell buildings, mortgage properties or trade with another player. Anyone can offer
+   a trade on anyone's turn; everyone sees it, and the other player can accept, reject or counter.
 8. Quick game (default): after the round limit, or at the first bankruptcy, the highest net worth
    wins. Normal game: the last player who is not bankrupt wins.
 

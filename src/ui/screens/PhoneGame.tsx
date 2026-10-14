@@ -28,7 +28,7 @@ import { chatRequest, useOnline } from '../session/online';
 import { canAct, openRules, openSheet, useAnimationSpeed, useApp, useUi } from '../store';
 import { money, recapLine, T } from '../strings';
 import { names } from '../view';
-import { Board, GameMenu, PrimaryButton } from './GameScreen';
+import { Board, GameMenu, PrimaryButton, showTradeButton } from './GameScreen';
 
 /** The board's layout size on phones: the 1280 x 720 desktop board (below its top bar), scaled as a whole. */
 export const CANVAS_W = 1280;
@@ -375,14 +375,15 @@ function Sheet({ s }: { s: GameState }) {
   const { pinned } = useUi();
   const { refusal } = useApp();
   const online = useOnline();
-  const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
+  const pending = s.flow.notices.length > 0 || s.flow.trade !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   // Panels wait for the animation to finish, as on large screens.
   const showPanel = pending && !display.busy;
   // The tab the player chose, and the decision they stepped away from (to look at another tab).
   // A new decision shows at once, in the same render: no frame shows the old tab first.
   const [chosen, setChosen] = useState<Tab>('card');
   const [awayFrom, setAwayFrom] = useState<string | null>(null);
-  const decisionKey = `${s.flow.phase}-${s.flow.notices.length}-${s.turn.turnNumber}`;
+  // An offer, a counter-offer or its answer is a new decision too (D99).
+  const decisionKey = `${s.flow.phase}-${s.flow.notices.length}-${s.turn.turnNumber}-${s.flow.trade ? s.meta.logSeq : 'no-trade'}`;
   // Online, the chat stays open through other players' decisions, and through one's own while writing.
   const mineToDecide = !online || canAct(decisionMaker(s));
   const holdChat = chosen === 'chat' && (!mineToDecide || isComposing());
@@ -430,7 +431,7 @@ function Sheet({ s }: { s: GameState }) {
         {tab === 'chat' && online && <ChatPanel className="phone-chat" />}
         {tab === 'mine' && (
           <div className="phone-mine">
-            {legal.has('proposeTrade') && s.flow.phase !== 'Debt' && canAct(actor) && (
+            {showTradeButton(s) && (
               <Button id="mine-trade" label={T.play.trade} icon={<ArrowLeftRight size={16} aria-hidden="true" />} onClick={() => openSheet({ kind: 'trade' })} />
             )}
             <PropertyGroups s={s} player={me} />

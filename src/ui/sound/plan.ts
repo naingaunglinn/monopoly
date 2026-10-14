@@ -62,10 +62,12 @@ export function cueFor(e: GameEvent, o: SoundContext): CueCall | null {
     case 'unmortgaged':
       return { cue: 'unmortgage' };
     case 'tradeProposed':
+    case 'tradeCountered':
       return { cue: 'tradeOffer' };
     case 'tradeAccepted':
       return { cue: 'tradeYes' };
     case 'tradeRejected':
+    case 'tradeWithdrawn':
     case 'tradeCancelled':
       return { cue: 'tradeNo' };
     case 'debtStarted':

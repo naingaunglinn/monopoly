@@ -30,7 +30,8 @@ export interface AppState {
 
 export type Sheet =
   | { kind: 'properties'; player: number }
-  | { kind: 'trade' }
+  /** The trade builder: a new offer, or (`counter`) an answer to the offer on the table (D99). */
+  | { kind: 'trade'; counter?: boolean }
   | { kind: 'results' }
   | { kind: 'settings' }
   | null;

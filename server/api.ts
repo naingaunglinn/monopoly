@@ -33,6 +33,7 @@ import {
   handOverHost,
   hostControl,
   isError,
+  isOpenAction,
   newRoom,
   playable,
   playAction,
@@ -279,18 +280,23 @@ export function createApi(config: ApiConfig): Api {
 
   // op=action {code, token, action, expectedVersion}: one game action, checked and applied.
   async function action(code: string, body: Record<string, unknown>): Promise<Response> {
-    const room = await loadRoom(code);
-    if (!room) return errorResponse(fail('roomNotFound', 404));
-    const s = await callerSeat(room, body.token);
-    if (isError(s)) return errorResponse(s);
-    const played = playAction(room, s, body.action, body.expectedVersion, now());
-    if (isError(played)) return errorResponse(played, { version: room.version });
-    const entry = entryOf(played.room, 'action', s, played.events);
-    const result = await store.commit(played.room, room.version, entry);
-    if (result === 'missing') return errorResponse(fail('roomNotFound', 404));
-    // Someone else's action landed first: nothing changed; the device resyncs and tries again.
-    if (result === 'conflict') return errorResponse(fail('stale', 409), { version: room.version + 1 });
-    return json(update(played.room, entry));
+    // An offer (or taking one back) is checked against the latest game, so when another action
+    // lands first it is simply tried again on the new version (D99).
+    const attempts = isOpenAction(body.action) ? 4 : 1;
+    for (let attempt = 0; ; attempt++) {
+      const room = await loadRoom(code);
+      if (!room) return errorResponse(fail('roomNotFound', 404));
+      const s = await callerSeat(room, body.token);
+      if (isError(s)) return errorResponse(s);
+      const played = playAction(room, s, body.action, body.expectedVersion, now());
+      if (isError(played)) return errorResponse(played, { version: room.version });
+      const entry = entryOf(played.room, 'action', s, played.events);
+      const result = await store.commit(played.room, room.version, entry);
+      if (result === 'missing') return errorResponse(fail('roomNotFound', 404));
+      if (result === 'ok') return json(update(played.room, entry));
+      // Someone else's action landed first: nothing changed; the device resyncs and tries again.
+      if (attempt + 1 >= attempts) return errorResponse(fail('stale', 409), { version: room.version + 1 });
+    }
   }
 
   // op=heartbeat {code, tokens}: presence. Returning players take their seat back from the host, and

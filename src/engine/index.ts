@@ -1,6 +1,16 @@
 // Public engine API. The UI and the simulation import from here.
 export { reduce } from './reducer.js';
-export { legalActions, decisionMaker, freeActor, actorFor, validateAction, isLegal, auctionBidOptions } from './legal.js';
+export {
+  legalActions,
+  legalActionsFor,
+  decisionMaker,
+  freeActor,
+  tradingOpen,
+  actorFor,
+  validateAction,
+  isLegal,
+  auctionBidOptions,
+} from './legal.js';
 export { publicView } from './public.js';
 export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION, THIS_BOARD, isThisBoard } from './state.js';
 export { checkInvariants } from './invariants.js';

@@ -18,6 +18,7 @@ export function Panel({
   help,
   children,
   actions,
+  waitingActions,
   className,
   tone,
 }: {
@@ -29,6 +30,8 @@ export function Panel({
   help: RuleTopicId;
   children?: ReactNode;
   actions?: ReactNode;
+  /** Online: shown beside "Waiting for <name>" on the other devices (the offerer's Withdraw, D99). */
+  waitingActions?: ReactNode;
   className?: string;
   tone?: 'good' | 'bad' | 'neutral' | 'warn';
 }) {
@@ -68,10 +71,13 @@ export function Panel({
       <div className="panel-body">{children}</div>
       {actions && waitingFor === null && <div className="panel-actions">{actions}</div>}
       {waitingFor !== null && (
-        <p className="panel-waiting">
-          <Hourglass aria-hidden="true" />
-          {T.online.waitingFor(waitingFor)}
-        </p>
+        <div className="panel-waiting-row">
+          <p className="panel-waiting">
+            <Hourglass aria-hidden="true" />
+            {T.online.waitingFor(waitingFor)}
+          </p>
+          {waitingActions}
+        </div>
       )}
     </section>
   );

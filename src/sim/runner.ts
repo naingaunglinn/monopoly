@@ -94,7 +94,7 @@ export function simulateGame(seed: number, mode: GameMode, options: SimOptions =
     if (isFreeAction(action.type)) {
       freeCount = actor === freeActor ? freeCount + 1 : 1;
       freeActor = actor;
-    } else if (action.type !== 'respondTrade') {
+    } else if (action.type !== 'respondTrade' && action.type !== 'counterTrade') {
       freeActor = -1;
       freeCount = 0;
     }

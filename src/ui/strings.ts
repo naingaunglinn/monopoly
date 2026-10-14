@@ -487,10 +487,28 @@ export const T = {
     cancel: 'Cancel',
     handTo: (name: string) => `Hand the device to ${name}`,
     offerFrom: (name: string) => `${name} offers you a trade`,
+    offerTo: (name: string) => `Your offer to ${name}`,
+    offerBetween: (from: string, to: string) => `${from} offers ${to} a trade`,
+    counterFrom: (name: string) => `${name}’s counter-offer`,
+    counterTo: (name: string) => `Your counter-offer to ${name}`,
+    counterBetween: (from: string, to: string) => `${from}’s counter-offer to ${to}`,
     theyGive: (name: string) => `${name} gives`,
     youGiveBack: 'You give',
     accept: 'Accept',
     reject: 'Reject',
+    counter: 'Counter-offer',
+    /** The stamp on a counter-offer: which round of the negotiation it is. */
+    counterStamp: (round: number) => (round > 1 ? `Counter-offer ${round}` : 'Counter-offer'),
+    withdraw: 'Withdraw offer',
+    /** Beside an item that was not in the previous offer. */
+    isNew: 'New',
+    /** Beside an item the previous offer had and this one does not. */
+    dropped: 'Taken out',
+    /** Beside an amount that changed since the previous offer. */
+    was: (amount: string) => `was ${amount}`,
+    from: 'Offer from',
+    counterTitle: (name: string) => `Counter-offer to ${name}`,
+    sendCounter: 'Send counter-offer',
     nothing: 'Nothing',
     mortgagedNote: 'Mortgaged properties stay mortgaged.',
     notTradeable: 'Free Stay tokens and Free House cards cannot be traded.',
@@ -616,7 +634,7 @@ export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryT
 
 /** What happens on each special space (Focus Card). */
 export const SPECIAL_TEXT: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
-  start: 'Collect $500 each time you pass or land here moving forward.',
+  start: `Collect ${money(BALANCE.startBonus)} each time you pass or land here moving forward.`,
   chance: 'Draw the top Chance card and do what it says.',
   event: 'Draw the top Event card: world news that can affect everyone.',
   tax: 'Pay the tax to the bank.',
@@ -693,6 +711,8 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   wrongPhase: () => 'That is not possible right now.',
   noticePending: () => 'Press OK first.',
   tradePending: (x) => `${p(x, 'player')} must answer the trade offer first.`,
+  tradeWait: (x) =>
+    p(x, 'player') ? `Offers can be sent once ${p(x, 'player')} has made their decision.` : 'Offers can be sent between decisions.',
   notEnoughCash: (x) => `You don't have enough money. You need ${m(x, 'needed')} and have ${m(x, 'have')}.`,
   notProperty: () => 'That space cannot be owned.',
   notOwner: (x) => `${p(x, 'name')} is not yours.`,
@@ -925,6 +945,10 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return `${who(e.offer.to)} accepted ${who(e.offer.from)}’s trade.`;
     case 'tradeRejected':
       return `${who(e.to)} rejected ${who(e.from)}’s trade.`;
+    case 'tradeCountered':
+      return `${who(e.from)} answered ${who(e.to)} with a counter-offer.`;
+    case 'tradeWithdrawn':
+      return `${who(e.from)} withdrew their offer to ${who(e.to)}.`;
     case 'tradeCancelled':
       return `The trade between ${who(e.from)} and ${who(e.to)} was cancelled.`;
     case 'playerRemoved':
@@ -945,9 +969,12 @@ export function logPlayer(e: GameEvent): number | null {
     case 'cardTransfer':
       return e.from;
     case 'tradeProposed':
-    case 'tradeRejected':
+    case 'tradeCountered':
+    case 'tradeWithdrawn':
     case 'tradeCancelled':
       return e.from;
+    case 'tradeRejected':
+      return e.to;
     case 'tradeAccepted':
       return e.offer.to;
     case 'debtStarted':
@@ -1017,7 +1044,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
       'Land on a property nobody owns: buy it, or let everyone bid for it.',
       'Land on someone else’s property: pay rent.',
       'Own every city of a country and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
-      'Pass World Start and collect $500.',
+      `Pass World Start and collect ${money(BALANCE.startBonus)}.`,
       'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
       'The yellow button always shows your next step.',
     ],
@@ -1038,7 +1065,7 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
     id: 'worldStart',
     title: 'World Start',
     lines: [
-      'Collect $500 each time you pass it or land on it.',
+      `Collect ${money(BALANCE.startBonus)} each time you pass it or land on it.`,
       'You collect nothing when a card moves you backward or when you go to Jail.',
     ],
   },
@@ -1161,8 +1188,9 @@ export const RULE_TOPICS: readonly RuleTopic[] = [
     id: 'trading',
     title: 'Trading',
     lines: [
-      'On your turn, offer a trade to one player: properties, Get Out of Jail cards and cash, in any mix.',
-      'The other player accepts or rejects. Nobody can be forced.',
+      'Any player can offer a trade to one other player, on anyone’s turn, whenever the game is between decisions: properties, Get Out of Jail cards and cash, in any mix.',
+      'Everyone sees the offer. The other player accepts it, rejects it or answers with a counter-offer, and the talks go on until one of you accepts or rejects. Nobody can be forced.',
+      'Whoever made the offer on the table can withdraw it. The game waits while an offer is on the table.',
       'Cities in a country with buildings cannot be traded until the buildings are sold.',
       'A mortgaged property stays mortgaged after a trade.',
     ],

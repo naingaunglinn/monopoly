@@ -100,6 +100,11 @@ docs/       SPEC.md (source of truth)
 - Voice (`session/voice.ts`) is peer to peer; the server only lists peers and passes set-up messages,
   which only their receiver can read. Playwright runs Chromium with a fake microphone
   (`playwright.config.ts`); the local server hands out no ICE servers, so tests stay offline.
+- Trading (D99): any player may offer while the game is between decisions (`tradingOpen`); one offer
+  is on the table at a time and the game waits; the partner accepts, rejects or counters
+  (`counterTrade`), the offerer may withdraw (`withdrawTrade`). `legalActions` is still the decision
+  maker's list; `legalActionsFor(s, player)` adds what anyone else may do, and the server checks it.
+  The offer is a decision panel (`panels/TradePanel.tsx`) on every device.
 - Room play on large screens (D97): the players sit in the top bar (`components/RoomBar.tsx`), there
   is no players column, the Focus Card floats beside a hovered or pinned tile, and the chat is open
   from the start; with a mouse its message box keeps the cursor (`useKeepFocus` in `Chat.tsx`), so

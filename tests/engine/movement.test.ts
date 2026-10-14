@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { BOARD_SIZE } from '../../src/data/balance';
+import { BALANCE, BOARD_SIZE } from '../../src/data/balance';
+
+const START_PAY = BALANCE.startBonus;
 import { isProperty, SPACES } from '../../src/data/board';
 import { act, at, cashOf, eventsOf, forceCard, game, rollWith, run, spacesOf } from './helpers';
 
@@ -18,20 +20,20 @@ describe('movement', () => {
     expect(state.flow.phase).toBe('BuyDecision');
   });
 
-  test('wraps from the last space to 0 and landing on World Start pays $500 once', () => {
+  test('wraps from the last space to 0 and landing on World Start pays its $1,000 once', () => {
     const s = at(game(), 0, N - 3);
     const { state, events } = rollWith(s, 1, 2);
     expect(state.players[0]?.position).toBe(0);
-    expect(cashOf(state, 0)).toBe(4000 + 500);
+    expect(cashOf(state, 0)).toBe(4000 + START_PAY);
     expect(eventsOf(events, 'passedStart')).toHaveLength(1);
     expect(eventsOf(events, 'moved')[0]?.path).toEqual([N - 2, N - 1, 0]);
     expect(state.flow.phase).toBe('AwaitEndTurn');
   });
 
-  test('passing World Start pays $500', () => {
+  test('passing World Start pays $1,000', () => {
     const { state } = rollWith(at(game(), 0, N - 4), 3, 4);
     expect(state.players[0]?.position).toBe(3);
-    expect(cashOf(state, 0)).toBe(4500);
+    expect(cashOf(state, 0)).toBe(4000 + START_PAY);
   });
 
   test('a backward move pays nothing, even across World Start', () => {
@@ -39,12 +41,12 @@ describe('movement', () => {
     let s = forceCard(at(game(), 0, N - 5), 'chance-forgot-passport');
     s = rollWith(s, 3, 4).state;
     expect(s.flow.phase).toBe('CardReveal');
-    expect(cashOf(s, 0)).toBe(4500);
+    expect(cashOf(s, 0)).toBe(4000 + START_PAY);
     const { state, events } = run(s, { type: 'confirmCard' });
     expect(eventsOf(events, 'moved')[0]).toMatchObject({ direction: -1, path: [1, 0, N - 1], to: N - 1 });
     expect(eventsOf(events, 'passedStart')).toHaveLength(0);
     expect(state.players[0]?.position).toBe(N - 1);
-    expect(cashOf(state, 0)).toBe(4500);
+    expect(cashOf(state, 0)).toBe(4000 + START_PAY);
   });
 
   test('moving backward onto World Start pays nothing', () => {
@@ -52,16 +54,16 @@ describe('movement', () => {
     s = rollWith(s, 3, 4).state;
     s = act(s, { type: 'confirmCard' });
     expect(s.players[0]?.position).toBe(0);
-    expect(cashOf(s, 0)).toBe(4500);
+    expect(cashOf(s, 0)).toBe(4000 + START_PAY);
   });
 
-  test('forward card movement past World Start pays $500', () => {
+  test('forward card movement past World Start pays $1,000', () => {
     const lastChance = spacesOf('chance').at(-1) as number;
     let s = forceCard(at(game(), 0, lastChance - 7), 'chance-carnival');
     s = rollWith(s, 3, 4).state; // the last Chance
     s = act(s, { type: 'confirmCard' });
     expect(s.players[0]?.position).toBe(1);
-    expect(cashOf(s, 0)).toBe(4500);
+    expect(cashOf(s, 0)).toBe(4000 + START_PAY);
     expect(s.flow.phase).toBe('BuyDecision');
   });
 

@@ -297,14 +297,14 @@ Implement these rules as written. They follow standard Monopoly except where thi
 2. Turn start. If this turn is to be skipped (Vacation), show a short notice, clear the flag and pass the turn. If the player is in Jail, show the Jail choices (5.11).
 3. Roll two dice.
 4. A third double in the same turn sends the player to Jail and ends the turn.
-5. Move clockwise one space at a time. Collect $500 when passing or landing on World Start.
+5. Move clockwise one space at a time. Collect $1,000 when passing or landing on World Start (D100; it was $500).
 6. Resolve the space (5.4). A card may move the player again; resolve the new space too.
 7. If the player stands on their own city in a complete country, offer building on that city only (5.8).
 8. Settle any debt (section 7), then check bankruptcy and the win condition.
 9. After doubles, and if not in Jail, go back to step 3. Otherwise the player presses End turn.
 10. The turn passes to the next living player.
 
-During their own turn, whenever no decision is pending, the player may also trade, view properties, sell buildings, and mortgage or unmortgage properties.
+During their own turn, whenever no decision is pending, the player may also view properties, sell buildings, and mortgage or unmortgage properties. Any player may make a trade offer then (7.2).
 
 ### 5.3 Dice
 
@@ -322,7 +322,7 @@ During their own turn, whenever no decision is pending, the player may also trad
 | Another player's company | Roll two new dice and pay total × multiplier |
 | Own property | Nothing to pay; a city may offer building (5.8) |
 | Chance or Event | Draw the top card and apply it (section 6) |
-| World Start | +$500, never doubled with passing |
+| World Start | +$1,000, never doubled with passing |
 | Income Tax | Pay $300 to the bank |
 | Luxury Tax | Pay $500 to the bank |
 | Jail | Just visiting; nothing happens |
@@ -403,7 +403,7 @@ The build panel lists every city of the country with its buildings, its rent now
 
 ### 5.13 World Start
 
-- $500 for passing or landing, by dice or by forward card movement.
+- $1,000 for passing or landing, by dice or by forward card movement (owner change, D100; it was $500).
 - Nothing for moving backward or for going to Jail.
 
 ### 5.14 Mortgage
@@ -444,7 +444,7 @@ Card fields: `id`, `deck`, `title`, `text`, `icon`, `tone` (good, bad or neutral
 
 ### Rules
 
-- Nearest means the next one clockwise from the player. Forward movement past World Start pays $500.
+- Nearest means the next one clockwise from the player. Forward movement past World Start pays $1,000.
 - After any card movement, resolve the new space fully: rent, buy, build offer or another card.
 - A modifier's factor is between 0.5 and 1.5. It lasts until the drawing player's next turn begins. Only one per type is active; a new one replaces the old. Active modifiers show as chips in the top bar.
 - Held cards (Jail card, house voucher) leave the deck until used.
@@ -480,9 +480,13 @@ All four happen on the one shared device, so every panel names whose decision it
 
 ### 7.2 Trading
 
-- The current player may open a trade whenever no decision is pending, and while in debt.
-- They pick one partner, then fill two columns, You give and You get, with cities, airports, companies, Get Out of Jail cards and cash.
-- On submit the panel says Hand the device to the partner. The partner accepts or rejects. There are no counter-offers and no forced trades.
+Changed at the owner's request (D99): any player may offer, on anyone's turn, and offers can be negotiated.
+
+- Any living player may make an offer whenever the game is between decisions: while the current player is about to roll or end the turn, on a Jail choice or a build offer, and while a debt is being raised. During any other decision (buying, an auction, rent, a card, a company roll) the offer waits; the builder says so and sends once trading is open.
+- The player picks one partner, then fills two columns, what each side gives, with cities, airports, companies, Get Out of Jail cards and cash. On one device the builder also asks who is offering; online it offers as this device's own player.
+- One offer is on the table at a time, and everyone sees it as a panel: both sides, who must answer, and the negotiation round. The game waits while it is on the table.
+- The partner accepts it, rejects it, or answers with a counter-offer: a new offer back the other way, which replaces it on the table and now waits for the first player. Talks go on until one side accepts or rejects. A counter-offer wears a stamp with its round, and what changed since the previous offer is marked.
+- The player whose offer is on the table can withdraw it. On one device the answer is handed over first (Hand the device to the partner), and the offer can be withdrawn there. There are no forced trades.
 - A city cannot be traded while any city in its country has buildings. Sell the buildings first. A mortgaged property can be traded and stays mortgaged with its new owner.
 - Free Stay tokens and house vouchers cannot be traded.
 - An accepted trade applies in one step.
@@ -802,7 +806,7 @@ Animation explains what happened and never makes a player wait: state changes fi
 | --- | --- | --- |
 | Dice roll | Dice tumble and land, the total appears, then Move N spaces | 700 ms |
 | Token move | One space at a time; path tiles light briefly | 150 ms a step; 90 ms a step for 10 or more spaces |
-| Passing World Start | The Start tile flashes, +$500 floats up, cash counts up | 600 ms |
+| Passing World Start | The Start tile flashes, +$1,000 floats up, cash counts up | 600 ms |
 | Landing | A small bounce and a short glow on the tile | 300 ms |
 | Money change | The number counts to its new value; the signed amount floats beside the player card | 700 ms |
 | Buying | The tile highlights, the owner marker pops in, a Bought stamp shows | 500 ms |
@@ -957,7 +961,7 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 - Land on a property nobody owns: buy it, or let everyone bid for it.
 - Land on someone else's property: pay rent.
 - Own every city of a country and its rent doubles. Then you can build houses, but only on the city you land on.
-- Pass World Start and collect $500.
+- Pass World Start and collect $1,000.
 - Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.
 - The yellow button always shows your next step.
 
@@ -971,7 +975,7 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 
 #### World Start
 
-- Collect $500 each time you pass it or land on it.
+- Collect $1,000 each time you pass it or land on it.
 - You collect nothing when a card moves you backward or when you go to Jail.
 
 #### Buying and auctions
@@ -1058,8 +1062,9 @@ The rule guide is the in-game help: a player opens it at any moment, finds the a
 
 #### Trading
 
-- On your turn, offer a trade to one player: properties, Get Out of Jail cards and cash, in any mix.
-- The other player accepts or rejects. Nobody can be forced.
+- Any player can offer a trade to one other player, on anyone's turn, whenever the game is between decisions: properties, Get Out of Jail cards and cash, in any mix.
+- Everyone sees the offer. The other player accepts it, rejects it or answers with a counter-offer, and the talks go on until one of you accepts or rejects. Nobody can be forced.
+- Whoever made the offer on the table can withdraw it. The game waits while an offer is on the table.
 - Cities in a country with buildings cannot be traded until the buildings are sold.
 - A mortgaged property stays mortgaged after a trade.
 

@@ -39,7 +39,7 @@ export function isFreeAction(type: Action['type']): boolean {
 }
 
 function concrete(legal: LegalAction[]): Action[] {
-  return legal.filter((a) => !(a.type === 'proposeTrade' && a.offer === null)) as Action[];
+  return legal.filter((a) => !((a.type === 'proposeTrade' || a.type === 'counterTrade') && a.offer === null)) as Action[];
 }
 
 function tradeable(s: GameState, owner: number): number[] {
@@ -50,9 +50,12 @@ function tradeable(s: GameState, owner: number): number[] {
   return out;
 }
 
-/** A small random offer to a random partner, or null if the random pick is not a valid trade. */
-export function randomTradeOffer(s: GameState, actor: number, rnd: BotRandom): TradeOffer | null {
-  const partners = s.players.filter((p) => !p.bankrupt && p.id !== actor);
+/**
+ * A small random offer to a random partner (or to `only`, for a counter-offer), or null if the
+ * random pick is not a valid trade.
+ */
+export function randomTradeOffer(s: GameState, actor: number, rnd: BotRandom, only: number | null = null): TradeOffer | null {
+  const partners = s.players.filter((p) => !p.bankrupt && p.id !== actor && (only === null || p.id === only));
   if (partners.length === 0) return null;
   const partner = rnd.pick(partners);
   const me = s.players[actor];
@@ -93,7 +96,14 @@ export function randomBot(ctx: BotContext): Action {
   }
   const types = [...new Set(options.map((a) => a.type))];
   if (canTrade && !capped) types.push('proposeTrade');
+  const canCounter = legal.some((a) => a.type === 'counterTrade') && state.flow.trade !== null;
+  if (canCounter) types.push('counterTrade');
   const type = rnd.pick(types);
+  if (type === 'counterTrade' && state.flow.trade) {
+    const counter = randomTradeOffer(state, actor, rnd, state.flow.trade.from);
+    if (counter) return { type: 'counterTrade', offer: counter };
+    return { type: 'respondTrade', accept: rnd.next() < 0.5 };
+  }
   if (type === 'proposeTrade' && !options.some((a) => a.type === 'proposeTrade')) {
     const offer = randomTradeOffer(state, actor, rnd);
     if (offer) return { type: 'proposeTrade', offer };

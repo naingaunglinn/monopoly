@@ -23,7 +23,9 @@ test('trade: T opens it, the offer is handed over, accepted with confirmation an
   await page.locator('#trade-send').click();
   await expect(page.locator('[data-sheet="trade-handover"]')).toContainText('Hand the device to Leo');
   await page.locator('#handover-ready').click();
-  await expect(page.locator('[data-sheet="trade-offer"]')).toContainText('Cairo');
+  // The offer shows as a panel, in the play area (D99).
+  await expect(page.locator('[data-panel="trade"]')).toContainText('Cairo');
+  await expect(page.locator('[data-panel="trade"]')).toContainText('Mia offers you a trade');
   await page.locator('#trade-accept').click();
   await expect(page.locator('[data-sheet="confirm"]')).toContainText('Accept this trade?');
   await page.locator('#confirm-yes').click();
@@ -31,7 +33,63 @@ test('trade: T opens it, the offer is handed over, accepted with confirmation an
   expect(s.properties[CAIRO].owner).toBe(1);
   expect(s.players.map((p: { cash: number }) => p.cash)).toEqual([4150, 3850]);
   expect(s.flow.trade).toBeNull();
-  await expect(page.locator('[data-sheet="trade-offer"]')).toHaveCount(0);
+  await expect(page.locator('[data-panel="trade"]')).toHaveCount(0);
+  expect(log.errors).toEqual([]);
+});
+
+test('trade (D99): any player offers on another player’s turn; a counter-offer is handed back, stamped and accepted', async ({ page }) => {
+  const log = trackErrors(page);
+  await loadState(page, own(own(base({ playerCount: 2 }), [CAIRO], 0), [ALEXANDRIA], 1));
+  expect((await gameState(page)).turn.currentPlayerIndex).toBe(0);
+  // On Mia's turn, Leo offers: Alexandria for Cairo.
+  await page.keyboard.press('t');
+  const sheet = page.locator('[data-sheet="trade"]');
+  await sheet.getByRole('radiogroup', { name: 'Offer from' }).locator('label', { hasText: 'Leo' }).click();
+  await sheet.locator(`input[data-space="${ALEXANDRIA}"]`).check();
+  await sheet.locator(`input[data-space="${CAIRO}"]`).check();
+  await page.locator('#trade-send').click();
+  await expect(page.locator('[data-sheet="trade-handover"]')).toContainText('Hand the device to Mia');
+  await page.locator('#handover-ready').click();
+  await expect(page.locator('[data-panel="trade"]')).toContainText('Leo offers you a trade');
+  // Mia answers with a counter-offer: Leo adds $100.
+  await page.locator('#trade-counter').click();
+  await expect(page.locator('[data-sheet="trade"]')).toContainText('Counter-offer to Leo');
+  await page.locator('#get-cash').fill('100');
+  await page.locator('#trade-send').click();
+  await expect(page.locator('[data-sheet="trade-handover"]')).toContainText('Hand the device to Leo');
+  await page.locator('#handover-ready').click();
+  const panel = page.locator('[data-panel="trade"]');
+  await expect(panel).toContainText('Mia’s counter-offer');
+  await expect(panel.locator('.slip-stamp')).toHaveText('Counter-offer');
+  await expect(panel.locator('.slip-was')).toHaveText('was $0');
+  await page.locator('#trade-accept').click();
+  await page.locator('#confirm-yes').click();
+  const s = await gameState(page);
+  expect(s.properties[CAIRO].owner).toBe(1);
+  expect(s.properties[ALEXANDRIA].owner).toBe(0);
+  expect(s.players.map((p: { cash: number }) => p.cash)).toEqual([4100, 3900]);
+  expect(s.turn.currentPlayerIndex).toBe(0);
+  expect(s.meta.log.map((e: { event: { type: string } }) => e.event.type).filter((t: string) => t.startsWith('trade'))).toEqual([
+    'tradeProposed',
+    'tradeCountered',
+    'tradeAccepted',
+  ]);
+  expect(log.errors).toEqual([]);
+});
+
+test('trade: the player who made the offer can withdraw it, even at the handover', async ({ page }) => {
+  const log = trackErrors(page);
+  const start = own(own(base({ playerCount: 2 }), [CAIRO], 0), [ALEXANDRIA], 1);
+  await loadState(page, start);
+  await page.locator('#act-trade').click();
+  await page.locator(`[data-sheet="trade"] input[data-space="${CAIRO}"]`).check();
+  await page.locator('#trade-send').click();
+  await page.locator('#handover-withdraw').click();
+  const s = await gameState(page);
+  expect(s.flow.trade).toBeNull();
+  expect(s.properties).toEqual(start.properties);
+  await expect(page.locator('[data-sheet="trade-handover"]')).toHaveCount(0);
+  await expect(page.locator('#primary')).toContainText('Roll dice');
   expect(log.errors).toEqual([]);
 });
 

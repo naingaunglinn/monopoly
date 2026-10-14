@@ -48,7 +48,7 @@ import {
   Results,
   SettingsFields,
   TradeBuilder,
-  TradeResponse,
+  TradeHandover,
 } from '../overlays/Overlays';
 import { DebugPanel } from '../overlays/DebugPanel';
 import { setPrefs, usePrefs } from '../prefs';
@@ -77,6 +77,7 @@ import {
   useUi,
 } from '../store';
 import { GAME_TITLE, modifierLabel, money, recapLine, T } from '../strings';
+import { canOfferHere } from '../trading';
 import { legalTypes, names, playerName, primarySpec } from '../view';
 
 /** The Menu button and its popover: settings, then Save and New game (local) or invite and leave (online). */
@@ -378,6 +379,16 @@ function RefusalLine() {
   );
 }
 
+/**
+ * The Trade button: for any player this device acts for, on anyone's turn (D99). Not while an offer
+ * is on the table (its panel has the answers), nor for a debtor, whose debt panel has its own.
+ */
+export function showTradeButton(s: GameState): boolean {
+  if (s.flow.trade || !canOfferHere(s)) return false;
+  const debtor = s.flow.phase === 'Debt' ? (s.flow.debts[0]?.debtor ?? null) : null;
+  return debtor === null || !canAct(debtor);
+}
+
 function ActionBar({ s }: { s: GameState }) {
   const types = legalTypes(s);
   const online = useOnline();
@@ -392,7 +403,7 @@ function ActionBar({ s }: { s: GameState }) {
         {types.has('openBuild') && canAct(decisionMaker(s)) && (
           <Button id="act-build" label={T.play.build} icon={<Hammer size={16} aria-hidden="true" />} action={{ type: 'openBuild' }} />
         )}
-        {types.has('proposeTrade') && s.flow.phase !== 'Debt' && actorHere && (
+        {showTradeButton(s) && (
           <Button
             id="act-trade"
             label={T.play.trade}
@@ -457,7 +468,7 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   // The next game starts on the chat again.
   useEffect(() => () => feedTab.set('chat'), []);
   const chatOpen = online !== null && feed === 'chat';
-  const pending = s.flow.notices.length > 0 || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
+  const pending = s.flow.notices.length > 0 || s.flow.trade !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
   const dice = shownDice(s, display);
@@ -591,7 +602,7 @@ function useKeyboard(): void {
         dispatch({ type: 'buy' });
       } else if (key === 'p' && validateAction(s, { type: 'decline' }) === null) {
         dispatch({ type: 'decline' });
-      } else if (key === 't' && legalTypes(s).has('proposeTrade')) {
+      } else if (key === 't' && showTradeButton(s)) {
         e.preventDefault();
         openSheet({ kind: 'trade' });
       } else if (key === ' ' || key === 'enter') {
@@ -759,8 +770,8 @@ export function GameScreen() {
           {banner}
         </div>
       )}
-      {s.flow.trade && <TradeResponse key={`trade-${s.meta.logSeq}`} s={s} />}
-      {!s.flow.trade && u.sheet?.kind === 'trade' && <TradeBuilder s={s} />}
+      {s.flow.trade && <TradeHandover key={`trade-${s.meta.logSeq}`} s={s} />}
+      {u.sheet?.kind === 'trade' && <TradeBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
       <QuickHelpPopover />

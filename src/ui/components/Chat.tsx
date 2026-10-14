@@ -133,7 +133,7 @@ function StampRow({ disabled }: { disabled: boolean }) {
 }
 
 /** Open dialogs, sheets, menus and help: while one is open the chat box never takes the cursor. */
-const FOCUS_BLOCKERS = '[data-sheet]:not([data-sheet="trade-waiting"]), [role="dialog"], [role="alertdialog"], .quick-help';
+const FOCUS_BLOCKERS = '[data-sheet], [role="dialog"], [role="alertdialog"], .quick-help';
 
 /**
  * Room play with a mouse (owner request, D97): the message box keeps the cursor, so a player can

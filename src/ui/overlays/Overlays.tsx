@@ -1,5 +1,5 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
-import { ArrowLeftRight, Check, CircleHelp, Hourglass, X } from 'lucide-react';
+import { ArrowLeftRight, Check, CircleHelp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, propertyPrice } from '../../data/board';
 import { mortgageValue, unmortgageCost } from '../../data/balance';
@@ -8,11 +8,12 @@ import {
   freeActor,
   ranking,
   sellRefund,
-  tradeBlocker,
   validateAction,
+  type Action,
   type GameState,
   type Player,
   type TradeOffer,
+  type TradeSide,
 } from '../../engine';
 import { countryHasBuildings } from '../../engine/core';
 import { REDUCED_MOTION_QUERY } from '../animation';
@@ -38,6 +39,7 @@ import {
   useUi,
 } from '../store';
 import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
+import { defaultTrader, negotiation, tradersHere } from '../trading';
 import { countryOfSpace, playerName, spaceName } from '../view';
 import { openRules } from '../store';
 
@@ -404,39 +406,71 @@ function TradeColumn({
   );
 }
 
-/** The current player (or the debtor) builds an offer: one partner, two columns. */
-export function TradeBuilder({ s }: { s: GameState }) {
-  const actorId = freeActor(s);
-  const me = actorId !== null ? (s.players[actorId] as Player) : null;
-  const partners = s.players.filter((p) => !p.bankrupt && p.id !== actorId);
-  const [partnerId, setPartnerId] = useState<number>(partners[0]?.id ?? -1);
-  const [give, setGive] = useState<number[]>([]);
-  const [get, setGet] = useState<number[]>([]);
-  const [giveCash, setGiveCash] = useState('');
-  const [getCash, setGetCash] = useState('');
-  const [giveCards, setGiveCards] = useState(0);
-  const [getCards, setGetCards] = useState(0);
+/** A side of an offer as the builder's inputs. */
+interface Draft {
+  props: number[];
+  cash: string;
+  cards: number;
+}
+
+const draftOf = (side: TradeSide | null): Draft => ({
+  props: side ? [...side.properties] : [],
+  cash: side && side.cash > 0 ? String(side.cash) : '',
+  cards: side?.jailCards ?? 0,
+});
+
+/**
+ * The trade builder (spec 7.2, D99): who offers (any player this device can act for), one partner
+ * and two columns. With `counter` it answers the offer on the table: the partner is fixed and the
+ * columns start from that offer, turned round. It stays open until the offer is on the table, so a
+ * refused offer (sent at a busy moment) can be sent again.
+ */
+export function TradeBuilder({ s, counter = false }: { s: GameState; counter?: boolean }) {
+  const table = s.flow.trade;
+  const traders = tradersHere(s);
+  const [meId, setMeId] = useState<number | null>(() => (counter ? (table?.to ?? null) : defaultTrader(s, traders)));
+  const me = meId !== null ? (s.players[meId] ?? null) : null;
+  const partners = s.players.filter((p) => !p.bankrupt && p.id !== meId);
+  const [partnerId, setPartnerId] = useState<number>(() => (counter ? (table?.from ?? -1) : (partners[0]?.id ?? -1)));
+  // A counter-offer starts from the offer on the table: what they asked of me, what they offered me.
+  const [give, setGive] = useState<Draft>(() => draftOf(counter && table ? table.get : null));
+  const [get, setGet] = useState<Draft>(() => draftOf(counter && table ? table.give : null));
+  const sent = useRef(false);
   const partner = s.players[partnerId];
   const offer: TradeOffer | null =
     me && partner
       ? {
           from: me.id,
           to: partner.id,
-          give: { properties: give, cash: Number(giveCash || 0), jailCards: giveCards },
-          get: { properties: get, cash: Number(getCash || 0), jailCards: getCards },
+          give: { properties: give.props, cash: Number(give.cash || 0), jailCards: give.cards },
+          get: { properties: get.props, cash: Number(get.cash || 0), jailCards: get.cards },
         }
       : null;
-  const problem = offer ? tradeBlocker(s, offer)?.reason ?? null : T.error.title;
-  const toggle = (list: number[], set: (v: number[]) => void, space: number) =>
-    set(list.includes(space) ? list.filter((x) => x !== space) : [...list, space]);
+  const action: Action | null = offer ? (counter ? { type: 'counterTrade', offer } : { type: 'proposeTrade', offer }) : null;
+  const problem = action ? (validateAction(s, action)?.reason ?? null) : T.trade.pickPartner;
+  // Close once this offer is on the table, or when the offer being answered is gone.
+  useEffect(() => {
+    if (counter && (!table || !canAct(table.to)) && !(sent.current && table?.from === meId)) closeSheet();
+    else if (sent.current && table && table.from === meId) closeSheet();
+  }, [counter, table, meId]);
+  const toggle = (draft: Draft, set: (d: Draft) => void, space: number) =>
+    set({ ...draft, props: draft.props.includes(space) ? draft.props.filter((x) => x !== space) : [...draft.props, space] });
   if (!me) return null;
+  const pickMe = (id: number) => {
+    setMeId(id);
+    setGive(draftOf(null));
+    if (id === partnerId) {
+      setPartnerId(s.players.find((p) => !p.bankrupt && p.id !== id)?.id ?? -1);
+      setGet(draftOf(null));
+    }
+  };
   return (
     <Sheet
       id="trade"
       title={
         <span className="sheet-title-row">
           <ArrowLeftRight size={22} aria-hidden="true" />
-          {T.trade.title}
+          {counter && partner ? T.trade.counterTitle(partner.name) : T.trade.title}
         </span>
       }
       onClose={closeSheet}
@@ -448,63 +482,81 @@ export function TradeBuilder({ s }: { s: GameState }) {
           <Button
             id="trade-send"
             variant="primary"
-            label={T.trade.send}
+            label={counter ? T.trade.sendCounter : T.trade.send}
             reason={problem}
             showReason
             onClick={() => {
-              if (!offer) return;
-              if (!dispatch({ type: 'proposeTrade', offer }, 'trade-send')) closeSheet();
+              if (!action) return;
+              sent.current = true;
+              dispatch(action, 'trade-send');
             }}
           />
         </>
       }
     >
-      <fieldset className="field">
-        <legend className="field-label">{T.trade.partner}</legend>
-        <div className="segmented" role="radiogroup" aria-label={T.trade.partner}>
-          {partners.map((p) => (
-            <label key={p.id} className={`segment ${p.id === partnerId ? 'is-on' : ''}`}>
-              <input
-                type="radio"
-                name="partner"
-                checked={p.id === partnerId}
-                onChange={() => {
-                  setPartnerId(p.id);
-                  setGet([]);
-                  setGetCash('');
-                  setGetCards(0);
-                }}
-              />
-              <TokenChip token={p.token} color={p.color} size={18} />
-              <span>{p.name}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {!counter && traders.length > 1 && (
+        <fieldset className="field">
+          <legend className="field-label">{T.trade.from}</legend>
+          <div className="segmented" role="radiogroup" aria-label={T.trade.from}>
+            {traders.map((id) => {
+              const p = s.players[id] as Player;
+              return (
+                <label key={id} className={`segment ${id === meId ? 'is-on' : ''}`}>
+                  <input type="radio" name="trader" checked={id === meId} onChange={() => pickMe(id)} />
+                  <TokenChip token={p.token} color={p.color} size={18} />
+                  <span>{p.name}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+      {!counter && (
+        <fieldset className="field">
+          <legend className="field-label">{T.trade.partner}</legend>
+          <div className="segmented" role="radiogroup" aria-label={T.trade.partner}>
+            {partners.map((p) => (
+              <label key={p.id} className={`segment ${p.id === partnerId ? 'is-on' : ''}`}>
+                <input
+                  type="radio"
+                  name="partner"
+                  checked={p.id === partnerId}
+                  onChange={() => {
+                    setPartnerId(p.id);
+                    setGet(draftOf(null));
+                  }}
+                />
+                <TokenChip token={p.token} color={p.color} size={18} />
+                <span>{p.name}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       {partner && (
         <div className="trade-cols">
           <TradeColumn
             s={s}
             owner={me}
-            title={T.trade.youGive}
-            picked={give}
+            title={traders.length > 1 && !counter ? T.trade.theyGive(me.name) : T.trade.youGive}
+            picked={give.props}
             onToggle={(sp) => toggle(give, setGive, sp)}
-            cash={giveCash}
-            onCash={setGiveCash}
-            cards={giveCards}
-            onCards={setGiveCards}
+            cash={give.cash}
+            onCash={(cash) => setGive({ ...give, cash })}
+            cards={give.cards}
+            onCards={(cards) => setGive({ ...give, cards })}
             idPrefix="give"
           />
           <TradeColumn
             s={s}
             owner={partner}
-            title={T.trade.youGet}
-            picked={get}
+            title={traders.length > 1 && !counter ? T.trade.theyGive(partner.name) : T.trade.youGet}
+            picked={get.props}
             onToggle={(sp) => toggle(get, setGet, sp)}
-            cash={getCash}
-            onCash={setGetCash}
-            cards={getCards}
-            onCards={setGetCards}
+            cash={get.cash}
+            onCash={(cash) => setGet({ ...get, cash })}
+            cards={get.cards}
+            onCards={(cards) => setGet({ ...get, cards })}
             idPrefix="get"
           />
         </div>
@@ -516,97 +568,31 @@ export function TradeBuilder({ s }: { s: GameState }) {
   );
 }
 
-function OfferSide({ s, side, title }: { s: GameState; side: TradeOffer['give']; title: string }) {
-  const empty = side.properties.length === 0 && side.cash === 0 && side.jailCards === 0;
-  return (
-    <section className="trade-col">
-      <h3 className="trade-col-title">{title}</h3>
-      {empty && <p className="muted">{T.trade.nothing}</p>}
-      <ul className="trade-items">
-        {side.properties.map((space) => {
-          const country = countryOfSpace(space);
-          return (
-            <li key={space} className="trade-item">
-              {country ? <Flag code={country.flag} width={16} /> : null}
-              <span>{spaceName(s, space)}</span>
-              {s.properties[space]?.mortgaged && <span className="badge badge-warn">{T.focus.mortgaged}</span>}
-            </li>
-          );
-        })}
-        {side.cash > 0 && <li className="trade-item money">{money(side.cash)}</li>}
-        {side.jailCards > 0 && (
-          <li className="trade-item">
-            {side.jailCards} × {T.players.jailCard}
-          </li>
-        )}
-      </ul>
-    </section>
-  );
-}
-
-/** "Hand the device to the partner", then Accept (with confirmation) or Reject. */
-export function TradeResponse({ s }: { s: GameState }) {
+/**
+ * On one shared device (or two seats on one device online), the answer is handed over first: "Hand
+ * the device to Leo". The player who made the offer can still take it back here.
+ */
+export function TradeHandover({ s }: { s: GameState }) {
   const offer = s.flow.trade as TradeOffer;
-  const from = s.players[offer.from] as Player;
   const to = s.players[offer.to] as Player;
   const online = useOnline();
   // Online the partner answers on their own device: no handover unless both seats are on this one.
-  const partnerHere = canAct(offer.to);
-  const proposerHere = canAct(offer.from);
-  const [handed, setHanded] = useState(online !== null && !(partnerHere && proposerHere));
-  const ref = useFocusTrap();
-  if (online && !partnerHere) {
-    if (!proposerHere) return null;
-    return (
-      <div className="trade-waiting" role="status" data-sheet="trade-waiting">
-        <Hourglass size={18} aria-hidden="true" />
-        {T.online.tradeWaiting(to.name)}
-      </div>
-    );
-  }
-  if (!handed) {
-    return (
-      <div className="pass-device" style={{ ['--player' as string]: to.color }} data-sheet="trade-handover">
-        <div ref={ref} className="pass-card" role="dialog" aria-modal="true" aria-labelledby="handover-title">
-          <p className="pass-kicker">{T.trade.title}</p>
-          <TokenChip token={to.token} color={to.color} size={96} />
-          <h2 id="handover-title" className="pass-name">
-            {T.trade.handTo(to.name)}
-          </h2>
-          <Button id="handover-ready" variant="primary" label={T.play.ready} onClick={() => setHanded(true)} autoFocus />
-        </div>
-      </div>
-    );
-  }
+  const needed = online === null || (canAct(offer.to) && canAct(offer.from));
+  const [handed, setHanded] = useState(!needed);
+  const ref = useFocusTrap(!handed);
+  if (handed) return null;
   return (
-    <Sheet
-      id="trade-offer"
-      title={T.trade.offerFrom(from.name)}
-      wide
-      help="trading"
-      footer={
-        <>
-          <Button id="trade-reject" label={T.trade.reject} icon={<X size={18} aria-hidden="true" />} action={{ type: 'respondTrade', accept: false }} />
-          <Button
-            id="trade-accept"
-            variant="primary"
-            label={T.trade.accept}
-            icon={<Check size={18} aria-hidden="true" />}
-            onClick={() => askConfirm({ kind: 'acceptTrade' })}
-          />
-        </>
-      }
-    >
-      <p className="panel-whose" style={{ ['--player' as string]: to.color }}>
-        <TokenChip token={to.token} color={to.color} size={18} />
-        {T.panels.whose(to.name)}
-      </p>
-      <div className="trade-cols">
-        <OfferSide s={s} side={offer.give} title={T.trade.theyGive(from.name)} />
-        <OfferSide s={s} side={offer.get} title={T.trade.youGiveBack} />
+    <div className="pass-device" style={{ ['--player' as string]: to.color }} data-sheet="trade-handover">
+      <div ref={ref} className="pass-card" role="dialog" aria-modal="true" aria-labelledby="handover-title">
+        <p className="pass-kicker">{negotiation(s).round > 0 ? T.trade.counter : T.trade.title}</p>
+        <TokenChip token={to.token} color={to.color} size={96} />
+        <h2 id="handover-title" className="pass-name">
+          {T.trade.handTo(to.name)}
+        </h2>
+        <Button id="handover-ready" variant="primary" label={T.play.ready} onClick={() => setHanded(true)} autoFocus />
+        <Button id="handover-withdraw" label={T.trade.withdraw} action={{ type: 'withdrawTrade' }} />
       </div>
-      <p className="muted small">{T.trade.mortgagedNote}</p>
-    </Sheet>
+    </div>
   );
 }
 
