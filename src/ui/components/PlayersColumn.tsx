@@ -9,6 +9,7 @@ import { amHost, hostControl, isSeatConnected, useOnline, usePresenceClock, type
 import { askConfirm, openSheet, showToast } from '../store';
 import { money, signedMoney, T } from '../strings';
 import { TokenChip } from './glyphs';
+import { jailIcon } from './icons';
 import { VoiceBadge } from './Voice';
 
 export interface SeatNet {
@@ -60,6 +61,7 @@ function PlayerCard({
   /** Online: this player's connection and the host's controls. */
   net: SeatNet | null;
 }) {
+  const JailSign = jailIcon(Lock);
   const cities = citiesOwnedBy(s, p.id);
   const airports = airportsOwnedBy(s, p.id);
   const companies = companiesOwnedBy(s, p.id);
@@ -135,7 +137,7 @@ function PlayerCard({
           )}
           {p.inJail && (
             <span className="badge badge-jail">
-              <Lock aria-hidden="true" />
+              <JailSign aria-hidden="true" />
               {T.players.inJail}
             </span>
           )}

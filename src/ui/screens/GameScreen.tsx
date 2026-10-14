@@ -21,8 +21,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
-import { BOARD_SIZE } from '../../data/balance';
-import { BOARD, LAYOUT } from '../../data/board';
+import { BOARD, LAYOUT, MAP } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
@@ -34,6 +33,7 @@ import { FloatingFocusCard, FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
 import { Log, LogLines, LogMoreButton } from '../components/Log';
 import { OceanArt } from '../components/OceanArt';
+import { RiverArt } from '../components/RiverArt';
 import { PlayersColumn } from '../components/PlayersColumn';
 import { RoomPlayers } from '../components/RoomBar';
 import { Tile } from '../components/Tile';
@@ -526,26 +526,27 @@ function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   );
 }
 
-/** The board's grid: the spaces along each side, between the corners (theme.css `.board`). */
-const BOARD_GRID = { '--across': LAYOUT.across, '--down': LAYOUT.down } as CSSProperties;
-/** With 18 or fewer spaces down a side, its tiles are tall enough for a name on two lines. */
-const ROOMY_ROWS = LAYOUT.down <= 18;
-
 /** The ring of tiles with the ocean, tokens and (on large screens) the HUD inside it. */
 export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; compactLog: boolean }) {
   const display = useDisplay();
+  // Names and cards follow this device's language (Myanmar map, D101): tiles re-render when it changes.
+  const { language } = usePrefs();
+  // The board's grid: the spaces along each side, between the corners (theme.css `.board`), for the
+  // map in play. With 18 or fewer spaces down a side, its tiles are tall enough for two-line names.
+  const grid = { '--across': LAYOUT.across, '--down': LAYOUT.down } as CSSProperties;
+  const roomy = LAYOUT.down <= 18;
   const online = useOnline();
   const current = s.players[s.turn.currentPlayerIndex];
   const currentPos = shownPosition(s, display, s.turn.currentPlayerIndex);
   const over = s.flow.phase === 'GameOver';
   const [focusIndex, setFocusIndex] = useState(0);
   const navigate = useCallback((from: number, delta: number) => {
-    const next = (from + delta + BOARD_SIZE) % BOARD_SIZE;
+    const next = (from + delta + LAYOUT.size) % LAYOUT.size;
     setFocusIndex(next);
     document.querySelector<HTMLElement>(`.board [data-space="${next}"]`)?.focus();
   }, []);
   return (
-    <main className={`board ${ROOMY_ROWS ? 'is-roomy' : ''}`} aria-label={GAME_TITLE} style={BOARD_GRID}>
+    <main className={`board ${roomy ? 'is-roomy' : ''}`} data-map={MAP.id} aria-label={GAME_TITLE} style={grid}>
       {BOARD.map((space) => (
         <Tile
           key={space.index}
@@ -554,10 +555,11 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
           ring={space.index === currentPos && !over && current ? current.color : null}
           focusable={space.index === focusIndex}
           onNavigate={navigate}
+          language={language}
         />
       ))}
       <div className="ocean">
-        <OceanArt />
+        {MAP.id === 'myanmar' ? <RiverArt /> : <OceanArt />}
         <TokenLayer s={s} />
         {hud && <Hud s={s} compactLog={compactLog} />}
         {hud && online && <FloatingFocusCard s={s} />}

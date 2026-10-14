@@ -1,7 +1,9 @@
 // Preferences that belong to this device, not to a game, kept in localStorage beside the save:
 // show movement even when the device asks for reduced motion (D52), the animation speed of online
-// games, which each device chooses for itself (spec section 17), and sound (spec section 18).
+// games, which each device chooses for itself (spec section 17), sound (spec section 18), and the
+// language of the Myanmar map's names and cards (spec 7.6, D101).
 import { useSyncExternalStore } from 'react';
+import { setLanguage, type Lang } from '../data/lang';
 import type { AnimationSpeed } from '../engine';
 
 export const PREFS_KEY = 'global-monopoly/prefs/v1';
@@ -19,6 +21,8 @@ export interface Prefs {
   soundVolume: number;
   /** Voice chat volume (the others' voices), 0 to 1. */
   voiceVolume: number;
+  /** The Myanmar map's city names and card texts: English or Burmese. */
+  language: Lang;
 }
 
 export const DEFAULT_VOLUME = 0.7;
@@ -30,6 +34,7 @@ const DEFAULTS: Prefs = {
   soundOn: true,
   soundVolume: DEFAULT_VOLUME,
   voiceVolume: 1,
+  language: 'en',
 };
 
 const unit = (value: unknown, fallback: number): number =>
@@ -46,6 +51,7 @@ function load(): Prefs {
       soundOn: raw?.soundOn !== false,
       soundVolume: unit(raw?.soundVolume, DEFAULT_VOLUME),
       voiceVolume: unit(raw?.voiceVolume, 1),
+      language: raw?.language === 'my' ? 'my' : 'en',
     };
   } catch {
     return { ...DEFAULTS };
@@ -53,6 +59,7 @@ function load(): Prefs {
 }
 
 let prefs: Prefs = typeof window === 'undefined' ? { ...DEFAULTS } : load();
+setLanguage(prefs.language);
 const listeners = new Set<() => void>();
 
 export function getPrefs(): Prefs {
@@ -61,6 +68,7 @@ export function getPrefs(): Prefs {
 
 export function setPrefs(patch: Partial<Prefs>): void {
   prefs = { ...prefs, ...patch };
+  setLanguage(prefs.language);
   try {
     window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {

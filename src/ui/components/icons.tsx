@@ -39,9 +39,16 @@ import {
   Wheat,
   Zap,
   Coffee,
+  Tent,
+  Mail,
+  Trees,
+  Milestone,
+  Fence,
+  createLucideIcon,
   type LucideIcon,
 } from 'lucide-react';
-import type { SpaceData } from '../../data/board';
+import { MAP, type SpaceData } from '../../data/board';
+import type { MyanmarTransport } from '../../data/myanmar';
 import type { CardIcon } from '../../data/cardTypes';
 import type { CompanyIcon } from '../../data/companies';
 
@@ -92,9 +99,51 @@ export const COMPANY_ICONS: Record<CompanyIcon, LucideIcon> = {
   landmark: Landmark,
 };
 
+/**
+ * A pagoda (the Myanmar map's three pagoda spaces): finial, spire, bell-shaped dome and three
+ * terraces, drawn for this game on lucide's 24-pixel grid with its stroke.
+ */
+export const Pagoda: LucideIcon = createLucideIcon('Pagoda', [
+  ['path', { d: 'M12 2v3', key: 'finial' }],
+  ['path', { d: 'm10.5 9 1.5-4 1.5 4', key: 'spire' }],
+  ['path', { d: 'M8 14a4 5 0 0 1 8 0', key: 'dome' }],
+  ['path', { d: 'M6 14h12', key: 'terrace1' }],
+  ['path', { d: 'M5 17.5h14', key: 'terrace2' }],
+  ['path', { d: 'M6 14 5 17.5 4 21h16l-1-3.5-1-3.5', key: 'base' }],
+]);
+
+/** The sign of a player held at the Jail corner: the World's lock, or the Myanmar map's tent (D101). */
+export function jailIcon(world: LucideIcon): LucideIcon {
+  return MAP.id === 'myanmar' ? Tent : world;
+}
+
+/** The Myanmar map's corners and transport spaces have their own icons (D101). */
+function myanmarIcon(space: SpaceData): LucideIcon | null {
+  switch (space.type) {
+    case 'jail':
+      return Tent;
+    case 'goToJail':
+      return Mail;
+    case 'vacation':
+      return Trees;
+    case 'temple':
+      return Pagoda;
+    case 'airport': {
+      const kind = (space.airport as MyanmarTransport).kind;
+      return kind === 'road' ? Milestone : kind === 'border' ? Fence : Plane;
+    }
+    default:
+      return null;
+  }
+}
+
 /** Icon for a board space (cities use their flag instead). */
 export function spaceIcon(space: SpaceData, rest = false): LucideIcon | null {
   if (rest) return Coffee;
+  if (MAP.id === 'myanmar') {
+    const icon = myanmarIcon(space);
+    if (icon) return icon;
+  }
   switch (space.type) {
     case 'start':
       return FlagIcon;

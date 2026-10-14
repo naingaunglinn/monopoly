@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { buildBoard, validBoards } from '../../src/data/board';
 import { ALL_COUNTRIES } from '../../src/data/countries';
+import { MYANMAR_GROUPS } from '../../src/data/myanmar';
 import { PLAYER_COLORS, SEATS } from '../../src/data/players';
 import { contrastRatio, inkOnPaper, MORTGAGED_TINT, OWNED_TINT, ownedTileColor, PATH_TINT, readableInk, tint } from '../../src/ui/contrast';
 
@@ -25,6 +26,17 @@ describe('band text contrast (WCAG AA)', () => {
         expect(diff, `${size} ${shape}: ${a.name} / ${b.name}`).toBeGreaterThan(90);
       }
     }
+  });
+
+  test('the Myanmar regions: readable bands, neighbours clearly different (D101)', () => {
+    for (const region of MYANMAR_GROUPS) {
+      expect(contrastRatio(region.color, readableInk(region.color)), region.name).toBeGreaterThanOrEqual(4.5);
+    }
+    MYANMAR_GROUPS.forEach((a, i) => {
+      const b = MYANMAR_GROUPS[(i + 1) % MYANMAR_GROUPS.length] as (typeof MYANMAR_GROUPS)[number];
+      const diff = [1, 3, 5].reduce((sum, k) => sum + Math.abs(parseInt(a.color.slice(k, k + 2), 16) - parseInt(b.color.slice(k, k + 2), 16)), 0);
+      expect(diff, `${a.name} / ${b.name}`).toBeGreaterThan(90);
+    });
   });
 
   test('the text colours used on light surfaces pass AA', () => {

@@ -1,7 +1,7 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
 import { ArrowLeftRight, Check, CircleHelp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, propertyPrice } from '../../data/board';
+import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, groupName, propertyPrice } from '../../data/board';
 import { mortgageValue, unmortgageCost } from '../../data/balance';
 import {
   countryOf,
@@ -38,7 +38,8 @@ import {
   useAnimationSpeed,
   useUi,
 } from '../store';
-import { money, QUICK_HELP, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
+import { LanguageField } from '../components/Fields';
+import { money, quickHelp as quickHelpText, RULE_LINK, T, TOKEN_NAMES, type RuleTopicId } from '../strings';
 import { defaultTrader, negotiation, tradersHere } from '../trading';
 import { countryOfSpace, playerName, spaceName } from '../view';
 import { openRules } from '../store';
@@ -232,7 +233,7 @@ export function PropertyGroups({ s, player }: { s: GameState; player: number }) 
           <section key={g.country.id} className="prop-group" style={{ ['--band' as string]: g.country.color }}>
             <h3 className="prop-group-title">
               <Flag code={g.country.flag} width={18} />
-              {g.country.name}
+              {groupName(g.country.id)}
               <span className="muted">
                 {T.focus.countryProgress(g.spaces.length, COUNTRY_CITIES[g.country.id].length)}
               </span>
@@ -697,6 +698,7 @@ export function SettingsFields({ s }: { s: GameState }) {
           ))}
         </div>
       </fieldset>
+      {s.meta.settings.map === 'myanmar' && <LanguageField compact />}
       <SoundFields />
       {online && <VoiceVolume />}
       {reducedMotion && (
@@ -869,7 +871,7 @@ export function Toast() {
 export function QuickHelpPopover() {
   const { quickHelp } = useUi();
   if (!quickHelp) return null;
-  const help = QUICK_HELP[quickHelp];
+  const help = quickHelpText()[quickHelp];
   return (
     <div className="quick-help" role="note">
       <p>{help.lines[0]}</p>

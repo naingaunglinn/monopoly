@@ -2,6 +2,7 @@
 // feedback), and sends every action through the active game session (LocalSession on one device,
 // OnlineSession in a room). Components read it with useSyncExternalStore; nothing here is game logic.
 import { useSyncExternalStore } from 'react';
+import { setActiveMap, useMap } from '../data/board';
 import type { Action, AnimationSpeed, EngineError, GameEvent, GameState, SaveProblem, Settings } from '../engine';
 import { installSkipHandlers, playBatch, resetAnimation } from './animation';
 import { usePrefs } from './prefs';
@@ -71,6 +72,18 @@ class Store<T> {
   }
 }
 
+/**
+ * The app store. The board on screen is the board of the game on screen: setting a game switches
+ * the map in play before anything renders, and the start screen is always the World map (D101).
+ */
+class AppStore extends Store<AppState> {
+  override set(patch: Partial<AppState>): void {
+    if (patch.game) useMap(patch.game);
+    else if (patch.screen === 'start') setActiveMap('world');
+    super.set(patch);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Environment
 
@@ -107,7 +120,7 @@ export function newSeed(): number {
 // ---------------------------------------------------------------------------------------------
 // Stores
 
-export const app = new Store<AppState>({
+export const app = new AppStore({
   screen: 'start',
   mode: null,
   game: null,

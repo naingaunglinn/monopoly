@@ -9,6 +9,7 @@ import type { GameState } from '../../engine';
 import { shownPosition, useDisplay } from '../display';
 import { T, TOKEN_NAMES } from '../strings';
 import { TokenChip } from './glyphs';
+import { jailIcon } from './icons';
 
 /** Centre of a space's slot in the lane, in px inside the ocean box. */
 export function laneSlot(index: number, w: number, h: number, laneW: number, laneH: number): { x: number; y: number } {
@@ -46,6 +47,7 @@ function cssNumber(el: Element, name: string, fallback: number): number {
 }
 
 export function TokenLayer({ s }: { s: GameState }) {
+  const JailSign = jailIcon(Lock);
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box>({ w: 0, h: 0, laneW: 64, laneH: 28, token: 18, current: 24 });
   const display = useDisplay();
@@ -120,7 +122,7 @@ export function TokenLayer({ s }: { s: GameState }) {
               </span>
               {status && (
                 <span className={`token-badge badge-${status}`}>
-                  {p.inJail ? <Lock size={8} strokeWidth={3} /> : <TreePalm size={8} strokeWidth={3} />}
+                  {p.inJail ? <JailSign size={8} strokeWidth={3} /> : <TreePalm size={8} strokeWidth={3} />}
                 </span>
               )}
             </div>

@@ -3,7 +3,7 @@
 // ones still for sale (D54). The owner marker stays: ownership is never colour alone.
 import { Hammer } from 'lucide-react';
 import { memo, type KeyboardEvent } from 'react';
-import { gridPosition } from '../../data/board';
+import { gridPosition, groupName } from '../../data/board';
 import type { GameState } from '../../engine';
 import { ownedTileColor, PATH_TINT, tint } from '../contrast';
 import { useDisplay } from '../display';
@@ -38,6 +38,8 @@ interface TileProps {
   ring: string | null;
   focusable: boolean;
   onNavigate: (from: number, delta: number) => void;
+  /** This device's language for the Myanmar map's names: a new value re-renders the memoised tile. */
+  language: string;
 }
 
 function isPropertySpace(type: string): boolean {
@@ -47,7 +49,7 @@ function isPropertySpace(type: string): boolean {
 function describe(s: GameState, index: number): string {
   const v = tileView(s, index);
   const parts = [v.name];
-  if (v.country && v.space.type === 'city') parts.push(v.country.name);
+  if (v.country && v.space.type === 'city') parts.push(groupName(v.country.id));
   if (v.owner) parts.push(T.tile.owner(v.owner.name));
   else if (isPropertySpace(v.space.type)) parts.push(T.tile.forSale);
   if (v.value) parts.push(v.value);

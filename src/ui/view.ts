@@ -1,13 +1,14 @@
 // Pure view helpers: names, tile display values and the one primary action. No React here.
-import { BALANCE } from '../data/balance';
 import {
   AIRPORT_BY_SPACE,
   BOARD,
   CITY_BY_SPACE,
   COMPANY_BY_SPACE,
+  MAP,
   propertyName,
   propertyPrice,
   propertyShortName,
+  RULES,
   type SpaceData,
 } from '../data/board';
 import { pick } from '../data/lang';
@@ -16,6 +17,7 @@ import {
   auctionBidOptions,
   buildBlocker,
   cardById,
+  companiesOwnedBy,
   decisionMaker,
   displayedRent,
   legalActions,
@@ -48,10 +50,13 @@ export function spaceName(s: GameState | null, index: number): string {
   }
 }
 
-/** Short tile name (companies use their short form). */
-/** Short tile name: companies use their short form; airports keep their full name (two lines fit). */
+/**
+ * Short tile name: companies use their short form; World airports keep their full name (two lines
+ * fit), the Myanmar map's transport spaces use their short one ("Yangon Airport", D101).
+ */
 export function spaceShortName(s: GameState | null, index: number): string {
-  return COMPANY_BY_SPACE.has(index) ? propertyShortName(index) : spaceName(s, index);
+  const short = COMPANY_BY_SPACE.has(index) || (MAP.id === 'myanmar' && AIRPORT_BY_SPACE.has(index));
+  return short ? propertyShortName(index) : spaceName(s, index);
 }
 
 /** One-line tiles: an airport shows its country beside a plane icon. */
@@ -70,12 +75,24 @@ export function names(s: GameState): NameLookup {
     space: (index) => spaceName(s, index),
     cardTitle: (id) => {
       try {
-        return cardById(id).title;
+        return cardTitle(id);
       } catch {
         return id;
       }
     },
   };
+}
+
+/** A card's title in the language chosen on this device (Myanmar cards have a Burmese one, D101). */
+export function cardTitle(id: string): string {
+  const card = cardById(id);
+  return pick(card.title, card.titleMy);
+}
+
+/** A card's text in the language chosen on this device. */
+export function cardText(id: string): string {
+  const card = cardById(id);
+  return pick(card.text, card.textMy);
 }
 
 export function countryOfSpace(index: number): CountryData | null {
@@ -116,10 +133,12 @@ export function tileView(s: GameState, index: number): TileView {
     else {
       const rent = displayedRent(s, index);
       const company = COMPANY_BY_SPACE.get(index);
-      value = rent !== null ? money(rent) : company ? T.tile.dice(company.multiplier) : null;
+      // Myanmar companies: the multiplier for how many companies the owner holds (D101).
+      const multiplier = company && RULES.companyMultipliers ? RULES.companyMultipliers[companiesOwnedBy(s, owner.id) - 1] : company?.multiplier;
+      value = rent !== null ? money(rent) : multiplier !== undefined ? T.tile.dice(multiplier) : null;
     }
   } else if (space.type === 'tax') {
-    value = money(space.tax === 'income' ? BALANCE.incomeTax : BALANCE.luxuryTax);
+    value = money(space.tax === 'income' ? RULES.incomeTax : RULES.luxuryTax);
   }
   const current = s.turn.currentPlayerIndex;
   // Any city of the country just landed in that may take a building now (D98).

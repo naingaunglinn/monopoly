@@ -19,6 +19,7 @@ import { usePresenceClock, type OnlineState } from '../session/online';
 import { openSheet } from '../store';
 import { money, signedMoney, T } from '../strings';
 import { TokenChip } from './glyphs';
+import { jailIcon } from './icons';
 import { seatNet, type SeatNet } from './PlayersColumn';
 import { VoiceBadge } from './Voice';
 
@@ -78,6 +79,7 @@ interface ChipProps {
 
 /** This device's player, in full. */
 function MeChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
+  const JailSign = jailIcon(Lock);
   const cities = citiesOwnedBy(s, p.id);
   const airports = airportsOwnedBy(s, p.id);
   const companies = companiesOwnedBy(s, p.id);
@@ -116,7 +118,7 @@ function MeChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
         )}
         {p.inJail && (
           <span className="badge badge-jail tb-badge" title={T.players.inJail}>
-            <Lock aria-hidden="true" />
+            <JailSign aria-hidden="true" />
             <span className="tb-badge-label">{T.players.inJail}</span>
           </span>
         )}
@@ -140,7 +142,7 @@ function statusSign(p: Player, net: SeatNet | null): { kind: string; Icon: Lucid
   if (p.bankrupt) return null;
   if (net?.proxyName) return { kind: 'proxy', Icon: Gamepad2 };
   if (net?.offline) return { kind: 'offline', Icon: WifiOff };
-  if (p.inJail) return { kind: 'jail', Icon: Lock };
+  if (p.inJail) return { kind: 'jail', Icon: jailIcon(Lock) };
   if (p.skipNextTurn) return { kind: 'vacation', Icon: TreePalm };
   return null;
 }

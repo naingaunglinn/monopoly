@@ -17,8 +17,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { BALANCE } from '../../data/balance';
-import { CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, propertyPrice } from '../../data/board';
-import { COUNTRY_BY_ID } from '../../data/countries';
+import { CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, groupName, propertyPrice } from '../../data/board';
 import {
   buildQuote,
   canRaiseMoney,
@@ -35,11 +34,11 @@ import { Button } from '../components/Button';
 import { DeedSummary } from '../components/FocusCard';
 import { Flag } from '../components/Flag';
 import { BuildingPips, TokenChip } from '../components/glyphs';
-import { CARD_ICONS, COMPANY_ICONS } from '../components/icons';
+import { CARD_ICONS, COMPANY_ICONS, jailIcon } from '../components/icons';
 import { leaveToStart } from '../session/online';
 import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
-import { levelText, money, rentCalcText, signedMoney, T } from '../strings';
-import { countryOfSpace, decider, playerName, spaceName } from '../view';
+import { levelText, money, rentCalcText, signedMoney, specialName, T } from '../strings';
+import { cardText, cardTitle, countryOfSpace, decider, playerName, spaceName } from '../view';
 import { Panel, QuickHelpButton } from './Panel';
 import { TradePanel } from './TradePanel';
 
@@ -310,7 +309,7 @@ function BuildPanel({ s }: { s: GameState }) {
     <Panel
       id="build"
       icon={Hammer}
-      title={T.panels.build.title(COUNTRY_BY_ID[city.country].name)}
+      title={T.panels.build.title(groupName(city.country))}
       whose={me}
       help="houses"
       tone="good"
@@ -348,8 +347,8 @@ function CardPanel({ s }: { s: GameState }) {
               <Ticket aria-hidden="true" />
               {T.panels.card.boarding}
             </span>
-            <h3 className="bp-title">{card.title}</h3>
-            <p className="bp-text">{card.text}</p>
+            <h3 className="bp-title">{cardTitle(card.id)}</h3>
+            <p className="bp-text">{cardText(card.id)}</p>
           </div>
           <div className="bp-stub" aria-hidden="true">
             <Icon />
@@ -362,8 +361,8 @@ function CardPanel({ s }: { s: GameState }) {
             <span className="news-label">{T.panels.card.news}</span>
             <Icon className="news-icon" aria-hidden="true" />
           </div>
-          <h3 className="news-title">{card.title}</h3>
-          <p className="news-text">{card.text}</p>
+          <h3 className="news-title">{cardTitle(card.id)}</h3>
+          <p className="news-text">{cardText(card.id)}</p>
         </div>
       )}
       {kept && <p className="muted">{T.panels.card.kept}</p>}
@@ -376,7 +375,7 @@ function JailPanel({ s }: { s: GameState }) {
   return (
     <Panel
       id="jail"
-      icon={LockKeyhole}
+      icon={jailIcon(LockKeyhole)}
       title={T.panels.jail.title(me.name)}
       whose={me}
       help="jail"
@@ -440,9 +439,9 @@ function DebtPanel({ s }: { s: GameState }) {
     r.kind === 'rent'
       ? T.panels.debt.reason.rent(spaceName(s, r.space))
       : r.kind === 'tax'
-        ? T.panels.debt.reason.tax(r.tax === 'income' ? 'Income Tax' : 'Luxury Tax')
+        ? T.panels.debt.reason.tax(specialName(r.tax === 'income' ? 'incomeTax' : 'luxuryTax'))
         : r.kind === 'card'
-          ? T.panels.debt.reason.card(cardById(r.cardId).title)
+          ? T.panels.debt.reason.card(cardTitle(r.cardId))
           : T.panels.debt.reason.jailFine;
   return (
     <Panel

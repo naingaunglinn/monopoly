@@ -3,12 +3,13 @@
 import { ArrowLeft, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SETUP } from '../../data/balance';
+import { setActiveMap } from '../../data/board';
 import { SEATS } from '../../data/players';
 import { DEFAULT_SETTINGS, type Settings } from '../../engine';
 import { REDUCED_MOTION_QUERY } from '../animation';
 import { Button } from '../components/Button';
 import { ColorPicker } from '../components/ColorPicker';
-import { ModeFields, RuleToggles, Segmented, Toggle, type GameOptions } from '../components/Fields';
+import { LanguageField, MapField, ModeFields, RuleToggles, Segmented, Toggle, type GameOptions } from '../components/Fields';
 import { useMediaQuery } from '../hooks';
 import { setPrefs, usePrefs } from '../prefs';
 import { goTo, startNewGame } from '../store';
@@ -23,6 +24,8 @@ export function SetupScreen() {
     playerNames: [...DEFAULT_SETTINGS.playerNames],
     playerColors: [...DEFAULT_SETTINGS.playerColors],
   });
+  // The chosen map is the map in play while setting up: money shows in its currency (D101).
+  setActiveMap(settings.map);
   const reducedMotion = useMediaQuery(REDUCED_MOTION_QUERY);
   const prefs = usePrefs();
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((s) => ({ ...s, [key]: value }));
@@ -52,6 +55,7 @@ export function SetupScreen() {
       >
         <header className="setup-header">
           <h1 className="setup-title">{T.setup.title}</h1>
+          <MapField value={settings.map} onChange={(v) => set('map', v)} inHeader />
         </header>
         <div className="setup-grid">
           <section className="setup-col" aria-label={T.setup.players}>
@@ -120,6 +124,7 @@ export function SetupScreen() {
             )}
           </section>
           <section className="setup-col" aria-label={T.setup.rules}>
+            {settings.map === 'myanmar' && <LanguageField />}
             <RuleToggles options={settings} onChange={setOption}>
               <Toggle id="opt-pass" label={T.setup.passDevice} checked={settings.passDevice} onChange={(v) => set('passDevice', v)} />
             </RuleToggles>

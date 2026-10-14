@@ -4,9 +4,9 @@
 import { Pin } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { BALANCE, mortgageValue } from '../../data/balance';
-import { AIRPORT_BY_SPACE, AIRPORTS, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, gridPosition } from '../../data/board';
+import { AIRPORT_BY_SPACE, AIRPORTS, BOARD, CITY_BY_SPACE, COMPANY_BY_SPACE, COUNTRY_CITIES, gridPosition, groupName, RULES } from '../../data/board';
 import { COUNTRY_BY_ID } from '../../data/countries';
-import { airportsOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
+import { airportsOwnedBy, companiesOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
 import { readableInk } from '../contrast';
 import { ui, useUi } from '../store';
 import { money, specialText, T } from '../strings';
@@ -102,7 +102,7 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
               {holder !== null
                 ? T.focus.complete
                 : owner
-                  ? `${T.focus.countryProgress(ownedByOwner, cities.length)} (${country.name})`
+                  ? `${T.focus.countryProgress(ownedByOwner, cities.length)} (${groupName(country.id)})`
                   : T.focus.countryProgress(0, cities.length)}
             </dd>
           </div>
@@ -121,7 +121,7 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
         <table className="rent-table ladder">
           <caption>{T.focus.rent}</caption>
           <tbody>
-            {BALANCE.airportRent.slice(0, AIRPORTS.length).map((rent, i) => (
+            {RULES.airportRent.slice(0, AIRPORTS.length).map((rent, i) => (
               <tr key={i} className={owned === i + 1 ? 'is-current' : ''}>
                 <th scope="row">{T.focus.airportsOwned(i + 1)}</th>
                 <td className="money">{money(rent)}</td>
@@ -131,6 +131,30 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
         </table>
         <dl className="deed-rows">{mortgage(airport.price)}</dl>
         <p className="deed-note">{T.focus.noAirportSet}</p>
+      </>
+    );
+  }
+  if (company && RULES.companyMultipliers) {
+    // The Myanmar map: the multiplier grows with the companies the owner holds (D101).
+    const owned = owner ? companiesOwnedBy(s, owner.id) : 0;
+    return (
+      <>
+        {ownerRow}
+        <dl className="deed-rows">
+          <Row label={T.focus.price} value={money(company.price)} />
+        </dl>
+        <table className="rent-table ladder">
+          <caption>{T.focus.rent}</caption>
+          <tbody>
+            {RULES.companyMultipliers.map((m, i) => (
+              <tr key={i} className={owned === i + 1 ? 'is-current' : ''}>
+                <th scope="row">{T.players.companies(i + 1)}</th>
+                <td className="money">{T.tile.dice(m)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <dl className="deed-rows">{mortgage(company.price)}</dl>
       </>
     );
   }
@@ -180,7 +204,7 @@ export function DeedSummary({ s, index }: { s: GameState; index: number }) {
         <Row label={T.focus.completeEmpty} value={money(city.baseRent * (BALANCE.cityRentMultipliers[0] as number))} />
         <Row label={T.focus.hotel} value={money(city.baseRent * (BALANCE.cityRentMultipliers[5] as number))} />
         <Row label={T.focus.houseCost} value={money(city.houseCost)} />
-        <Row label={COUNTRY_BY_ID[city.country].name} value={T.focus.countryProgress(mine, cities.length)} />
+        <Row label={groupName(city.country)} value={T.focus.countryProgress(mine, cities.length)} />
       </dl>
     );
   }
@@ -188,9 +212,20 @@ export function DeedSummary({ s, index }: { s: GameState; index: number }) {
     const owned = airportsOwnedBy(s, me);
     return (
       <dl className="deed-summary">
-        <Row label={T.focus.airportsOwned(owned + 1)} value={money(BALANCE.airportRent[owned] as number)} />
-        <Row label={T.focus.airportsOwned(AIRPORTS.length)} value={money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} />
+        <Row label={T.focus.airportsOwned(owned + 1)} value={money(RULES.airportRent[owned] as number)} />
+        <Row label={T.focus.airportsOwned(AIRPORTS.length)} value={money(RULES.airportRent[AIRPORTS.length - 1] as number)} />
         <Row label={T.focus.mortgage} value={money(mortgageValue(airport.price))} />
+      </dl>
+    );
+  }
+  if (company && RULES.companyMultipliers) {
+    const owned = companiesOwnedBy(s, me);
+    const ladder = RULES.companyMultipliers;
+    return (
+      <dl className="deed-summary">
+        <Row label={T.players.companies(owned + 1)} value={T.tile.dice(ladder[owned] as number)} />
+        <Row label={T.players.companies(ladder.length)} value={T.tile.dice(ladder[ladder.length - 1] as number)} />
+        <Row label={T.focus.mortgage} value={money(mortgageValue(company.price))} />
       </dl>
     );
   }
@@ -232,7 +267,7 @@ export function FocusCard({ s, fallback }: { s: GameState; fallback: number }) {
         </span>
         <div className="deed-title">
           <h2 className="deed-name">{v.name}</h2>
-          {v.space.type === 'city' && v.country && <span className="deed-country">{v.country.name}</span>}
+          {v.space.type === 'city' && v.country && <span className="deed-country">{groupName(v.country.id)}</span>}
         </div>
         {pinned === index && (
           <button type="button" className="icon-btn deed-pin" onClick={() => ui.set({ pinned: null })} aria-label={T.focus.unpin} title={T.focus.unpin}>

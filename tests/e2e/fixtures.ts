@@ -15,8 +15,19 @@ import {
   type Settings,
 } from '../../src/engine';
 import { BotRandom, sensibleBot } from '../../src/sim/bots';
-import { BOARD_SIZE } from '../../src/data/balance';
-import { AIRPORT_SPACES, BOARD, COMPANY_SPACES, COUNTRIES, COUNTRY_CITIES, PROPERTY_SPACES, propertyName, SPACES } from '../../src/data/board';
+import {
+  AIRPORT_SPACES,
+  BOARD,
+  COMPANY_SPACES,
+  COUNTRIES,
+  COUNTRY_CITIES,
+  LAYOUT,
+  PROPERTY_SPACES,
+  propertyName,
+  setActiveMap,
+  SPACES,
+  type MapId,
+} from '../../src/data/board';
 
 /** The index of the city, airport or company with this name on the board in play. */
 export function sp(name: string): number {
@@ -61,7 +72,7 @@ export function cash(s: GameState, player: number, amount: number): GameState {
 }
 
 export function rollTo(s: GameState, target: number, dice: [number, number] = [3, 4]): GameState {
-  const from = (target - dice[0] - dice[1] + BOARD_SIZE) % BOARD_SIZE;
+  const from = (target - dice[0] - dice[1] + LAYOUT.size) % LAYOUT.size;
   let st = dbg(s, { op: 'movePlayer', player: s.turn.currentPlayerIndex, space: from });
   st = dbg(st, { op: 'setNextDice', dice });
   return act(st, { type: 'roll' });
@@ -79,8 +90,8 @@ export function base(settings: Partial<Settings> = {}, seed = 7): GameState {
  * A believable mid-game: sensible bots play a while, then it is someone's turn to roll. If the game
  * ends first (more likely on a small board), it is the last turn start before the end.
  */
-export function midGame(seed = 11, steps = 500): GameState {
-  let s = base({}, seed);
+export function midGame(seed = 11, steps = 500, map: MapId = 'world'): GameState {
+  let s = base({ map }, seed);
   const rnd = new BotRandom(seed);
   const atTurnStart = (st: GameState) => st.flow.phase === 'AwaitRoll' && st.turn.dice === null && st.flow.notices.length === 0;
   let lastStart: GameState | null = null;
@@ -105,8 +116,8 @@ export function midGame(seed = 11, steps = 500): GameState {
 }
 
 /** Worst case for tile text: everything owned, full sets with 4 houses or hotels, mortgages. */
-export function crowdedBoard(): GameState {
-  let s = base();
+export function crowdedBoard(map: MapId = 'world'): GameState {
+  let s = base({ map });
   const countries: number[][] = COUNTRIES.map((c) => [...COUNTRY_CITIES[c.id]]);
   countries.forEach((cities, i) => {
     s = own(s, cities, i % 4);
@@ -210,15 +221,59 @@ export function panelStates(): Record<string, GameState> {
   };
 }
 
-/** Puts a state into the save slot and opens it with Continue from the start screen. */
-export async function loadState(page: Page, state: GameState, query = ''): Promise<void> {
+/**
+ * The Myanmar map (D101): its board, panels and cards. Space names are the English ones. The map in
+ * play is put back to World afterwards, so World fixtures built later in this process are unchanged.
+ */
+export function myanmarStates(): Record<string, GameState> {
+  const mm = (settings: Partial<Settings> = {}, seed = 7) => base({ map: 'myanmar', ...settings }, seed);
+  try {
+    mm();
+    const [mandalay, meiktila, pyinOoLwin] = [sp('Mandalay'), sp('Meiktila'), sp('Pyin Oo Lwin')];
+    const [yangonAirport, expressway, yesc] = [sp('Yangon International Airport'), sp('Yangon–Mandalay Expressway'), sp('YESC (Yangon Electricity)')];
+    const chance = BOARD.find((x) => x.type === 'chance' && x.index >= 7)?.index as number;
+    const news = BOARD.find((x) => x.type === 'event' && x.index >= 7)?.index as number;
+    const special = BOARD.find((x) => x.type === 'tax' && x.tax === 'luxury')?.index as number;
+    const pagoda = BOARD.find((x) => x.type === 'temple' && x.index >= 7)?.index as number;
+    const region = own(mm(), [mandalay, meiktila, pyinOoLwin], 0);
+    const camp = (() => {
+      let s = rollTo(mm({ playerCount: 2, auction: false }), SPACES.goToJail);
+      s = act(s, { type: 'endTurn' });
+      s = act(rollTo(s, SPACES.jail), { type: 'endTurn' });
+      return s;
+    })();
+    return {
+      'mm-mid-game': midGame(11, 500, 'myanmar'),
+      'mm-crowded-board': crowdedBoard('myanmar'),
+      'mm-buy': rollTo(mm(), yangonAirport),
+      'mm-rent': rollTo(level(own(mm(), [mandalay, meiktila, pyinOoLwin], 1), [[mandalay, 2], [meiktila, 2], [pyinOoLwin, 2]]), mandalay),
+      'mm-rent-transport': rollTo(own(mm(), [yangonAirport, expressway], 1), yangonAirport),
+      'mm-company': rollTo(own(mm(), [yesc], 1), yesc),
+      'mm-tax': rollTo(mm(), special),
+      'mm-pagoda': rollTo(mm(), pagoda),
+      'mm-build': rollTo(level(region, [[meiktila, 1]]), mandalay),
+      'mm-chance': rollTo(dbg(mm(), { op: 'forceCard', deck: 'chance', cardId: 'mm-chance-call-up' }), chance),
+      'mm-news': rollTo(dbg(mm(), { op: 'forceCard', deck: 'event', cardId: 'mm-event-tourism' }), news),
+      'mm-camp': camp,
+    };
+  } finally {
+    setActiveMap('world');
+  }
+}
+
+/**
+ * Puts a state into the save slot and opens it with Continue from the start screen. `prefs` are
+ * this device's preferences (the Myanmar map's names in Burmese: `{ language: 'my' }`).
+ */
+export async function loadState(page: Page, state: GameState, query = '', prefs: Record<string, unknown> | null = null): Promise<void> {
   await page.goto(`/${query}`);
   await page.evaluate(
-    ([key, text]) => {
+    ([key, text, prefsText]) => {
       window.localStorage.clear();
       window.localStorage.setItem(key as string, text as string);
+      if (prefsText) window.localStorage.setItem('global-monopoly/prefs/v1', prefsText as string);
     },
-    [SAVE_KEY, serializeGame(state)],
+    [SAVE_KEY, serializeGame(state), prefs ? JSON.stringify(prefs) : ''],
   );
   await page.reload();
   await page.locator('#start-continue').click();
