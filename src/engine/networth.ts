@@ -1,6 +1,6 @@
 // Net worth, winners and the results ranking (spec section 8).
 import { BALANCE, mortgageValue } from '../data/balance.js';
-import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE } from '../data/board.js';
+import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE, useMap } from '../data/board.js';
 import type { GameState } from './types.js';
 
 export interface NetWorth {
@@ -18,6 +18,7 @@ export interface NetWorth {
 }
 
 export function netWorth(s: GameState, playerId: number): NetWorth {
+  useMap(s);
   const player = s.players[playerId];
   const nw: NetWorth = {
     cash: player?.cash ?? 0,
@@ -67,6 +68,7 @@ export interface RankRow {
  * the most recently eliminated first.
  */
 export function ranking(s: GameState): RankRow[] {
+  useMap(s);
   const winners = new Set(s.meta.winner ?? []);
   const living = s.players
     .filter((p) => !p.bankrupt)
@@ -89,6 +91,7 @@ export function ranking(s: GameState): RankRow[] {
 
 /** Normal: the survivor. Quick: highest net worth, then more cash; still tied = shared win. */
 export function computeWinners(s: GameState): number[] {
+  useMap(s);
   const living = s.players.filter((p) => !p.bankrupt);
   if (living.length <= 1) return living.map((p) => p.id);
   const scored = living.map((p) => ({ id: p.id, worth: netWorth(s, p.id) }));

@@ -102,6 +102,124 @@ export const SIM = {
   botFreeActionsPerDecision: 4,
 } as const;
 
+/**
+ * The Myanmar map (owner's spec, D101 onwards): amounts in lakh of kyat. Each number belongs to one
+ * rule of that map; the World map never reads them.
+ */
+export const MYANMAR = {
+  /** Paid for passing or landing on Start. */
+  startBonus: 500,
+  incomeTax: 300,
+  /** The Special tax space. */
+  luxuryTax: 500,
+  /** Transport rent by how many of the four the owner holds. */
+  transportRent: [50, 100, 200, 400] as readonly number[],
+  /** Company rent: the dice total times this, by how many of the four companies the owner holds. */
+  companyMultipliers: [25, 50, 100, 200] as readonly number[],
+  /** "Go to the nearest airport" card: rent there is multiplied by this. */
+  nearestAirportRentFactor: 2,
+
+  // Conscription (spec 7.1, D102)
+  /** Paying to avoid service costs this percent of cash... */
+  draftPayPercent: 10,
+  /** ...and never less than this. */
+  draftPayMin: 500,
+  draftFleeCost: 800,
+  draftHideTurns: 2,
+  draftFleeTurns: 1,
+  draftServeTurns: 3,
+  /** Paid on coming back from service. */
+  draftServeBonus: 300,
+
+  // Merit (spec 7.2, D102)
+  /** Donated at a pagoda for one merit point. */
+  meritDonation: 200,
+  meritMax: 3,
+
+  // Stage 3 (spec 7.4 to 7.10, D104)
+  /** City rents rise this many percent... */
+  inflationStep: 10,
+  /** ...every this many rounds. */
+  inflationEvery: 5,
+  /** Paid to the owner for passing (not landing on) the Expressway or the Muse gate. */
+  toll: 20,
+  lotteryTicket: 10,
+  /** Lottery: the prize for a dice total of at least `min` (highest first); below the last, nothing. */
+  lotteryPrizes: [
+    { min: 12, prize: 3000 },
+    { min: 10, prize: 500 },
+    { min: 7, prize: 100 },
+  ] as readonly { min: number; prize: number }[],
+  /** Paid each round to a player who fled to the border while they are there. */
+  remittance: 200,
+  /** The community donation event: every player puts this in the pot. */
+  potDonation: 50,
+
+  // Loans (spec 7.11, D105)
+  loanMaxRatePercent: 20,
+  /** The debt stops growing at this many times the amount lent. */
+  loanMaxMultiple: 3,
+  /** Passing Start pays back this percent of what is owed, when the cash is there. */
+  loanStartRepayPercent: 25,
+  loanMaxTerm: 30,
+} as const;
+
+/** The rules that differ by map. The World map's are spec sections 5 to 9 (and D100). */
+export interface MapRules {
+  currency: 'usd' | 'kyat';
+  startBonus: number;
+  incomeTax: number;
+  luxuryTax: number;
+  /** Airport (transport) rent by how many the owner holds. */
+  airportRent: readonly number[];
+  /** Company rent multiplier by how many companies the owner holds; null: each company's own. */
+  companyMultipliers: readonly number[] | null;
+  /** Free Stay tokens are part of the game (a setting on the World map). */
+  freeStay: boolean;
+  /** Myanmar rules, switched on stage by stage (D101 to D105). */
+  conscription: boolean;
+  merit: boolean;
+  pot: boolean;
+  inflation: boolean;
+  tolls: boolean;
+  lottery: boolean;
+  loans: boolean;
+}
+
+export const WORLD_RULES: MapRules = {
+  currency: 'usd',
+  startBonus: BALANCE.startBonus,
+  incomeTax: BALANCE.incomeTax,
+  luxuryTax: BALANCE.luxuryTax,
+  airportRent: BALANCE.airportRent,
+  companyMultipliers: null,
+  freeStay: true,
+  conscription: false,
+  merit: false,
+  pot: false,
+  inflation: false,
+  tolls: false,
+  lottery: false,
+  loans: false,
+};
+
+export const MYANMAR_RULES: MapRules = {
+  currency: 'kyat',
+  startBonus: MYANMAR.startBonus,
+  incomeTax: MYANMAR.incomeTax,
+  luxuryTax: MYANMAR.luxuryTax,
+  airportRent: MYANMAR.transportRent,
+  companyMultipliers: MYANMAR.companyMultipliers,
+  freeStay: false,
+  conscription: false,
+  merit: false,
+  pot: false,
+  inflation: false,
+  tolls: false,
+  lottery: false,
+  loans: false,
+};
+
 /** Index into `cityRentMultipliers` etc. is the building level. */
 export function mortgageValue(price: number): number {
   return Math.floor((price * BALANCE.mortgagePercent) / 100);

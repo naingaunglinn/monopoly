@@ -228,7 +228,7 @@ function Modifiers({ s, className }: { s: GameState; className: string }) {
       {s.flow.modifiers.map((m) => (
         <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
           <Layers size={13} aria-hidden="true" />
-          {modifierLabel(m.type, m.factor)}
+          {modifierLabel(m.type, m.factor, m.cardId)}
         </li>
       ))}
     </ul>

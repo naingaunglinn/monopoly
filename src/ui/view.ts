@@ -5,9 +5,12 @@ import {
   BOARD,
   CITY_BY_SPACE,
   COMPANY_BY_SPACE,
+  propertyName,
   propertyPrice,
+  propertyShortName,
   type SpaceData,
 } from '../data/board';
+import { pick } from '../data/lang';
 import { COUNTRY_BY_ID, type CountryData, type FlagCode } from '../data/countries';
 import {
   auctionBidOptions,
@@ -22,38 +25,38 @@ import {
   type LegalAction,
   type Player,
 } from '../engine';
-import { money, SPECIAL_NAMES, T, type NameLookup } from './strings';
+import { money, specialName, T, type NameLookup } from './strings';
 
 export function spaceName(s: GameState | null, index: number): string {
   const space = BOARD[index];
   if (!space) return '';
   switch (space.type) {
     case 'city':
-      return space.city.name;
     case 'airport':
-      return space.airport.name;
     case 'company':
-      return space.company.name;
+      return propertyName(index);
     case 'tax':
-      return space.tax === 'income' ? SPECIAL_NAMES.incomeTax : SPECIAL_NAMES.luxuryTax;
+      return space.tax === 'income' ? specialName('incomeTax') : specialName('luxuryTax');
     case 'chance':
-      return s && !s.meta.settings.chance ? SPECIAL_NAMES.rest : SPECIAL_NAMES.chance;
+      return s && !s.meta.settings.chance ? specialName('rest') : specialName('chance');
     case 'event':
-      return s && !s.meta.settings.event ? SPECIAL_NAMES.rest : SPECIAL_NAMES.event;
+      return s && !s.meta.settings.event ? specialName('rest') : specialName('event');
+    case 'temple':
+      return pick(space.temple.name, space.temple.nameMy);
     default:
-      return SPECIAL_NAMES[space.type];
+      return specialName(space.type);
   }
 }
 
 /** Short tile name (companies use their short form). */
 /** Short tile name: companies use their short form; airports keep their full name (two lines fit). */
 export function spaceShortName(s: GameState | null, index: number): string {
-  return COMPANY_BY_SPACE.get(index)?.shortName ?? spaceName(s, index);
+  return COMPANY_BY_SPACE.has(index) ? propertyShortName(index) : spaceName(s, index);
 }
 
 /** One-line tiles: an airport shows its country beside a plane icon. */
 export function rowTileName(s: GameState | null, index: number): string {
-  return AIRPORT_BY_SPACE.get(index)?.shortName ?? spaceShortName(s, index);
+  return AIRPORT_BY_SPACE.has(index) ? propertyShortName(index) : spaceShortName(s, index);
 }
 
 export function playerName(s: GameState, id: number | null): string {

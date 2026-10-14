@@ -1,7 +1,7 @@
 // reduce(state, action) -> { state, events, error }. Pure: no React, DOM, timers, Date.now or
 // Math.random. The input state is never mutated; handlers work on a fresh clone.
 import { BALANCE } from '../data/balance.js';
-import { COUNTRY_CITIES } from '../data/board.js';
+import { COUNTRY_CITIES, useMap } from '../data/board.js';
 import { foldBid, placeBid } from './auction.js';
 import { doBuild, doMortgage, doSell, doUnmortgage } from './building.js';
 import { applyCard, discardCard } from './cards.js';
@@ -30,6 +30,7 @@ import { applyTrade, tradeBlocker } from './trade.js';
 import type { Action, GameState, ReduceResult } from './types.js';
 
 export function reduce(state: GameState, action: Action): ReduceResult {
+  useMap(state);
   const error = validateAction(state, action);
   if (error) return { state, events: [], error };
   const c: Ctx = { s: cloneState(state), events: [] };

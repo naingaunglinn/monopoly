@@ -1,14 +1,30 @@
-// The board (spec section 3). The full board has 80 spaces, indexed clockwise from World Start:
-// 42 cities, 10 airports, 8 companies and 20 special spaces. BOARD_SIZE and BOARD_SHAPE
-// (balance.ts) choose the board in play: a smaller board leaves out spaces of the full board in the
-// order of LEAVE_OUT, keeps the others in their order (prices still rise around the board), and
-// puts the four corners at the ends of its sides (D96).
+// The boards (spec section 3). The full World board has 80 spaces, indexed clockwise from World
+// Start: 42 cities, 10 airports, 8 companies and 20 special spaces. BOARD_SIZE and BOARD_SHAPE
+// (balance.ts) choose the World board in play: a smaller board leaves out spaces of the full board
+// in the order of LEAVE_OUT, keeps the others in their order (prices still rise around the board),
+// and puts the four corners at the ends of its sides (D96). The Myanmar map is its own 48-space
+// board (data/myanmar.ts, D101).
+//
+// The board in play: the exports below the maps (BOARD, CITIES, SPACES, CITY_BY_SPACE...) are live
+// bindings to the map of the game being played. Every engine entry point calls useMap(state) first
+// (the server plays rooms of both maps in one process), and the screens do when a game is shown.
 import { ALL_AIRPORTS, type AirportData } from './airports.js';
-import { BOARD_SHAPE, BOARD_SIZE, type BoardShape } from './balance.js';
+import { BOARD_SHAPE, BOARD_SIZE, MYANMAR_RULES, WORLD_RULES, type BoardShape, type MapRules } from './balance.js';
 import type { CardData } from './cardTypes.js';
 import { ALL_CITIES, type CityData } from './cities.js';
 import { ALL_COMPANIES, type CompanyData, type CompanyId } from './companies.js';
-import { ALL_COUNTRIES, type CountryData, type CountryId } from './countries.js';
+import { ALL_COUNTRIES, COUNTRY_BY_ID, type CountryData, type CountryId } from './countries.js';
+import { pick } from './lang.js';
+import {
+  MYANMAR_CITIES,
+  MYANMAR_COMPANIES,
+  MYANMAR_GROUPS,
+  MYANMAR_SIZE,
+  MYANMAR_SPECIALS,
+  MYANMAR_TEMPLES,
+  MYANMAR_TRANSPORT,
+  type TempleData,
+} from './myanmar.js';
 
 export type SpecialType =
   | 'start'
@@ -18,7 +34,9 @@ export type SpecialType =
   | 'jail'
   | 'goToJail'
   | 'vacation'
-  | 'freeParking';
+  | 'freeParking'
+  /** Myanmar map: a pagoda (D101). */
+  | 'temple';
 
 export type SpaceType = 'city' | 'airport' | 'company' | SpecialType;
 export type TaxKind = 'income' | 'luxury';
@@ -29,7 +47,8 @@ export type SpaceData =
   | { index: number; type: 'airport'; airport: AirportData }
   | { index: number; type: 'company'; company: CompanyData }
   | { index: number; type: 'tax'; tax: TaxKind }
-  | { index: number; type: Exclude<SpecialType, 'tax'> };
+  | { index: number; type: 'temple'; temple: TempleData }
+  | { index: number; type: Exclude<SpecialType, 'tax' | 'temple'> };
 
 /** Spaces on the full board, the largest board the data holds. */
 export const FULL_BOARD_SIZE = 80;
@@ -178,7 +197,26 @@ function fullSpaceAt(index: number): SpaceData {
   if (company) return { index, type: 'company', company };
   if (special === 'tax:income') return { index, type: 'tax', tax: 'income' };
   if (special === 'tax:luxury') return { index, type: 'tax', tax: 'luxury' };
-  return { index, type: special as Exclude<SpecialType, 'tax'> };
+  return { index, type: special as Exclude<SpecialType, 'tax' | 'temple'> };
+}
+
+/** A company sits between the countries of the nearest cities before and after it. */
+function setBetween(spaces: SpaceData[]): void {
+  const size = spaces.length;
+  const cityAt = (i: number) => {
+    const s = spaces[((i % size) + size) % size] as SpaceData;
+    return s.type === 'city' ? s.city.country : null;
+  };
+  const nearest = (from: number, step: 1 | -1): CountryId => {
+    for (let k = 1; k < size; k++) {
+      const country = cityAt(from + k * step);
+      if (country) return country;
+    }
+    throw new Error('A board without cities');
+  };
+  for (const s of spaces) {
+    if (s.type === 'company') s.company = { ...s.company, between: [nearest(s.index, -1), nearest(s.index, 1)] };
+  }
 }
 
 /** Builds the board of `size` spaces and `shape` from the full board. Throws on a size it cannot make. */
@@ -213,21 +251,7 @@ export function buildBoard(size: number, shape: BoardShape): BoardLayout {
     if (s.type === 'company') return { index, type: 'company', company: { ...s.company, space: index } };
     return { ...s, index };
   });
-  // A company sits between the countries of the nearest cities before and after it.
-  const cityAt = (i: number) => {
-    const s = spaces[((i % size) + size) % size] as SpaceData;
-    return s.type === 'city' ? s.city.country : null;
-  };
-  const nearest = (from: number, step: 1 | -1): CountryId => {
-    for (let k = 1; k < size; k++) {
-      const country = cityAt(from + k * step);
-      if (country) return country;
-    }
-    throw new Error('A board without cities');
-  };
-  for (const s of spaces) {
-    if (s.type === 'company') s.company = { ...s.company, between: [nearest(s.index, -1), nearest(s.index, 1)] };
-  }
+  setBetween(spaces);
 
   const cities = spaces.flatMap((s) => (s.type === 'city' ? [s.city] : []));
   const corners = [0, across + 1, across + down + 2, 2 * across + down + 3] as const;
@@ -258,39 +282,148 @@ export function cardFits(card: CardData, layout: BoardLayout): boolean {
   return true;
 }
 
-/** The board in play. */
-export const LAYOUT: BoardLayout = buildBoard(BOARD_SIZE, BOARD_SHAPE);
+/** The Myanmar map's board: its own 48 spaces, square, eleven between corners (D101). */
+export function buildMyanmarBoard(): BoardLayout {
+  const spaces: SpaceData[] = [];
+  for (let index = 0; index < MYANMAR_SIZE; index++) {
+    const city = MYANMAR_CITIES.find((c) => c.space === index);
+    const airport = MYANMAR_TRANSPORT.find((a) => a.space === index);
+    const company = MYANMAR_COMPANIES.find((c) => c.space === index);
+    const special = MYANMAR_SPECIALS[index];
+    const found = [city, airport, company, special].filter((x) => x !== undefined).length;
+    if (found !== 1) throw new Error(`Myanmar space ${index} is defined ${found} times`);
+    if (city) spaces.push({ index, type: 'city', city });
+    else if (airport) spaces.push({ index, type: 'airport', airport });
+    else if (company) spaces.push({ index, type: 'company', company: { ...company } });
+    else if (special === 'tax:income') spaces.push({ index, type: 'tax', tax: 'income' });
+    else if (special === 'tax:luxury') spaces.push({ index, type: 'tax', tax: 'luxury' });
+    else if (special === 'temple') spaces.push({ index, type: 'temple', temple: MYANMAR_TEMPLES[index] as TempleData });
+    else spaces.push({ index, type: special as Exclude<SpecialType, 'tax' | 'temple'> });
+  }
+  setBetween(spaces);
+  const across = 11;
+  const down = 11;
+  const cities = spaces.flatMap((s) => (s.type === 'city' ? [s.city] : []));
+  return {
+    size: MYANMAR_SIZE,
+    shape: 'square',
+    across,
+    down,
+    spaces,
+    corners: [0, across + 1, across + down + 2, 2 * across + down + 3],
+    cities,
+    airports: spaces.flatMap((s) => (s.type === 'airport' ? [s.airport] : [])),
+    companies: spaces.flatMap((s) => (s.type === 'company' ? [s.company] : [])),
+    countries: MYANMAR_GROUPS.filter((c) => cities.some((city) => city.country === c.id)),
+    fullIndex: spaces.map((s) => s.index),
+  };
+}
 
-export const BOARD: readonly SpaceData[] = LAYOUT.spaces;
+export type MapId = 'world' | 'myanmar';
+export const MAP_IDS: readonly MapId[] = ['world', 'myanmar'];
+
+/** A map: its board and everything looked up on it, worked out once. */
+export interface GameMap {
+  id: MapId;
+  rules: MapRules;
+  layout: BoardLayout;
+  spaces: { start: number; jail: number; vacation: number; goToJail: number };
+  cityBySpace: ReadonlyMap<number, CityData>;
+  airportBySpace: ReadonlyMap<number, AirportData>;
+  companyBySpace: ReadonlyMap<number, CompanyData>;
+  propertySpaces: readonly number[];
+  airportSpaces: readonly number[];
+  companySpaces: readonly number[];
+  countryCities: Readonly<Record<CountryId, readonly number[]>>;
+}
+
+function gameMap(id: MapId, rules: MapRules, layout: BoardLayout): GameMap {
+  const groups = [...ALL_COUNTRIES, ...MYANMAR_GROUPS];
+  return {
+    id,
+    rules,
+    layout,
+    spaces: { start: layout.corners[0], jail: layout.corners[1], vacation: layout.corners[2], goToJail: layout.corners[3] },
+    cityBySpace: new Map(layout.cities.map((c) => [c.space, c])),
+    airportBySpace: new Map(layout.airports.map((a) => [a.space, a])),
+    companyBySpace: new Map(layout.companies.map((c) => [c.space, c])),
+    propertySpaces: layout.spaces.filter((s) => s.type === 'city' || s.type === 'airport' || s.type === 'company').map((s) => s.index),
+    airportSpaces: layout.airports.map((a) => a.space),
+    companySpaces: layout.companies.map((c) => c.space),
+    countryCities: Object.fromEntries(
+      groups.map((country) => [country.id, layout.cities.filter((c) => c.country === country.id).map((c) => c.space)]),
+    ) as unknown as Record<CountryId, readonly number[]>,
+  };
+}
+
+/** Both maps, built once when the module loads. */
+export const MAPS: Readonly<Record<MapId, GameMap>> = {
+  world: gameMap('world', WORLD_RULES, buildBoard(BOARD_SIZE, BOARD_SHAPE)),
+  myanmar: gameMap('myanmar', MYANMAR_RULES, buildMyanmarBoard()),
+};
+
+/** The map in play (see the note at the top). */
+export let MAP: GameMap = MAPS.world;
+export let RULES: MapRules = MAP.rules;
+export let LAYOUT: BoardLayout = MAP.layout;
+export let BOARD: readonly SpaceData[] = LAYOUT.spaces;
 /** The cities, airports, companies and countries on the board in play, in board order. */
-export const CITIES: readonly CityData[] = LAYOUT.cities;
-export const AIRPORTS: readonly AirportData[] = LAYOUT.airports;
-export const COMPANIES: readonly CompanyData[] = LAYOUT.companies;
-export const COUNTRIES: readonly CountryData[] = LAYOUT.countries;
-
-export const SPACES = {
-  start: LAYOUT.corners[0],
-  jail: LAYOUT.corners[1],
-  vacation: LAYOUT.corners[2],
-  goToJail: LAYOUT.corners[3],
-} as const;
-
-export const CITY_BY_SPACE: ReadonlyMap<number, CityData> = new Map(CITIES.map((c) => [c.space, c]));
-export const AIRPORT_BY_SPACE: ReadonlyMap<number, AirportData> = new Map(AIRPORTS.map((a) => [a.space, a]));
-export const COMPANY_BY_SPACE: ReadonlyMap<number, CompanyData> = new Map(COMPANIES.map((c) => [c.space, c]));
-
+export let CITIES: readonly CityData[] = LAYOUT.cities;
+export let AIRPORTS: readonly AirportData[] = LAYOUT.airports;
+export let COMPANIES: readonly CompanyData[] = LAYOUT.companies;
+export let COUNTRIES: readonly CountryData[] = LAYOUT.countries;
+export let SPACES: GameMap['spaces'] = MAP.spaces;
+export let CITY_BY_SPACE: ReadonlyMap<number, CityData> = MAP.cityBySpace;
+export let AIRPORT_BY_SPACE: ReadonlyMap<number, AirportData> = MAP.airportBySpace;
+export let COMPANY_BY_SPACE: ReadonlyMap<number, CompanyData> = MAP.companyBySpace;
 /** All property spaces (cities, airports, companies) in board order. */
-export const PROPERTY_SPACES: readonly number[] = BOARD.filter(
-  (s) => s.type === 'city' || s.type === 'airport' || s.type === 'company',
-).map((s) => s.index);
-
-export const AIRPORT_SPACES: readonly number[] = AIRPORTS.map((a) => a.space);
-export const COMPANY_SPACES: readonly number[] = COMPANIES.map((c) => c.space);
-
+export let PROPERTY_SPACES: readonly number[] = MAP.propertySpaces;
+export let AIRPORT_SPACES: readonly number[] = MAP.airportSpaces;
+export let COMPANY_SPACES: readonly number[] = MAP.companySpaces;
 /** City spaces of each country, in board order (empty for a country that is not on the board). */
-export const COUNTRY_CITIES: Readonly<Record<CountryId, readonly number[]>> = Object.fromEntries(
-  ALL_COUNTRIES.map((country) => [country.id, CITIES.filter((c) => c.country === country.id).map((c) => c.space)]),
-) as unknown as Record<CountryId, readonly number[]>;
+export let COUNTRY_CITIES: Readonly<Record<CountryId, readonly number[]>> = MAP.countryCities;
+/** The board's grid: the spaces along a side plus the two corners. */
+export let GRID_COLUMNS = LAYOUT.across + 2;
+export let GRID_ROWS = LAYOUT.down + 2;
+export let CORNERS: readonly number[] = LAYOUT.corners;
+
+/** Makes `id` the map in play. Cheap when it already is. */
+export function setActiveMap(id: MapId): void {
+  const next = MAPS[id] ?? MAPS.world;
+  if (next === MAP) return;
+  MAP = next;
+  RULES = next.rules;
+  LAYOUT = next.layout;
+  BOARD = LAYOUT.spaces;
+  CITIES = LAYOUT.cities;
+  AIRPORTS = LAYOUT.airports;
+  COMPANIES = LAYOUT.companies;
+  COUNTRIES = LAYOUT.countries;
+  SPACES = next.spaces;
+  CITY_BY_SPACE = next.cityBySpace;
+  AIRPORT_BY_SPACE = next.airportBySpace;
+  COMPANY_BY_SPACE = next.companyBySpace;
+  PROPERTY_SPACES = next.propertySpaces;
+  AIRPORT_SPACES = next.airportSpaces;
+  COMPANY_SPACES = next.companySpaces;
+  COUNTRY_CITIES = next.countryCities;
+  GRID_COLUMNS = LAYOUT.across + 2;
+  GRID_ROWS = LAYOUT.down + 2;
+  CORNERS = LAYOUT.corners;
+}
+
+/** Makes the map of this game (or these settings) the map in play. */
+export function useMap(of: { meta: { settings: { map?: MapId } } } | { map?: MapId } | null | undefined): void {
+  if (!of) return;
+  const id = 'meta' in of ? of.meta.settings.map : of.map;
+  setActiveMap(id === 'myanmar' ? 'myanmar' : 'world');
+}
+
+/** The pagoda on this space of the board in play, or null. */
+export function templeAt(index: number): TempleData | null {
+  const s = BOARD[index];
+  return s?.type === 'temple' ? s.temple : null;
+}
 
 export function isProperty(index: number): boolean {
   const t = BOARD[index]?.type;
@@ -311,14 +444,25 @@ export function propertyPrice(index: number): number {
   );
 }
 
-/** Display name of a property space (special spaces are named in ui/strings.ts). */
+type Named = { name: string; nameMy?: string; shortName?: string; shortNameMy?: string };
+
+/** Display name of a property space, in the device's language (special spaces are named in ui/strings.ts). */
 export function propertyName(index: number): string {
-  return (
-    CITY_BY_SPACE.get(index)?.name ??
-    AIRPORT_BY_SPACE.get(index)?.name ??
-    COMPANY_BY_SPACE.get(index)?.name ??
-    ''
-  );
+  const found = (CITY_BY_SPACE.get(index) ?? AIRPORT_BY_SPACE.get(index) ?? COMPANY_BY_SPACE.get(index)) as Named | undefined;
+  return found ? pick(found.name, found.nameMy) : '';
+}
+
+/** Short name of an airport or company (compact tiles), in the device's language. */
+export function propertyShortName(index: number): string {
+  const found = (AIRPORT_BY_SPACE.get(index) ?? COMPANY_BY_SPACE.get(index)) as Named | undefined;
+  if (!found) return propertyName(index);
+  return pick(found.shortName ?? found.name, found.shortNameMy ?? found.nameMy);
+}
+
+/** A colour group's name (country or region), in the device's language. */
+export function groupName(id: CountryId): string {
+  const g = COUNTRY_BY_ID[id];
+  return g ? pick(g.name, g.nameMy) : '';
 }
 
 export type BoardSide = 'top' | 'right' | 'bottom' | 'left';
@@ -331,11 +475,6 @@ export interface GridPosition {
   side: BoardSide;
   corner: boolean;
 }
-
-/** The board's grid: the spaces along a side plus the two corners. */
-export const GRID_COLUMNS = LAYOUT.across + 2;
-export const GRID_ROWS = LAYOUT.down + 2;
-export const CORNERS: readonly number[] = LAYOUT.corners;
 
 /** Index-to-grid mapping (spec section 3, Geometry): World Start top left, then clockwise. */
 export function gridPositionOn(layout: BoardLayout, index: number): GridPosition {

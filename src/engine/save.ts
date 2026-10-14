@@ -1,9 +1,10 @@
 // Save and resume (spec section 9). The save is the game state as JSON with a schemaVersion.
 // A corrupt, older or newer save, or one from another board, is reported, never thrown. Version 1
-// saves (before players chose their colours) and version 2 saves (before the board size was a
-// setting, all on the full 80-space board) are migrated on load.
-import { BOARD_SIZE, SETUP } from '../data/balance.js';
-import { isProperty } from '../data/board.js';
+// saves (before players chose their colours), version 2 saves (before the board size was a
+// setting, all on the full 80-space board) and version 3 saves (before the Myanmar map, all on the
+// World map) are migrated on load.
+import { SETUP } from '../data/balance.js';
+import { isProperty, LAYOUT, MAP, useMap } from '../data/board.js';
 import { isKnownCard } from './cards.js';
 import { checkInvariants } from './invariants.js';
 import { SCHEMA_VERSION, isThisBoard, normalizeSettings } from './state.js';
@@ -24,8 +25,25 @@ const isIntOrNull = (v: unknown) => v === null || isInt(v);
 const isStrArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 const isCardList = (v: unknown) => isStrArray(v) && v.every(isKnownCard);
 
+const DRAFT_STATUSES: readonly string[] = ['hiding', 'serving', 'fled'];
+
+function economyIsValid(economy: unknown): boolean {
+  if (!isObj(economy) || !isInt(economy.pot) || !isInt(economy.inflation) || !isInt(economy.loanSeq)) return false;
+  return (
+    Array.isArray(economy.loans) &&
+    economy.loans.every(
+      (l) =>
+        isObj(l) &&
+        [l.id, l.lender, l.borrower, l.principal, l.ratePercent, l.term, l.startRound, l.repaid].every(isInt) &&
+        Array.isArray(l.collateral) &&
+        l.collateral.every(isInt),
+    )
+  );
+}
+
 function shapeIsValid(raw: Record<string, unknown>): boolean {
   const { players, properties, decks, turn, flow, meta } = raw;
+  if (!economyIsValid(raw.economy)) return false;
   if (!Array.isArray(players) || !SETUP.playerCounts.includes(players.length)) return false;
   const playersOk = players.every(
     (p, i) =>
@@ -44,10 +62,12 @@ function shapeIsValid(raw: Record<string, unknown>): boolean {
       isCardList(p.houseVouchers) &&
       typeof p.bankrupt === 'boolean' &&
       isIntOrNull(p.bankruptOrder) &&
-      Array.isArray(p.recap),
+      Array.isArray(p.recap) &&
+      isInt(p.merit) &&
+      (p.draft === null || (isObj(p.draft) && DRAFT_STATUSES.includes(p.draft.status as string) && isInt(p.draft.turns))),
   );
   if (!playersOk) return false;
-  if (!Array.isArray(properties) || properties.length !== BOARD_SIZE) return false;
+  if (!Array.isArray(properties) || properties.length !== LAYOUT.size) return false;
   const propsOk = properties.every((ps, i) =>
     isProperty(i)
       ? isObj(ps) && isIntOrNull(ps.owner) && isInt(ps.level) && typeof ps.mortgaged === 'boolean'
@@ -85,6 +105,7 @@ function shapeIsValid(raw: Record<string, unknown>): boolean {
     !(PHASES as readonly string[]).includes(flow.phase) ||
     !(flow.pending === null || isObj(flow.pending)) ||
     !(flow.trade === null || isObj(flow.trade)) ||
+    !(flow.loan === null || isObj(flow.loan)) ||
     !Array.isArray(flow.notices) ||
     !Array.isArray(flow.debts) ||
     !(flow.resume === null || isObj(flow.resume)) ||
@@ -128,10 +149,12 @@ function migrateV1(raw: Record<string, unknown>): Record<string, unknown> | null
   const expected: Record<string, unknown> = { ...normalizeSettings(v1 as Partial<Settings>) };
   delete expected.playerColors;
   delete expected.board;
+  delete expected.map;
   if (JSON.stringify(expected) !== JSON.stringify(v1)) return null;
   const playerColors = players.map((p) => (isObj(p) ? p.color : null)) as string[];
   const settings: Record<string, unknown> = { ...normalizeSettings({ ...(v1 as Partial<Settings>), playerColors }) };
   delete settings.board;
+  delete settings.map;
   return { ...raw, meta: { ...meta, schemaVersion: 2, settings } };
 }
 
@@ -143,6 +166,41 @@ function migrateV2(raw: Record<string, unknown>): Record<string, unknown> | null
   const { meta } = raw;
   if (!isObj(meta) || !isObj(meta.settings) || 'board' in meta.settings) return null;
   return { ...raw, meta: { ...meta, schemaVersion: 3, settings: { ...meta.settings, board: { ...FULL_BOARD } } } };
+}
+
+/**
+ * Version 3 to 4: every game before version 4 was on the World map. Players gain merit (0) and
+ * military service (none), the flow a loan offer slot (empty), the game an economy (empty).
+ */
+function migrateV3(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const { meta, players, flow } = raw;
+  if (!isObj(meta) || !isObj(meta.settings) || 'map' in meta.settings || !Array.isArray(players) || !isObj(flow) || 'economy' in raw) {
+    return null;
+  }
+  return {
+    ...raw,
+    players: players.map((p) => (isObj(p) ? { ...p, merit: 0, draft: null } : p)),
+    flow: { ...flow, loan: null },
+    meta: { ...meta, schemaVersion: 4, settings: { ...meta.settings, map: 'world' } },
+    economy: { pot: 0, inflation: 0, loans: [], loanSeq: 0 },
+  };
+}
+
+/**
+ * Brings a game the server kept (an online room started before this version) up to the current
+ * version, without checking it again: the server wrote it. Null when it cannot be migrated.
+ */
+export function upgradeGame<T>(game: T): T | null {
+  const raw = game as unknown as Record<string, unknown>;
+  if (!isObj(raw) || !isObj(raw.meta)) return null;
+  const version = raw.meta.schemaVersion;
+  if (!isInt(version) || version > SCHEMA_VERSION) return null;
+  if (version === SCHEMA_VERSION) return game;
+  let current: Record<string, unknown> | null = raw;
+  if (current && version <= 1) current = migrateV1(current);
+  if (current && version <= 2) current = migrateV2(current);
+  if (current && version <= 3) current = migrateV3(current);
+  return current as unknown as T | null;
 }
 
 export function parseSave(text: string | null | undefined): ParseResult {
@@ -158,19 +216,26 @@ export function parseSave(text: string | null | undefined): ParseResult {
   if (!isInt(version)) return { ok: false, problem: 'older' };
   if (version < OLDEST_LOADABLE) return { ok: false, problem: 'older' };
   if (version > SCHEMA_VERSION) return { ok: false, problem: 'newer' };
+  // Checking a save reads its map's board; the map in play is put back afterwards, so reading a save
+  // (the start screen looks for one) never changes the board on screen.
+  const mapBefore = MAP.id;
   try {
     let current: Record<string, unknown> | null = raw;
     if (current && version <= 1) current = migrateV1(current);
     if (current && version <= 2) current = migrateV2(current);
+    if (current && version <= 3) current = migrateV3(current);
     if (!current) return { ok: false, problem: 'corrupt' };
     // A game from another board cannot go on: its spaces are not this board's (D96).
     const settings = (current.meta as Record<string, unknown>).settings;
-    if (!isObj(settings) || !isThisBoard(settings.board)) return { ok: false, problem: 'otherBoard' };
+    if (!isObj(settings) || !isThisBoard(settings)) return { ok: false, problem: 'otherBoard' };
+    useMap({ map: settings.map === 'myanmar' ? 'myanmar' : 'world' });
     if (!shapeIsValid(current)) return { ok: false, problem: 'corrupt' };
     const state = current as unknown as GameState;
     if (checkInvariants(state).length > 0) return { ok: false, problem: 'corrupt' };
     return { ok: true, state };
   } catch {
     return { ok: false, problem: 'corrupt' };
+  } finally {
+    useMap({ map: mapBefore });
   }
 }

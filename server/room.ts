@@ -12,6 +12,7 @@ import {
   normalizeSettings,
   publicView,
   reduce,
+  upgradeGame,
   validateAction,
   type Action,
   type GameEvent,
@@ -102,11 +103,17 @@ export function isError<T>(value: T | OpError): value is OpError {
 }
 
 /**
- * A room whose game began on another board (an earlier version of the game, D96) cannot go on: the
- * handlers treat it as closed, like an expired room.
+ * A room as this version of the game reads it. A room made before the Myanmar map is on the World
+ * map, and its game is migrated (D101). A room whose game began on another board (an earlier
+ * version of the game, D96) cannot go on: the handlers treat it as closed, like an expired room.
  */
 export function playable(room: Room | null): Room | null {
-  return room && room.game && !isThisBoard(room.game.meta.settings.board) ? null : room;
+  if (!room) return null;
+  const settings = room.settings.map ? room.settings : { ...room.settings, map: 'world' as const };
+  if (!room.game) return settings === room.settings ? room : { ...room, settings };
+  const game = upgradeGame(room.game);
+  if (!game || !isThisBoard(game.meta.settings)) return null;
+  return settings === room.settings && game === room.game ? room : { ...room, settings, game };
 }
 
 export function statusOf(room: Room): RoomStatus {
@@ -161,6 +168,7 @@ export function defaultRoomSettings(): RoomSettings {
 
 function pickRoomSettings(s: Settings): RoomSettings {
   return {
+    map: s.map,
     startingMoney: s.startingMoney,
     mode: s.mode,
     roundLimit: s.roundLimit,

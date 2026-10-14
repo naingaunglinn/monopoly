@@ -169,7 +169,9 @@ export function createApi(config: ApiConfig): Api {
   const loadRoom = async (code: string): Promise<Room | null> => playable(await store.load(code));
   const roomSince = async (code: string, since: number): Promise<Since> => {
     const found = await store.since(code, since);
-    return found.room && !playable(found.room) ? { room: null, entries: [] } : found;
+    if (!found.room) return found;
+    const room = playable(found.room);
+    return room ? { ...found, room } : { room: null, entries: [] };
   };
   const now = config.now ?? Date.now;
   const streamMs = config.streamMs ?? 270_000;

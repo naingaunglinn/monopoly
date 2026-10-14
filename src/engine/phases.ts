@@ -1,7 +1,7 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
-import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { BOARD, COUNTRY_CITIES, propertyKind, SPACES } from '../data/board.js';
+import { BALANCE, roundMoney } from '../data/balance.js';
+import { BOARD, COUNTRY_CITIES, LAYOUT, propertyKind, RULES, SPACES } from '../data/board.js';
 import { startAuction } from './auction.js';
 import { discardCard, drawCard } from './cards.js';
 import {
@@ -148,7 +148,7 @@ export function movementRoll(c: Ctx): void {
   moveSteps(c, p.id, dice[0] + dice[1], 'dice');
 }
 
-/** Moves one space at a time. Forward moves pay the World Start pay (BALANCE.startBonus) for passing or landing on it. */
+/** Moves one space at a time. Forward moves pay the map's Start pay (RULES.startBonus) for passing or landing on it. */
 export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 'card'): void {
   const p = playerById(c.s, playerId);
   const direction: 1 | -1 = steps >= 0 ? 1 : -1;
@@ -157,15 +157,15 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
   let pos = from;
   let passedStart = false;
   for (let i = 0; i < Math.abs(steps); i++) {
-    pos = (pos + direction + BOARD_SIZE) % BOARD_SIZE;
+    pos = (pos + direction + LAYOUT.size) % LAYOUT.size;
     path.push(pos);
     if (direction === 1 && pos === SPACES.start) passedStart = true;
   }
   p.position = pos;
   emit(c, { type: 'moved', player: playerId, from, to: pos, path, direction, by });
   if (passedStart) {
-    changeCash(c, playerId, BALANCE.startBonus, 'start');
-    emit(c, { type: 'passedStart', player: playerId, amount: BALANCE.startBonus });
+    changeCash(c, playerId, RULES.startBonus, 'start');
+    emit(c, { type: 'passedStart', player: playerId, amount: RULES.startBonus });
   }
   resolveLanding(c);
 }
@@ -204,7 +204,7 @@ export function resolveLanding(c: Ctx): void {
       else afterResolution(c);
       return;
     case 'tax': {
-      const amount = space.tax === 'income' ? BALANCE.incomeTax : BALANCE.luxuryTax;
+      const amount = space.tax === 'income' ? RULES.incomeTax : RULES.luxuryTax;
       setRentDue(c, {
         space: space.index,
         payer: p.id,
@@ -253,12 +253,14 @@ function resolveProperty(c: Ctx, space: number): void {
     return;
   }
   const quote = kind === 'city' ? cityRent(s, space) : airportRent(s, space);
+  // A card that moved the player here may multiply the rent (Myanmar's nearest airport card).
+  const extra = c.rentFactor ?? null;
   setRentDue(c, {
     space,
     payer: p.id,
     creditor: ps.owner,
-    amount: quote.amount,
-    calc: quote.calc,
+    amount: extra === null ? quote.amount : roundMoney(quote.amount * extra),
+    calc: extra === null || quote.calc.kind === 'tax' ? quote.calc : { ...quote.calc, factor: (quote.calc.factor ?? 1) * extra },
     freeStayAllowed: kind === 'city' && s.meta.settings.freeStay && p.freeStay > 0,
   });
 }

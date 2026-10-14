@@ -1,7 +1,7 @@
 // Who decides now, what they may do, and why anything else is refused. legalActions() and
 // reduce() share validateAction(), so the UI, the bots and the reducer always agree.
 import { BALANCE } from '../data/balance.js';
-import { BOARD, COUNTRY_CITIES, propertyPrice } from '../data/board.js';
+import { BOARD, COUNTRY_CITIES, propertyPrice, useMap } from '../data/board.js';
 import { COUNTRY_BY_ID } from '../data/countries.js';
 import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
@@ -113,6 +113,7 @@ function validateDebug(s: GameState, action: Extract<Action, { type: 'debug' }>)
 
 /** Null when the action is legal now; otherwise a typed error with a plain-language reason. */
 export function validateAction(s: GameState, action: Action): EngineError | null {
+  useMap(s);
   if (!action || typeof action !== 'object') return makeError('invalidAction');
   switch (action.type) {
     case 'setPassDevice':
@@ -268,6 +269,7 @@ export function auctionBidOptions(s: GameState): number[] {
 
 /** Everything the current decision-maker can do now. */
 export function legalActions(s: GameState): LegalAction[] {
+  useMap(s);
   if (s.flow.notices.length > 0) return [{ type: 'acknowledge' }];
   if (s.flow.phase === 'GameOver') return [];
   if (s.flow.trade !== null) {
@@ -350,6 +352,7 @@ export function legalActions(s: GameState): LegalAction[] {
  * else an offer while trading is open, and taking back their own offer on the table (D99).
  */
 export function legalActionsFor(s: GameState, player: number): LegalAction[] {
+  useMap(s);
   const out = decisionMaker(s) === player ? legalActions(s) : [];
   const p = s.players[player];
   if (!p || p.bankrupt || s.flow.notices.length > 0 || s.flow.phase === 'GameOver') return out;

@@ -12,9 +12,9 @@ export {
   auctionBidOptions,
 } from './legal.js';
 export { publicView } from './public.js';
-export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION, THIS_BOARD, isThisBoard } from './state.js';
+export { createGame, normalizeSettings, DEFAULT_SETTINGS, SCHEMA_VERSION, THIS_BOARD, isThisBoard, boardOf } from './state.js';
 export { checkInvariants } from './invariants.js';
-export { SAVE_KEY, serializeGame, parseSave, type ParseResult, type SaveProblem } from './save.js';
+export { SAVE_KEY, serializeGame, parseSave, upgradeGame, type ParseResult, type SaveProblem } from './save.js';
 export { netWorth, ranking, computeWinners, type NetWorth, type RankRow } from './networth.js';
 export { cityRent, airportRent, companyRent, displayedRent, buildCost, sellRefund, modifierFactor } from './rent.js';
 export { buildBlocker, buildQuote, sellBlocker, mortgageBlocker, unmortgageBlocker } from './building.js';

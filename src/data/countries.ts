@@ -1,7 +1,11 @@
 // The 16 countries of the full board in clockwise order (spec section 4) with their band colours
-// (section 10). The board in play holds all or some of them (board.ts: COUNTRIES).
+// (section 10). The board in play holds all or some of them (board.ts: COUNTRIES). The Myanmar
+// map's nine regions are colour groups of the same kind (data/myanmar.ts, D101).
+import { MYANMAR_GROUPS, type MyanmarGroupId } from './myanmar.js';
 
-export type CountryId =
+export type CountryId = WorldCountryId | MyanmarGroupId;
+
+export type WorldCountryId =
   | 'brazil'
   | 'mexico'
   | 'egypt'
@@ -45,7 +49,10 @@ export interface CountryData {
   colorName: string;
   /** Band colour. */
   color: string;
-  flag: FlagCode;
+  /** The country's flag; null for a Myanmar region (its colour band names it). */
+  flag: FlagCode | null;
+  /** The name in Burmese (Myanmar map regions only). */
+  nameMy?: string;
   /** Longitude and latitude of the country's first city, for the start-screen route map. */
   at: readonly [number, number];
 }
@@ -69,6 +76,7 @@ export const ALL_COUNTRIES: readonly CountryData[] = [
   { id: 'unitedStates', name: 'United States', colorName: 'Midnight navy', color: '#1C2F4F', flag: 'us', at: [-74.0, 40.7] },
 ];
 
+/** Every colour group by id: the World countries and the Myanmar map's regions. */
 export const COUNTRY_BY_ID: Readonly<Record<CountryId, CountryData>> = Object.fromEntries(
-  ALL_COUNTRIES.map((c) => [c.id, c]),
+  [...ALL_COUNTRIES, ...MYANMAR_GROUPS].map((c) => [c.id, c]),
 ) as Record<CountryId, CountryData>;

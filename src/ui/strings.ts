@@ -1,7 +1,10 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
 import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { AIRPORTS, type SpecialType } from '../data/board.js';
+import { AIRPORTS, groupName, MAP, RULES, type SpecialType } from '../data/board.js';
+import { MYANMAR_TRANSPORT } from '../data/myanmar.js';
+import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
+import { burmeseDigits, language, pick } from '../data/lang.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
   ErrorCode,
@@ -26,16 +29,22 @@ export function defaultPlayerName(seat: number): string {
 const MINUS = '−';
 const TIMES = '×';
 
-/** $1,250 */
-export function money(amount: number): string {
-  const abs = Math.abs(Math.round(amount));
-  return `${amount < 0 ? MINUS : ''}$${abs.toLocaleString('en-US')}`;
+/** A whole amount in the map's currency, without a sign: $1,250, or 1,250 lakh (၁,၂၅၀ သိန်း in Burmese). */
+function amountText(abs: number): string {
+  const digits = abs.toLocaleString('en-US');
+  if (RULES.currency === 'usd') return `$${digits}`;
+  return language() === 'my' ? `${burmeseDigits(digits)} သိန်း` : `${digits} lakh`;
 }
 
-/** +$500 or −$300. Money always carries a sign and a symbol. */
+/** $1,250 (World map) or 1,250 lakh (Myanmar map, D101). */
+export function money(amount: number): string {
+  return `${amount < 0 ? MINUS : ''}${amountText(Math.abs(Math.round(amount)))}`;
+}
+
+/** +$500 or −$300 (+500 lakh on the Myanmar map). Money always carries a sign and a symbol. */
 export function signedMoney(amount: number): string {
-  if (amount === 0) return '$0';
-  return `${amount > 0 ? '+' : MINUS}$${Math.abs(Math.round(amount)).toLocaleString('en-US')}`;
+  if (amount === 0) return amountText(0);
+  return `${amount > 0 ? '+' : MINUS}${amountText(Math.abs(Math.round(amount)))}`;
 }
 
 /** Small counts in words ("all seven"). */
@@ -618,7 +627,9 @@ export function chatTime(at: number): string {
   }
 }
 
-export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
+type SpecialKey = SpecialType | 'incomeTax' | 'luxuryTax' | 'rest';
+
+const WORLD_SPECIAL_NAMES: Readonly<Record<SpecialKey, string>> = {
   start: 'World Start',
   chance: 'Chance',
   event: 'Event',
@@ -629,23 +640,69 @@ export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryT
   goToJail: 'Go To Jail',
   vacation: 'Vacation',
   freeParking: 'Free Parking',
+  temple: 'Pagoda',
   rest: 'Rest',
 };
 
-/** What happens on each special space (Focus Card). */
-export const SPECIAL_TEXT: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
-  start: `Collect ${money(BALANCE.startBonus)} each time you pass or land here moving forward.`,
-  chance: 'Draw the top Chance card and do what it says.',
-  event: 'Draw the top Event card: world news that can affect everyone.',
-  tax: 'Pay the tax to the bank.',
-  incomeTax: 'Pay $300 to the bank.',
-  luxuryTax: 'Pay $500 to the bank.',
-  jail: 'Just visiting: nothing happens. Players sent to Jail wait here.',
-  goToJail: 'Go straight to Jail. You collect nothing for passing World Start.',
-  vacation: 'Your next turn is skipped. You still collect rent.',
-  freeParking: 'Nothing happens.',
-  rest: 'Nothing happens: this card deck is switched off.',
+/** The Myanmar map's special spaces, in English and Burmese (D101). */
+const MYANMAR_SPECIAL_NAMES: Readonly<Record<SpecialKey, readonly [string, string]>> = {
+  start: ['Start', 'စတင်ရာ'],
+  chance: ['Chance', 'ကံစမ်းမဲ'],
+  event: ['News', 'သတင်း'],
+  tax: ['Tax', 'အခွန်'],
+  incomeTax: ['Income tax', 'ဝင်ငွေခွန်'],
+  luxuryTax: ['Special tax', 'အခွန်ထူး'],
+  jail: ['Military camp', 'စစ်မှုထမ်းစခန်း'],
+  goToJail: ['Call-up letter', 'ခေါ်စာရောက်ပြီ'],
+  vacation: ['Refuge', 'ရှောင်တိမ်းရာ'],
+  freeParking: ['Rest', 'နားရာ'],
+  temple: ['Pagoda', 'ဘုရား'],
+  rest: ['Rest', 'နားရာ'],
 };
+
+/** A special space's name on the map in play (pagodas are named from the board data). */
+export function specialName(key: SpecialKey): string {
+  if (MAP.id === 'myanmar') {
+    const [en, my] = MYANMAR_SPECIAL_NAMES[key];
+    return pick(en, my);
+  }
+  return WORLD_SPECIAL_NAMES[key];
+}
+
+/** What happens on each special space (Focus Card), on the map in play. */
+export function specialText(key: SpecialKey): string {
+  const myanmar = MAP.id === 'myanmar';
+  switch (key) {
+    case 'start':
+      return `Collect ${money(RULES.startBonus)} each time you pass or land here moving forward.`;
+    case 'chance':
+      return 'Draw the top Chance card and do what it says.';
+    case 'event':
+      return myanmar ? 'Draw the top News card: Myanmar news that can affect everyone.' : 'Draw the top Event card: world news that can affect everyone.';
+    case 'tax':
+      return 'Pay the tax to the bank.';
+    case 'incomeTax':
+      return `Pay ${money(RULES.incomeTax)} to the bank.`;
+    case 'luxuryTax':
+      return `Pay ${money(RULES.luxuryTax)} to the bank.`;
+    case 'jail':
+      return myanmar
+        ? 'Just visiting: nothing happens. Players called up for military service wait here.'
+        : 'Just visiting: nothing happens. Players sent to Jail wait here.';
+    case 'goToJail':
+      return myanmar
+        ? `Go straight to the Military camp. You collect nothing for passing ${specialName('start')}.`
+        : 'Go straight to Jail. You collect nothing for passing World Start.';
+    case 'vacation':
+      return myanmar ? 'Nothing happens.' : 'Your next turn is skipped. You still collect rent.';
+    case 'freeParking':
+      return 'Nothing happens.';
+    case 'temple':
+      return 'A place to pause: nothing happens.';
+    case 'rest':
+      return 'Nothing happens: this card deck is switched off.';
+  }
+}
 
 export const TOKEN_NAMES: Readonly<Record<TokenKind, string>> = {
   globe: 'Globe',
@@ -672,19 +729,36 @@ export function colorName(color: string): string {
   return COLOR_NAMES[color] ?? color;
 }
 
-export const DECK_NAMES: Readonly<Record<DeckId, string>> = { chance: 'Chance', event: 'Event' };
+/** A deck's name on the map in play: Chance, and Event (News on the Myanmar map). */
+export function deckName(deck: DeckId): string {
+  return specialName(deck);
+}
 
 const MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
   cityRent: 'City rent',
   airportRent: 'Airport rent',
   companyRent: 'Company rent',
   buildCost: 'Build cost',
+  groupRent: 'City rent',
+  transportRent: 'Transport rent',
 };
 
-/** "City rent +25%" */
-export function modifierLabel(type: ModifierType, factor: number): string {
+/** "A and B", "A, B and C". */
+function andList(items: string[]): string {
+  return items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** "City rent +25%"; on the Myanmar map "Rakhine and Shan rent +100%" or "Muse Border Gate closed". */
+export function modifierLabel(type: ModifierType, factor: number, cardId: string | null = null): string {
   const pct = Math.round((factor - 1) * 100);
-  return `${MODIFIER_NAMES[type]} ${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
+  const change = `${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
+  const effect = cardId ? MYANMAR_CARD_BY_ID.get(cardId)?.effect : undefined;
+  if (effect?.type === 'groupRent') return `${andList(effect.groups.map(groupName))} rent ${change}`;
+  if (effect?.type === 'transportClosed') {
+    const transport = MYANMAR_TRANSPORT.find((t) => t.kind === effect.kind);
+    return transport ? `${pick(transport.name, transport.nameMy)} closed` : `${MODIFIER_NAMES[type]} ${change}`;
+  }
+  return `${MODIFIER_NAMES[type]} ${change}`;
 }
 
 export function levelText(level: number): string {
@@ -888,9 +962,9 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return `${who(e.player)} paid ${what}: ${signedMoney(-e.amount)}.`;
     }
     case 'cardDrawn':
-      return `${who(e.player)} drew ${DECK_NAMES[e.deck]}: ${n.cardTitle(e.cardId)}.`;
+      return `${who(e.player)} drew ${deckName(e.deck)}: ${n.cardTitle(e.cardId)}.`;
     case 'deckShuffled':
-      return `The ${DECK_NAMES[e.deck]} deck was reshuffled.`;
+      return `The ${deckName(e.deck)} deck was reshuffled.`;
     case 'cardCash':
       return `${who(e.player)}: ${signedMoney(e.amount)} (${n.cardTitle(e.cardId)}).`;
     case 'cardTransfer':
@@ -904,9 +978,9 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
     case 'rollAgainGranted':
       return `${who(e.player)} gets an extra roll.`;
     case 'modifierStarted':
-      return `${modifierLabel(e.modifier.type, e.modifier.factor)} until ${who(e.modifier.drawnBy)}’s next turn.`;
+      return `${modifierLabel(e.modifier.type, e.modifier.factor, e.modifier.cardId)} until ${who(e.modifier.drawnBy)}’s next turn.`;
     case 'modifierEnded':
-      return `${modifierLabel(e.modifier.type, e.modifier.factor)} has ended.`;
+      return `${modifierLabel(e.modifier.type, e.modifier.factor, e.modifier.cardId)} has ended.`;
     case 'built':
       return `${who(e.player)} built ${e.level === 5 ? 'a hotel' : 'a house'} on ${n.space(e.space)}${e.voucher ? ' with a Free House card' : ` for ${money(e.cost)}`}.`;
     case 'buildingSold':

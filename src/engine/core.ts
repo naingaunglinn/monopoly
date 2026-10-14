@@ -25,6 +25,8 @@ import type {
 export interface Ctx {
   s: GameState;
   events: GameEvent[];
+  /** While a card moves the player: rent where they land is multiplied (Myanmar's airport card). */
+  rentFactor?: number;
 }
 
 /** Events that are animation detail only and never written to the log. */
@@ -53,6 +55,7 @@ export function cloneState(s: GameState): GameState {
       jailCards: p.jailCards.slice(),
       houseVouchers: p.houseVouchers.slice(),
       recap: p.recap.slice(),
+      draft: p.draft ? { ...p.draft } : null,
     })),
     properties: s.properties.map((p) => (p ? { ...p } : null)),
     decks: {
@@ -70,6 +73,7 @@ export function cloneState(s: GameState): GameState {
       phase: s.flow.phase,
       pending: s.flow.pending ? deepCopy(s.flow.pending) : null,
       trade: s.flow.trade ? deepCopy(s.flow.trade) : null,
+      loan: s.flow.loan ? deepCopy(s.flow.loan) : null,
       notices: s.flow.notices.map((n) => ({ ...n })),
       debts: s.flow.debts.map((d) => ({ ...d, reason: { ...d.reason } })),
       resume: s.flow.resume ? { ...s.flow.resume } : null,
@@ -84,6 +88,12 @@ export function cloneState(s: GameState): GameState {
       forcedDice: s.meta.forcedDice.map((d) => [d[0], d[1]]),
       forcedCards: { ...s.meta.forcedCards },
       stats: { ...s.meta.stats },
+    },
+    economy: {
+      pot: s.economy.pot,
+      inflation: s.economy.inflation,
+      loans: s.economy.loans.map((l) => ({ ...l, collateral: l.collateral.slice() })),
+      loanSeq: s.economy.loanSeq,
     },
   };
 }

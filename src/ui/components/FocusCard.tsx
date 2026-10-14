@@ -9,7 +9,7 @@ import { COUNTRY_BY_ID } from '../../data/countries';
 import { airportsOwnedBy, countryOwner, ownsCountry, type GameState } from '../../engine';
 import { readableInk } from '../contrast';
 import { ui, useUi } from '../store';
-import { money, SPECIAL_TEXT, T } from '../strings';
+import { money, specialText, T } from '../strings';
 import { isRestSpace, tileView } from '../view';
 import { Flag } from './Flag';
 import { BuildingPips, TokenChip } from './glyphs';
@@ -156,11 +156,11 @@ export function DeedBody({ s, index }: { s: GameState; index: number }) {
       ? space.tax === 'income'
         ? 'incomeTax'
         : 'luxuryTax'
-      : (space?.type as keyof typeof SPECIAL_TEXT);
+      : (space?.type as Parameters<typeof specialText>[0]);
   return (
     <div className="deed-special">
       <p className="deed-landing">{T.focus.landHere}</p>
-      <p>{SPECIAL_TEXT[key]}</p>
+      <p>{specialText(key)}</p>
     </div>
   );
 }

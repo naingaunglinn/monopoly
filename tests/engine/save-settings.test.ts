@@ -122,7 +122,7 @@ describe('save and resume', () => {
   // with an Event modifier, houses and a mortgage.
   const v1Text = readFileSync(new URL('../fixtures/save-v1.json', import.meta.url), 'utf8');
 
-  test.runIf(FULL_BOARD_IN_PLAY)('a version 1 save loads on the full board as version 3, with the seat colours', () => {
+  test.runIf(FULL_BOARD_IN_PLAY)('a version 1 save loads on the full board as the current version, with the seat colours', () => {
     const v1 = JSON.parse(v1Text);
     expect(v1.meta.schemaVersion).toBe(1);
     expect(v1.meta.settings.playerColors).toBeUndefined();
@@ -130,23 +130,35 @@ describe('save and resume', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const s = parsed.state;
-    expect(s.meta.schemaVersion).toBe(3);
+    expect(s.meta.schemaVersion).toBe(SCHEMA_VERSION);
     expect(s.meta.settings.playerColors).toEqual(SEATS.map((seat) => seat.color));
     expect(s.meta.settings.board).toEqual({ spaces: 80, shape: 'rectangle' });
+    expect(s.meta.settings.map).toBe('world');
     expect(Object.keys(s.meta.settings)).toEqual(Object.keys(normalizeSettings()));
     expect(checkInvariants(s)).toEqual([]);
     // Nothing else changed: same players, board, decks, turn and pending auction.
     const { settings, schemaVersion: _version, ...meta } = s.meta;
     const { settings: v1Settings, schemaVersion: _v1Version, ...v1Meta } = v1.meta;
-    expect({ ...settings, playerColors: undefined, board: undefined }).toEqual({ ...v1Settings, playerColors: undefined, board: undefined });
+    expect({ ...settings, playerColors: undefined, board: undefined, map: undefined }).toEqual({
+      ...v1Settings,
+      playerColors: undefined,
+      board: undefined,
+      map: undefined,
+    });
     expect(meta).toEqual(v1Meta);
-    expect({ ...s, meta: null }).toEqual({ ...v1, meta: null });
+    // Version 4 adds merit, military service, a loan slot and the economy, all empty (D101).
+    const { economy, ...rest } = s;
+    expect(economy).toEqual({ pot: 0, inflation: 0, loans: [], loanSeq: 0 });
+    const { loan, ...flow } = s.flow;
+    expect(loan).toBeNull();
+    const players = s.players.map(({ merit, draft, ...p }) => (merit === 0 && draft === null ? p : null));
+    expect({ ...rest, players, flow, meta: null }).toEqual({ ...v1, meta: null });
     expect(s.flow.phase).toBe('Auction');
-    // It plays on, and saves as version 3.
+    // It plays on, and saves as the current version.
     const bid = reduce(s, { type: 'bid', amount: 70 });
     expect(bid.error).toBeNull();
     const again = parseSave(serializeGame(bid.state));
-    expect(again.ok && again.state.meta.schemaVersion).toBe(3);
+    expect(again.ok && again.state.meta.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   test.skipIf(FULL_BOARD_IN_PLAY)('a save from the full 80-space board is refused on this board', () => {

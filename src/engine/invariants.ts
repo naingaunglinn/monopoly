@@ -1,6 +1,6 @@
 // Invariants checked after every simulated action (spec section 15) and when loading a save.
-import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { COUNTRIES, COUNTRY_CITIES, isProperty } from '../data/board.js';
+import { BALANCE } from '../data/balance.js';
+import { COUNTRIES, COUNTRY_CITIES, isProperty, LAYOUT, useMap } from '../data/board.js';
 import { cardsForSettings } from './cards.js';
 import { legalActions } from './legal.js';
 import { PHASES, type GameState, type Pending } from './types.js';
@@ -22,6 +22,7 @@ const PENDING_FOR_PHASE: Readonly<Record<GameState['flow']['phase'], readonly (P
 
 /** Returns a list of violated invariants (empty when the state is sound). */
 export function checkInvariants(s: GameState, options: { legalActions?: boolean } = {}): string[] {
+  useMap(s);
   const errors: string[] = [];
   const phase = s.flow.phase;
 
@@ -34,7 +35,7 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
   for (const p of s.players) {
     if (!Number.isInteger(p.cash)) errors.push(`${p.name} cash is not a whole number: ${p.cash}`);
     if (p.cash < 0 && phase !== 'Debt') errors.push(`${p.name} has negative cash ${p.cash} outside Debt`);
-    if (p.position < 0 || p.position >= BOARD_SIZE) errors.push(`${p.name} position ${p.position}`);
+    if (p.position < 0 || p.position >= LAYOUT.size) errors.push(`${p.name} position ${p.position}`);
     if (p.freeStay < 0 || p.freeStay > BALANCE.freeStayMax) errors.push(`${p.name} holds ${p.freeStay} Free Stay`);
     if (p.bankrupt && p.cash !== 0) errors.push(`bankrupt ${p.name} has cash`);
   }
@@ -87,7 +88,9 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     const seen: string[] = [
       ...(deck === 'chance' ? s.decks.chanceDeck : s.decks.eventDeck),
       ...(deck === 'chance' ? s.decks.chanceDiscard : s.decks.eventDiscard),
-      ...s.players.flatMap((p) => [...p.jailCards, ...p.houseVouchers]).filter((id) => id.startsWith(`${deck}-`)),
+      ...s.players
+        .flatMap((p) => [...p.jailCards, ...p.houseVouchers])
+        .filter((id) => id.startsWith(`${deck}-`) || id.startsWith(`mm-${deck}-`)),
     ];
     if (s.flow.pending?.kind === 'card' && s.flow.pending.deck === deck) seen.push(s.flow.pending.cardId);
     const sortedSeen = [...seen].sort();

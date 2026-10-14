@@ -2,10 +2,10 @@
 // straight JSON round trip.
 import type { BoardShape } from '../data/balance.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
-import type { TaxKind } from '../data/board.js';
+import type { MapId, TaxKind } from '../data/board.js';
 import type { TokenKind } from '../data/players.js';
 
-export type { DeckId, ModifierType, TokenKind };
+export type { DeckId, MapId, ModifierType, TokenKind };
 
 /** The phase state machine has exactly these values (spec section 9). */
 export const PHASES = [
@@ -51,8 +51,10 @@ export interface Settings {
   randomFirstPlayer: boolean;
   passDevice: boolean;
   animationSpeed: AnimationSpeed;
-  /** Always the board in play: the code sets it, never a player. */
+  /** Always the board of the map: the code sets it, never a player. */
   board: BoardSettings;
+  /** The map: the World board, or the Myanmar map (D101). */
+  map: MapId;
 }
 
 export type MoneyReason =
@@ -102,6 +104,62 @@ export interface Player {
   /** Order of elimination (1 = first out), for ranking. */
   bankruptOrder: number | null;
   recap: RecapItem[];
+  /** Myanmar map: merit points from pagoda donations, 0 to 3 (D102). Always 0 on the World map. */
+  merit: number;
+  /** Myanmar map: military service in progress (D102). Always null on the World map. */
+  draft: Draft | null;
+}
+
+/** How a player called up for military service chose to go through it (spec 7.1). */
+export type DraftStatus = 'hiding' | 'serving' | 'fled';
+
+export interface Draft {
+  status: DraftStatus;
+  /** Turns still to skip. */
+  turns: number;
+}
+
+/** A loan between two players (spec 7.11, D105). */
+export interface Loan {
+  id: number;
+  lender: number;
+  borrower: number;
+  /** The amount lent. */
+  principal: number;
+  /** Simple interest per round, in percent of the amount lent. */
+  ratePercent: number;
+  /** Rounds until it must be paid back. */
+  term: number;
+  /** The round it was made in. */
+  startRound: number;
+  /** Properties pledged: they go to the lender if it is not paid back in time. */
+  collateral: number[];
+  /** Paid back so far. */
+  repaid: number;
+}
+
+/** A loan asked for or offered, waiting for the other player's answer, like a trade offer. */
+export interface LoanOffer {
+  /** Who made this offer, and who answers it. */
+  from: number;
+  to: number;
+  lender: number;
+  borrower: number;
+  amount: number;
+  ratePercent: number;
+  term: number;
+  collateral: number[];
+}
+
+/** Money that belongs to no player: the Myanmar map's community pot, inflation and loans. */
+export interface Economy {
+  /** Taxes and fines, waiting for the next player to reach the Refuge (D104). */
+  pot: number;
+  /** City rents are this many percent higher (D103). */
+  inflation: number;
+  loans: Loan[];
+  /** Id of the next loan. */
+  loanSeq: number;
 }
 
 export interface PropertyState {
@@ -229,6 +287,8 @@ export interface FlowState {
    * sees it; the game waits until it is answered or withdrawn.
    */
   trade: TradeOffer | null;
+  /** Myanmar map: a loan asked for or offered, on the table like a trade (D105). */
+  loan: LoanOffer | null;
   /** Acknowledgement overlays (vacation, bankruptcy). They block other actions until OK. */
   notices: Notice[];
   /** Payments waiting to be made, in order. The head is the one being settled. */
@@ -277,6 +337,7 @@ export interface GameState {
   turn: TurnState;
   flow: FlowState;
   meta: MetaState;
+  economy: Economy;
 }
 
 // ---------------------------------------------------------------------------------------------
