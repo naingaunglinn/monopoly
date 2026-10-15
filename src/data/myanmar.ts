@@ -1,5 +1,5 @@
-// The Myanmar map (owner's spec, D101): 48 spaces, nine regions of 25 cities, four transport
-// spaces, four companies and three pagodas, priced in lakh of kyat. Every name is given in English
+// The Myanmar map (owner's spec, D101; spec v2, D106): 48 spaces, nine regions of 25 cities, four
+// transport spaces, five companies and three pagodas, priced in lakh of kyat. Every name is given in English
 // and in Burmese. The World map's data is not touched; board.ts builds this map's layout.
 import type { AirportData } from './airports.js';
 import type { CityData } from './cities.js';
@@ -140,8 +140,8 @@ export interface MyanmarCompany extends CompanyData {
 }
 
 /**
- * The four companies, 250 lakh each (spec section 4). Rent is the dice total times 25, 50, 100 or
- * 200 by how many of the four the owner holds (`multiplier` is the rate for one).
+ * The five companies, 250 lakh each (spec section 4; Brycen Myanmar from spec v2). Rent is the dice
+ * total times 25, 50, 100, 200 or 400 by how many the owner holds (`multiplier` is the rate for one).
  */
 export const MYANMAR_COMPANIES: readonly MyanmarCompany[] = [
   {
@@ -192,6 +192,19 @@ export const MYANMAR_COMPANIES: readonly MyanmarCompany[] = [
     multiplier: 25,
     icon: 'landmark',
   },
+  {
+    // Spec v2: in place of the Special tax space.
+    space: 44,
+    id: 'brycen',
+    name: 'Brycen Myanmar (IT company)',
+    shortName: 'Brycen Myanmar',
+    nameMy: 'Brycen Myanmar (IT ကုမ္ပဏီ)',
+    shortNameMy: 'Brycen Myanmar',
+    between: ['mmMandalay', 'mmYangon'],
+    price: 250,
+    multiplier: 25,
+    icon: 'cpu',
+  },
 ];
 
 export type TempleId = 'shwedagon' | 'kyaiktiyo' | 'mahamuni';
@@ -212,8 +225,8 @@ export const MYANMAR_TEMPLES: Readonly<Record<number, TempleData>> = {
 
 /**
  * The special spaces. The corners keep the World map's kinds so the turn flow stays the same:
- * the Military camp is the Jail corner, the Refuge the Vacation corner and Call-up letter the
- * Go To Jail corner, each with this map's own rules (D101).
+ * the Military camp is the Jail corner, Chiang Mai (the Refuge before spec v2) the Vacation corner
+ * and Call-up letter the Go To Jail corner, each with this map's own rules (D101, D106).
  */
 export const MYANMAR_SPECIALS: Readonly<Record<number, 'start' | 'chance' | 'event' | 'tax:income' | 'tax:luxury' | 'jail' | 'goToJail' | 'vacation' | 'temple'>> = {
   0: 'start',
@@ -230,7 +243,6 @@ export const MYANMAR_SPECIALS: Readonly<Record<number, 'start' | 'chance' | 'eve
   34: 'chance',
   36: 'goToJail',
   40: 'event',
-  44: 'tax:luxury',
 };
 
 /** Spaces on the Myanmar board: four corners and eleven spaces along every side. */

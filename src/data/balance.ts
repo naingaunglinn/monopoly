@@ -116,8 +116,8 @@ export const MYANMAR = {
   luxuryTax: 500,
   /** Transport rent by how many of the four the owner holds. */
   transportRent: [50, 100, 200, 400] as readonly number[],
-  /** Company rent: the dice total times this, by how many of the four companies the owner holds. */
-  companyMultipliers: [25, 50, 100, 200] as readonly number[],
+  /** Company rent: the dice total times this, by how many of the five companies the owner holds (spec v2). */
+  companyMultipliers: [25, 50, 100, 200, 400] as readonly number[],
   /** "Go to the nearest airport" card: rent there is multiplied by this. */
   nearestAirportRentFactor: 2,
 
@@ -171,6 +171,32 @@ export const MYANMAR = {
   /** Passing Start pays back this percent of what is owed, when the cash is there. */
   loanStartRepayPercent: 25,
   loanMaxTerm: 30,
+
+  // Spec v2 (D106, D107)
+  /** The porter card: the only way out of the Military camp. */
+  porterFee: 500,
+  /** Brycen Myanmar's loss: each player pays its owner this. */
+  brycenRescue: 100,
+  rankMax: 6,
+  /** Serving ends with one die: an even number raises the rank by this... */
+  rankEven: 2,
+  /** ...an odd one by this. */
+  rankOdd: 1,
+  /** Salary on return from serving: rank × this, from the bank. */
+  salaryPerRank: 200,
+  /** The general has at least this rank. */
+  generalMinRank: 4,
+  /** The general's power can be used once in this many rounds. */
+  powerEveryRounds: 2,
+  /** Power: a dice total up to this takes money, above it a property. */
+  powerMoneyUpTo: 8,
+  powerMoney: 1000,
+  /** Merit points the target spends to block one use of power. */
+  powerBlockMerit: 2,
+  /** Unrest cups each player holds. */
+  unrestCups: 2,
+  /** Cups shown against one general that bring them down (fewer with two players: D107). */
+  unrestToDepose: 3,
 } as const;
 
 /** The rules that differ by map. The World map's are spec sections 5 to 9 (and D100). */

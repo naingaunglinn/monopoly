@@ -94,6 +94,11 @@ export function cloneState(s: GameState): GameState {
       inflation: s.economy.inflation,
       loans: s.economy.loans.map((l) => ({ ...l, collateral: l.collateral.slice() })),
       loanSeq: s.economy.loanSeq,
+      general: s.economy.general,
+      powerRound: s.economy.powerRound,
+      unrestUsed: s.economy.unrestUsed,
+      bribed: s.economy.bribed.slice(),
+      rankSeq: s.economy.rankSeq,
     },
   };
 }

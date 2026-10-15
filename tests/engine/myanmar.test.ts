@@ -34,16 +34,19 @@ describe('the Myanmar board', () => {
     expect(BOARD.map((x) => x.index)).toEqual([...Array(48).keys()]);
   });
 
-  test('33 properties: 25 cities in nine regions, 4 transport spaces at 200 lakh, 4 companies at 250', () => {
+  test('34 properties: 25 cities in nine regions, 4 transport spaces at 200 lakh, 5 companies at 250 (spec v2)', () => {
     mm();
     expect(CITIES).toHaveLength(25);
     expect(spacesOf('airport')).toHaveLength(4);
-    expect(spacesOf('company')).toHaveLength(4);
+    expect(spacesOf('company')).toHaveLength(5);
+    expect(spacesOf('tax')).toHaveLength(1);
+    expect(BOARD[spaceOf('Brycen Myanmar (IT company)')]?.type).toBe('company');
+    expect(SPACES.vacation).toBe(24);
     expect(spacesOf('temple')).toHaveLength(3);
     expect(COUNTRIES.map((c) => c.name)).toEqual(['Chin', 'Kachin', 'Anyar', 'Rakhine', 'Southern', 'Delta', 'Shan', 'Mandalay', 'Yangon']);
     expect(COUNTRIES.map((c) => COUNTRY_CITIES[c.id].length)).toEqual([2, 3, 3, 2, 3, 3, 3, 3, 3]);
     expect(MYANMAR_TRANSPORT.map((t) => t.price)).toEqual([200, 200, 200, 200]);
-    expect(MYANMAR_COMPANIES.map((c) => c.price)).toEqual([250, 250, 250, 250]);
+    expect(MYANMAR_COMPANIES.map((c) => c.price)).toEqual([250, 250, 250, 250, 250]);
     // Prices rise around the board, base rent is a tenth of the price, every name is also in Burmese.
     const prices = MYANMAR_CITIES.map((c) => c.price);
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
@@ -100,18 +103,18 @@ describe('Myanmar rules', () => {
     expect(rents).toEqual(MYANMAR.transportRent);
   });
 
-  test('company rent: the dice total times 25, 50, 100 or 200 by how many companies the owner holds', () => {
+  test('company rent: the dice total times 25, 50, 100, 200 or 400 by how many of the five companies the owner holds', () => {
     let s = mm();
     const companies = spacesOf('company');
     const rents: number[] = [];
-    for (let n = 1; n <= 4; n++) {
+    for (let n = 1; n <= 5; n++) {
       s = own(s, companies.slice(0, n), 1);
       rents.push(companyRent(s, companies[0] as number, [3, 4]).amount);
     }
-    expect(rents).toEqual([7 * 25, 7 * 50, 7 * 100, 7 * 200]);
+    expect(rents).toEqual([7 * 25, 7 * 50, 7 * 100, 7 * 200, 7 * 400]);
   });
 
-  test('passing Start pays 500 lakh; Income tax costs 300 and Special tax 500', () => {
+  test('passing Start pays 500 lakh; Income tax costs 300 (the only tax since spec v2)', () => {
     // From space 45, a 3 and a 4 pass Start and land on space 4 (Yangon International Airport).
     const s = act(mm(), { type: 'debug', op: 'movePlayer', player: 0, space: 45 } as Action, { type: 'debug', op: 'setNextDice', dice: [3, 4] } as Action);
     const before = cashOf(s, 0);
@@ -119,8 +122,8 @@ describe('Myanmar rules', () => {
     expect(passed.events.find((e) => e.type === 'passedStart')).toMatchObject({ amount: 500 });
     expect(cashOf(passed.state, 0)).toBe(before + 500);
 
-    const [income, special] = [BOARD.find((x) => x.type === 'tax' && x.tax === 'income')!.index, BOARD.find((x) => x.type === 'tax' && x.tax === 'luxury')!.index];
-    for (const [space, tax] of [[income, 300], [special, 500]] as const) {
+    const income = BOARD.find((x) => x.type === 'tax' && x.tax === 'income')!.index;
+    for (const [space, tax] of [[income, 300]] as const) {
       const landed = rollTo(mm(), space).state;
       const paid = act(landed, { type: 'payRent' });
       expect(cashOf(landed, 0) - cashOf(paid, 0)).toBe(tax);

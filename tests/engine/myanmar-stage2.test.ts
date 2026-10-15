@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 import { MYANMAR } from '../../src/data/balance';
 import { SPACES } from '../../src/data/board';
 import {
-  borderSpace,
+  fleeSpace,
   cityRent,
   companyRent,
   draftPayCost,
@@ -107,7 +107,7 @@ describe('military service (spec 7.1)', () => {
     const s = calledUp(own(setCash(mm(), 0, 2000), mandalay, 0));
     const { state, events } = run(s, { type: 'draftChoose', how: 'flee' });
     expect(cashOf(state, 0)).toBe(1200);
-    expect(state.players[0]?.position).toBe(borderSpace());
+    expect(state.players[0]?.position).toBe(fleeSpace());
     expect(state.players[0]?.draft).toEqual({ status: 'fled', turns: 1 });
     expect(eventsOf(events, 'passedStart')).toEqual([]);
     const landed = rollTo(endTurn(state), mandalay).state;

@@ -120,10 +120,17 @@ export interface Player {
   merit: number;
   /** Myanmar map: military service in progress (D102). Always null on the World map. */
   draft: Draft | null;
+  /** Myanmar map: military rank 0 to 6, from serving (spec v2, D107). Always 0 on the World map. */
+  rank: number;
+  /** When the rank last rose (economy.rankSeq then): of two equal ranks, the earlier one leads. */
+  rankAt: number;
+  /** Myanmar map: unrest cups left to show against the general (spec v2, D107). */
+  unrest: number;
 }
 
 /** How a player called up for military service chose to go through it (spec 7.1). */
-export type DraftStatus = 'hiding' | 'serving' | 'fled';
+/** 'called': sent to the Military camp by the Porters news on someone else's turn; chooses at their next turn (D106). */
+export type DraftStatus = 'hiding' | 'serving' | 'fled' | 'called';
 
 export interface Draft {
   status: DraftStatus;
@@ -172,6 +179,16 @@ export interface Economy {
   loans: Loan[];
   /** Id of the next loan. */
   loanSeq: number;
+  /** Myanmar map (spec v2, D107): the general (highest rank, 4 or more), or nobody. */
+  general: number | null;
+  /** The round the general last used their power; null: not since they became general. */
+  powerRound: number | null;
+  /** Unrest cups shown against the current general. */
+  unrestUsed: number;
+  /** Players paid by the general not to show unrest at the next use of power. */
+  bribed: number[];
+  /** Counts rank rises, to order equal ranks. */
+  rankSeq: number;
 }
 
 export interface PropertyState {

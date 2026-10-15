@@ -8,6 +8,7 @@ export type CompanyId =
   | 'denko'
   | 'mpt'
   | 'kbz'
+  | 'brycen'
   | 'transport'
   | 'oil'
   | 'shipping'
@@ -18,7 +19,7 @@ export type CompanyId =
   | 'finance';
 
 /** Icon names map to lucide-react icons in the UI. */
-export type CompanyIcon = 'truck' | 'fuel' | 'ship' | 'zap' | 'globe' | 'radio' | 'wheat' | 'landmark';
+export type CompanyIcon = 'truck' | 'fuel' | 'ship' | 'zap' | 'globe' | 'radio' | 'wheat' | 'landmark' | 'cpu';
 
 export interface CompanyData {
   /** Index on the board: here on the full 80-space board; board.ts renumbers the board in play. */

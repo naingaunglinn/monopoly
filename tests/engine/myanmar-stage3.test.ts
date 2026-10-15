@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'vitest';
 import { MYANMAR } from '../../src/data/balance';
 import { SPACES } from '../../src/data/board';
-import { borderSpace, legalActions, parseSave, serializeGame, type GameState } from '../../src/engine';
+import { fleeSpace, legalActions, parseSave, serializeGame, type GameState } from '../../src/engine';
 import { act, at, cashOf, edit, endTurn, eventsOf, forceCard, game, levels, nextDice, own, rollTo, rollWith, run, setCash, spaceOf, spacesOf } from './helpers';
 
 const mm = (settings: Parameters<typeof game>[0] = {}, seed = 7) => game({ map: 'myanmar', playerCount: 3, ...settings }, seed);
@@ -126,7 +126,7 @@ describe('the earthquake (spec 7.5)', () => {
 describe('remittance (spec 7.10)', () => {
   test('a player who fled receives 200 lakh at each round start while at the border', () => {
     let s = act(rollTo(setCash(mm(), 0, 3000), SPACES.goToJail).state, { type: 'draftChoose', how: 'flee' });
-    expect(s.players[0]?.position).toBe(borderSpace());
+    expect(s.players[0]?.position).toBe(fleeSpace());
     const cash = cashOf(s, 0);
     s = endTurn(s);
     s = endTurn(rollTo(s, SPACES.jail).state);

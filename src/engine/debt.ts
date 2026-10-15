@@ -72,7 +72,8 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
     case 'card':
       if (debt.creditor === null) {
         emit(c, { type: 'cardCash', player: debt.debtor, amount: -debt.amount, cardId: reason.cardId });
-        if (cardById(reason.cardId).effect.type === 'potDonation') toPot(c, debt.debtor, debt.amount);
+        // Myanmar map: these card payments go into the community pot (D103, D106).
+        if (['potDonation', 'porter', 'companyRescue'].includes(cardById(reason.cardId).effect.type)) toPot(c, debt.debtor, debt.amount);
       } else {
         emit(c, { type: 'cardTransfer', from: debt.debtor, to: debt.creditor, amount: debt.amount, cardId: reason.cardId });
       }

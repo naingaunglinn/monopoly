@@ -52,8 +52,9 @@ test('choose the Myanmar map: a 48-space board in lakh, its corners, and names i
   await expect(page.locator('.board')).toHaveAttribute('data-map', 'myanmar');
   await expect(page.locator('.tile[data-space="0"]')).toContainText('Start');
   await expect(page.locator('.tile[data-space="12"]')).toContainText('Military camp');
-  await expect(page.locator('.tile[data-space="24"]')).toContainText('Refuge');
+  await expect(page.locator('.tile[data-space="24"]')).toContainText('Chiang Mai');
   await expect(page.locator('.tile[data-space="36"]')).toContainText('Call-up letter');
+  await expect(page.locator('.tile[data-space="44"]')).toContainText('Brycen Myanmar');
   await expect(page.locator('.tile[data-space="1"]')).toContainText('Falam');
   await expect(page.locator('.tile[data-space="1"]')).toContainText('60 lakh');
   // No dollar sign anywhere on the board or the players.

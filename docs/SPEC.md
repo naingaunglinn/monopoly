@@ -1270,3 +1270,20 @@ Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen b
 - **Chance**: On the conscription list (go to the Military camp); A broker calls (pay 500 lakh to come off the list); Call-up exemption (keep the card and use it later); Buy a lottery ticket? (8); Pagoda festival (pay 100 lakh, gain 1 merit); Yangon traffic jam (move back 3 spaces); Hospital bill (pay 200 lakh); Fly from the nearest airport (pay double rent if you land on an owned one); Back to Start (collect 500 lakh).
 - **News**: Blackout, Internet cut, Fuel shortage (3); Inflation (4); Earthquake (5); Tourist season (Rakhine and Shan rents double this round); Rice prices climb (Delta rents double this round); Border trade closed (the Muse Border Gate earns nothing this round); Community donation (every player puts 50 lakh in the pot).
 - Each card arrives with the stage of the rule it needs. Stage 1 has the six Chance and three News cards that need no new rule.
+
+### Spec v2 (owner, Oct 15, 2026)
+
+The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar map. Everything above stands except where this list says otherwise.
+
+| v2 stage | Contents | Status |
+| --- | --- | --- |
+| 1 | The Refuge corner is renamed Chiang Mai; Brycen Myanmar becomes the fifth company; company rent in five tiers | Done (D106) |
+| 2 | Two porter cards; Brycen Myanmar's loss | Done (D106) |
+| 3 | Military rank, the general's power, unrest cups | To do |
+
+- **Chiang Mai** (ချင်းမိုင်), the Refuge corner renamed, still pays out the community pot. A player who flees military service now goes there instead of the Muse Border Gate.
+- **Brycen Myanmar** (IT company, 250 lakh) replaces the Special tax at the owner's number 41. Purchasable spaces: 25 cities, 4 transport, 5 companies = 34. Company rent: dice total × 25, 50, 100, 200, or 400 with all five.
+- **Chance, Taken as a porter:** straight to the Military camp. The only way out is paying 500 lakh: no hiding, fleeing, serving or merit.
+- **Chance, Brycen Myanmar posts a loss:** every player pays its owner 100 lakh (the owner collects from everyone else, even when they drew it). If nobody owns it, every player puts 100 lakh into the community pot.
+- **News, Porters wanted:** a player picked at random (the drawer included) goes straight to the Military camp, with the usual five ways out.
+

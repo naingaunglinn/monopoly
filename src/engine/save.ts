@@ -1,11 +1,12 @@
 // Save and resume (spec section 9). The save is the game state as JSON with a schemaVersion.
 // A corrupt, older or newer save, or one from another board, is reported, never thrown. Version 1
 // saves (before players chose their colours), version 2 saves (before the board size was a
-// setting, all on the full 80-space board) and version 3 saves (before the Myanmar map, all on the
-// World map) are migrated on load.
-import { SETUP } from '../data/balance.js';
+// setting, all on the full 80-space board), version 3 saves (before the Myanmar map, all on the
+// World map) and version 4 saves (before the Myanmar map's spec v2) are migrated on load.
+import { MYANMAR, SETUP } from '../data/balance.js';
 import { isProperty, LAYOUT, MAP, useMap } from '../data/board.js';
-import { isKnownCard } from './cards.js';
+import { MYANMAR_COMPANIES } from '../data/myanmar.js';
+import { cardsForSettings, isKnownCard } from './cards.js';
 import { checkInvariants } from './invariants.js';
 import { SCHEMA_VERSION, isThisBoard, normalizeSettings } from './state.js';
 import { PHASES, type GameState, type Settings } from './types.js';
@@ -25,10 +26,12 @@ const isIntOrNull = (v: unknown) => v === null || isInt(v);
 const isStrArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 const isCardList = (v: unknown) => isStrArray(v) && v.every(isKnownCard);
 
-const DRAFT_STATUSES: readonly string[] = ['hiding', 'serving', 'fled'];
+const DRAFT_STATUSES: readonly string[] = ['hiding', 'serving', 'fled', 'called'];
 
 function economyIsValid(economy: unknown): boolean {
   if (!isObj(economy) || !isInt(economy.pot) || !isInt(economy.inflation) || !isInt(economy.loanSeq)) return false;
+  if (!(economy.general === null || isInt(economy.general)) || !(economy.powerRound === null || isInt(economy.powerRound))) return false;
+  if (!isInt(economy.unrestUsed) || !isInt(economy.rankSeq) || !Array.isArray(economy.bribed) || !economy.bribed.every(isInt)) return false;
   return (
     Array.isArray(economy.loans) &&
     economy.loans.every(
@@ -64,6 +67,9 @@ function shapeIsValid(raw: Record<string, unknown>): boolean {
       isIntOrNull(p.bankruptOrder) &&
       Array.isArray(p.recap) &&
       isInt(p.merit) &&
+      isInt(p.rank) &&
+      isInt(p.rankAt) &&
+      isInt(p.unrest) &&
       (p.draft === null || (isObj(p.draft) && DRAFT_STATUSES.includes(p.draft.status as string) && isInt(p.draft.turns))),
   );
   if (!playersOk) return false;
@@ -187,6 +193,42 @@ function migrateV3(raw: Record<string, unknown>): Record<string, unknown> | null
 }
 
 /**
+ * Version 4 to 5 (the Myanmar map's spec v2): players gain a rank (0) and their unrest cups, the
+ * economy a general (none). On the Myanmar map the Special tax space becomes the Brycen Myanmar
+ * company (unowned), and the new cards go to the bottom of their draw piles (D106).
+ */
+function migrateV4(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const { meta, players, economy, properties, decks, flow } = raw;
+  if (!isObj(meta) || !isObj(meta.settings) || !Array.isArray(players) || !isObj(economy) || 'general' in economy) return null;
+  if (!Array.isArray(properties) || !isObj(decks) || !isObj(flow)) return null;
+  const out: Record<string, unknown> = {
+    ...raw,
+    players: players.map((p) => (isObj(p) ? { ...p, rank: 0, rankAt: 0, unrest: MYANMAR.unrestCups } : p)),
+    economy: { ...economy, general: null, powerRound: null, unrestUsed: 0, bribed: [], rankSeq: 0 },
+    meta: { ...meta, schemaVersion: 5 },
+  };
+  if (meta.settings.map !== 'myanmar') return out;
+  const brycen = MYANMAR_COMPANIES.find((c) => c.id === 'brycen')?.space;
+  const props = properties.slice();
+  if (brycen !== undefined && props[brycen] === null) props[brycen] = { owner: null, level: 0, mortgaged: false };
+  out.properties = props;
+  const held = players.flatMap((p) => (isObj(p) ? [...((p.jailCards as string[]) ?? []), ...((p.houseVouchers as string[]) ?? [])] : []));
+  const pending = isObj(flow.pending) && flow.pending.kind === 'card' ? [flow.pending.cardId as string] : [];
+  const nextDecks: Record<string, unknown> = { ...decks };
+  for (const [deck, pile, discard] of [
+    ['chance', 'chanceDeck', 'chanceDiscard'],
+    ['event', 'eventDeck', 'eventDiscard'],
+  ] as const) {
+    const draw = Array.isArray(decks[pile]) ? [...(decks[pile] as string[])] : [];
+    const seen = new Set([...draw, ...(Array.isArray(decks[discard]) ? (decks[discard] as string[]) : []), ...held, ...pending]);
+    for (const card of cardsForSettings(deck, meta.settings as unknown as Settings)) if (!seen.has(card.id)) draw.push(card.id);
+    nextDecks[pile] = draw;
+  }
+  out.decks = nextDecks;
+  return out;
+}
+
+/**
  * Brings a game the server kept (an online room started before this version) up to the current
  * version, without checking it again: the server wrote it. Null when it cannot be migrated.
  */
@@ -200,6 +242,7 @@ export function upgradeGame<T>(game: T): T | null {
   if (current && version <= 1) current = migrateV1(current);
   if (current && version <= 2) current = migrateV2(current);
   if (current && version <= 3) current = migrateV3(current);
+  if (current && version <= 4) current = migrateV4(current);
   return current as unknown as T | null;
 }
 
@@ -224,6 +267,7 @@ export function parseSave(text: string | null | undefined): ParseResult {
     if (current && version <= 1) current = migrateV1(current);
     if (current && version <= 2) current = migrateV2(current);
     if (current && version <= 3) current = migrateV3(current);
+    if (current && version <= 4) current = migrateV4(current);
     if (!current) return { ok: false, problem: 'corrupt' };
     // A game from another board cannot go on: its spaces are not this board's (D96).
     const settings = (current.meta as Record<string, unknown>).settings;

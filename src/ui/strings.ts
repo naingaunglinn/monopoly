@@ -139,7 +139,7 @@ export const T = {
     modifiersLabel: 'Active events',
     inflation: (rate: number) => `Inflation +${rate}%`,
     pot: (amount: number) => `Community pot ${money(amount)}`,
-    potTitle: 'Taxes and fines collect in the pot. Landing on the Refuge takes it all.',
+    potTitle: 'Taxes and fines collect in the pot. Landing on Chiang Mai takes it all.',
     potLabel: 'Community pot',
     inflationTitle: 'City rents are this much higher than printed. The owner of KBZ Bank pays without it.',
     until: (name: string) => `Until ${name}’s next turn`,
@@ -362,8 +362,14 @@ export const T = {
     },
     voucher: 'Free House card',
     merit: (n: number) => plural(n, 'merit point', 'merit points'),
-    draft: (status: 'hiding' | 'serving' | 'fled', turns: number) =>
-      status === 'hiding' ? `Hiding, ${plural(turns, 'turn', 'turns')}` : status === 'serving' ? `In the army, ${plural(turns, 'turn', 'turns')}` : 'At the border',
+    draft: (status: 'hiding' | 'serving' | 'fled' | 'called', turns: number) =>
+      status === 'hiding'
+        ? `Hiding, ${plural(turns, 'turn', 'turns')}`
+        : status === 'serving'
+          ? `In the army, ${plural(turns, 'turn', 'turns')}`
+          : status === 'fled'
+            ? 'In Chiang Mai'
+            : 'Called up',
     open: (name: string) => `Open ${name}’s properties`,
   },
   log: {
@@ -519,15 +525,15 @@ export const T = {
     // Myanmar map (D102)
     draft: {
       title: (name: string) => `${name} is called up`,
-      intro: 'Choose how to deal with military service. During service no rent comes in, except at the border.',
+      intro: 'Choose how to deal with military service. During service no rent comes in, except for a player who fled to Chiang Mai.',
       pay: (amount: number) => `Pay ${money(amount)}`,
       get payHint() {
         return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
       },
       hide: 'Hide',
       hideHint: `Skip ${MYANMAR.draftHideTurns} turns. No rent meanwhile.`,
-      flee: (amount: number) => `Flee to the border · ${money(amount)}`,
-      fleeHint: `To the Muse Border Gate. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
+      flee: (amount: number) => `Flee to Chiang Mai · ${money(amount)}`,
+      fleeHint: `To the Chiang Mai corner. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
       serve: 'Serve',
       get serveHint() {
         return `Skip ${MYANMAR.draftServeTurns} turns. No rent meanwhile. ${money(MYANMAR.draftServeBonus)} on return.`;
@@ -536,8 +542,14 @@ export const T = {
       meritHint: 'Free at once.',
       card: 'Use Call-up exemption card',
       cardHint: 'Free at once.',
-      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled') =>
-        status === 'hiding' ? `${name} is in hiding` : status === 'serving' ? `${name} is serving in the army` : `${name} is at the border`,
+      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled' | 'called') =>
+        status === 'hiding'
+          ? `${name} is in hiding`
+          : status === 'serving'
+            ? `${name} is serving in the army`
+            : status === 'fled'
+              ? `${name} is in Chiang Mai`
+              : `${name} is called up`,
       skip: (left: number) => (left > 0 ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.` : 'This turn is skipped. Free after it.'),
       noRent: 'No rent comes in meanwhile.',
       rentStill: 'Rent still comes in.',
@@ -802,7 +814,7 @@ const MYANMAR_SPECIAL_NAMES: Readonly<Record<SpecialKey, readonly [string, strin
   luxuryTax: ['Special tax', 'အခွန်ထူး'],
   jail: ['Military camp', 'စစ်မှုထမ်းစခန်း'],
   goToJail: ['Call-up letter', 'ခေါ်စာရောက်ပြီ'],
-  vacation: ['Refuge', 'ရှောင်တိမ်းရာ'],
+  vacation: ['Chiang Mai', 'ချင်းမိုင်'],
   freeParking: ['Rest', 'နားရာ'],
   temple: ['Pagoda', 'ဘုရား'],
   rest: ['Rest', 'နားရာ'],
@@ -842,7 +854,9 @@ export function specialText(key: SpecialKey): string {
         ? `Go straight to the Military camp. You collect nothing for passing ${specialName('start')}.`
         : 'Go straight to Jail. You collect nothing for passing World Start.';
     case 'vacation':
-      return myanmar ? 'Take everything in the community pot.' : 'Your next turn is skipped. You still collect rent.';
+      return myanmar
+        ? 'Land here to take everything in the community pot. Players who flee military service come here.'
+        : 'Your next turn is skipped. You still collect rent.';
     case 'freeParking':
       return 'Nothing happens.';
     case 'temple':
@@ -1237,7 +1251,7 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         case 'serve':
           return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, no rent, ${money(MYANMAR.draftServeBonus)} on return.`;
         case 'flee':
-          return `${who(e.player)} fled to the border for ${money(e.cost)}.`;
+          return `${who(e.player)} fled to Chiang Mai for ${money(e.cost)}.`;
         case 'merit':
           return `${who(e.player)} spent a merit point and is free.`;
         case 'card':
@@ -1563,7 +1577,7 @@ export function ruleTopics(): readonly RuleTopic[] {
             'You are called up by the Call-up letter space, by a Chance card, or by rolling three doubles in one turn. You go to the Military camp and choose at once:',
             `Pay a tenth of your cash, at least ${money(MYANMAR.draftPayMin)}, and you are free.`,
             `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns and collect no rent.`,
-            `Flee: ${money(MYANMAR.draftFleeCost)} takes you to the Muse Border Gate. You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
+            `Flee: ${money(MYANMAR.draftFleeCost)} takes you straight to Chiang Mai (without taking the pot). You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
             `Serve: free. You skip ${MYANMAR.draftServeTurns} turns, collect no rent, and get ${money(MYANMAR.draftServeBonus)} on return.`,
             'A merit point or a Call-up exemption card frees you at once, also at the start of a skipped turn.',
             'Landing on the Military camp during a normal move is just visiting.',
@@ -1599,7 +1613,7 @@ export function ruleTopics(): readonly RuleTopic[] {
             `Inflation: city rents rise ${MYANMAR.inflationStep}% for the rest of the game, and again after every ${MYANMAR.inflationEvery} rounds. The rate shows at the top of the screen. The owner of KBZ Bank pays city rent without it.`,
             'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
             `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
-            `A player who fled to the border receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+            `A player who fled to Chiang Mai receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
           ],
         }
       : null,
@@ -1627,12 +1641,12 @@ export function ruleTopics(): readonly RuleTopic[] {
         },
     {
       id: 'taxes',
-      title: byMap('Taxes and Free Parking', 'Taxes, pagodas and the Refuge'),
+      title: byMap('Taxes and Free Parking', 'Tax, pagodas and Chiang Mai'),
       lines: myanmar
         ? [
-            `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}. ${specialName('luxuryTax')}: pay ${money(RULES.luxuryTax)}.`,
-            'Taxes and fines (paying out of military service, fleeing, the broker) go into the community pot, shown in the middle of the board and on the Refuge.',
-            'Land on the Refuge and you take everything in the pot.',
+            `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}.`,
+            'Taxes and fines (paying out of military service, fleeing, the broker, the porter card) go into the community pot, shown in the middle of the board and on Chiang Mai.',
+            'Land on Chiang Mai and you take everything in the pot.',
             'Pagodas: you may donate for a merit point.',
           ]
         : [`Income Tax: pay ${money(RULES.incomeTax)}. Luxury Tax: pay ${money(RULES.luxuryTax)}.`, 'Free Parking: nothing happens.'],
@@ -1724,7 +1738,10 @@ export function quickHelp(): Readonly<Record<'freeStay' | 'companies' | 'airport
     },
     companies: {
       lines: myanmar
-        ? ['Landing on someone’s company: roll two dice.', 'You pay the total times 25, 50, 100 or 200, by how many companies the owner holds.']
+        ? [
+            'Landing on someone’s company: roll two dice.',
+            `You pay the total times ${(RULES.companyMultipliers ?? []).join(', ').replace(/, (\d+)$/, ' or $1')}, by how many companies the owner holds.`,
+          ]
         : ['Landing on someone’s company: roll two dice.', 'You pay the total times the company’s multiplier.'],
       topic: 'companies',
     },

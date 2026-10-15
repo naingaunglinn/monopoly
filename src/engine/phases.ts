@@ -65,8 +65,12 @@ export function beginTurn(c: Ctx, seat: number): void {
 export function enterTurnStart(c: Ctx): void {
   const s = c.s;
   const p = currentPlayer(s);
-  if (p.draft) {
-    // Myanmar map: a turn in military service (hiding, serving or at the border) is skipped (D102).
+  if (p.draft?.status === 'called') {
+    // Myanmar map: called up by the Porters news, the player chooses now (D106).
+    s.flow.phase = 'TurnStart';
+    s.flow.pending = { kind: 'draftChoice' };
+  } else if (p.draft) {
+    // Myanmar map: a turn in military service (hiding, serving or in Chiang Mai) is skipped (D102).
     s.flow.phase = 'TurnStart';
     s.flow.pending = { kind: 'draftSkip' };
   } else if (p.skipNextTurn) {

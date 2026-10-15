@@ -64,7 +64,13 @@ export type CardEffect =
   /** Myanmar map: one die; odd destroys the buildings of `odd`, even those of `even`, unpaid. */
   | { type: 'earthquake'; odd: CountryId; even: CountryId }
   /** Myanmar map: every player puts `amount` into the community pot. */
-  | { type: 'potDonation'; amount: number };
+  | { type: 'potDonation'; amount: number }
+  /** Myanmar map (spec v2, D106): to the Military camp; the only way out is paying `amount`. */
+  | { type: 'porter'; amount: number }
+  /** Myanmar map: every player pays `company`'s owner `amount` (into the pot when nobody owns it). */
+  | { type: 'companyRescue'; company: CompanyId; amount: number }
+  /** Myanmar map: a random player not in military service is called up. */
+  | { type: 'porterHunt' };
 
 export type CardEffectType = CardEffect['type'];
 
