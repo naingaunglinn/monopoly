@@ -41,6 +41,7 @@ import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
 import { levelText, money, rentCalcText, signedMoney, specialName, T } from '../strings';
 import { cardText, cardTitle, countryOfSpace, decider, playerName, spaceName } from '../view';
 import { Panel, QuickHelpButton } from './Panel';
+import { BribePanel, PowerTargetPanel, UnrestPanel } from './GeneralPanels';
 import { LoanPanel } from './LoanPanel';
 import { TradePanel } from './TradePanel';
 
@@ -232,6 +233,8 @@ function RentPanel({ s }: { s: GameState }) {
           <dd className="fact-big money is-loss">{signedMoney(-rent.amount)}</dd>
         </div>
         <p className="calc">{rentCalcText(rent.calc, rent.amount, name)}</p>
+        {/* Myanmar map: an owner with an army rank collects half rent (D109). */}
+        {owner && owner.rank > 0 && <p className="muted small">{T.panels.rent.rankHalf(owner.name, owner.rank)}</p>}
         {rent.calc.kind === 'airport' && (
           <p className="muted with-help">
             <QuickHelpButton topic="airports" label={T.focus.noAirportSet} />
@@ -485,7 +488,7 @@ function DraftSkipPanel({ s }: { s: GameState }) {
       }
     >
       <p className="fact-strong">{T.panels.draft.skip(left)}</p>
-      <p>{draft.status === 'fled' ? T.panels.draft.rentStill : T.panels.draft.noRent}</p>
+      <p>{T.panels.draft.rentStill}</p>
       {draft.status === 'serving' && left === 0 && <p>{T.panels.draft.bonus(MYANMAR.draftServeBonus)}</p>}
     </Panel>
   );
@@ -677,6 +680,10 @@ export function ActivePanel({ s }: { s: GameState }) {
       return pending?.kind === 'vacationSkip' ? <VacationSkipPanel s={s} /> : <JailPanel s={s} />;
     case 'BuyDecision':
       if (pending?.kind === 'donation') return <DonationPanel s={s} space={pending.space} />;
+      // Myanmar map: the general's power, the unrest window, a bribe (D107).
+      if (pending?.kind === 'powerTarget') return <PowerTargetPanel s={s} />;
+      if (pending?.kind === 'unrest') return <UnrestPanel s={s} />;
+      if (pending?.kind === 'bribe') return <BribePanel s={s} />;
       return pending?.kind === 'buy' ? <BuyPanel s={s} space={pending.space} /> : null;
     case 'Auction':
       return <AuctionPanel s={s} />;

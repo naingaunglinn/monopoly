@@ -116,12 +116,31 @@ describe('interest and paying back', () => {
     expect(eventsOf(passed.events, 'loanRepaid')[0]).toMatchObject({ amount: 125, left: 375, auto: true });
   });
 
-  test('unpaid at the end of the term, the collateral goes to the lender', () => {
+  test('at the end of the term the debt with its interest is paid from the borrower’s cash; the collateral stays', () => {
     const s = lent();
     const falam = s.economy.loans[0]!.collateral[0]!;
-    const due = toRound(s, 4);
+    // 500 at 10% a round for 3 rounds: 650 falls due at the start of round 4.
+    const before = toRound(s, 3);
+    const lenderBefore = cashOf(before, 1);
+    const borrowerBefore = cashOf(before, 0);
+    const due = toRound(before, 4);
     expect(due.economy.loans).toEqual([]);
-    expect(due.properties[falam]?.owner).toBe(1);
+    expect(due.properties[falam]?.owner).toBe(0);
+    const paid = due.meta.log.map((e) => e.event).find((e) => e.type === 'loanDue');
+    expect(paid).toMatchObject({ owed: 650, paid: 650, left: 0 });
+    // Nothing else moved money between them in these rounds (they only rolled to the camp).
+    expect(cashOf(due, 1) - lenderBefore).toBe(650);
+    expect(borrowerBefore - cashOf(due, 0)).toBe(650);
+  });
+
+  test('a borrower short of cash pays all they have, and the lender takes the collateral too', () => {
+    const s = lent();
+    const falam = s.economy.loans[0]!.collateral[0]!;
+    const poor = toRound(setCash(toRound(s, 3), 0, 200), 4);
+    expect(poor.economy.loans).toEqual([]);
+    expect(poor.properties[falam]?.owner).toBe(1);
+    const due = poor.meta.log.map((e) => e.event).find((e) => e.type === 'loanDue');
+    expect(due).toMatchObject({ owed: 650, paid: 200, left: 450 });
   });
 });
 

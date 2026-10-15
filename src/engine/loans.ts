@@ -118,8 +118,20 @@ export function defaultLoans(c: Ctx): void {
   if (!RULES.loans) return;
   const s = c.s;
   for (const loan of [...s.economy.loans]) {
-    if (loanRoundsLeft(s, loan) > 0 || loanOwed(s, loan) <= 0) continue;
-    seizeCollateral(c, loan, 'term');
+    const owed = loanOwed(s, loan);
+    if (loanRoundsLeft(s, loan) > 0 || owed <= 0) continue;
+    // The debt falls due (D108): it is paid from the borrower's cash, with its interest. Only when
+    // the cash does not cover it does the lender take the collateral as well, for what is missing.
+    const cash = s.players[loan.borrower]?.cash ?? 0;
+    const paid = Math.min(owed, Math.max(0, cash));
+    if (paid > 0) {
+      transfer(c, loan.borrower, loan.lender, paid, 'loan');
+      loan.repaid += paid;
+    }
+    const left = owed - paid;
+    emit(c, { type: 'loanDue', loanId: loan.id, borrower: loan.borrower, lender: loan.lender, owed, paid, left });
+    if (left <= 0) s.economy.loans = s.economy.loans.filter((l) => l.id !== loan.id);
+    else seizeCollateral(c, loan, 'term');
   }
 }
 

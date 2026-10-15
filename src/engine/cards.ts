@@ -276,6 +276,9 @@ export function applyCard(c: Ctx, cardId: string): void {
     case 'lottery':
     case 'earthquake':
     case 'potDonation':
+    case 'porter':
+    case 'companyRescue':
+    case 'porterHunt':
       // Myanmar map, stages 2 and 3 (D102, D103): the effect continues the turn itself.
       applyMyanmarEffect(c, cardId);
       return;

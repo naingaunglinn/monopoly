@@ -52,8 +52,9 @@ test('choose the Myanmar map: a 48-space board in lakh, its corners, and names i
   await expect(page.locator('.board')).toHaveAttribute('data-map', 'myanmar');
   await expect(page.locator('.tile[data-space="0"]')).toContainText('Start');
   await expect(page.locator('.tile[data-space="12"]')).toContainText('Military camp');
-  await expect(page.locator('.tile[data-space="24"]')).toContainText('Refuge');
+  await expect(page.locator('.tile[data-space="24"]')).toContainText('Chiang Mai');
   await expect(page.locator('.tile[data-space="36"]')).toContainText('Call-up letter');
+  await expect(page.locator('.tile[data-space="44"]')).toContainText('Brycen Myanmar');
   await expect(page.locator('.tile[data-space="1"]')).toContainText('Falam');
   await expect(page.locator('.tile[data-space="1"]')).toContainText('60 lakh');
   // No dollar sign anywhere on the board or the players.
@@ -124,6 +125,27 @@ test('a loan by clicking: ask, accept, see it listed with its collateral marked,
   await expect(page.locator('.loans-list')).toContainText('Mia owes Leo');
   await page.locator('[id^="loan-repay-"]').click();
   await expect.poll(async () => (await state()).economy.loans.length).toBe(0);
+  expect(log.errors).toEqual([]);
+});
+
+test('the general by clicking: use the power, pick the target, the window, and the 20-second hold', async ({ page }) => {
+  test.setTimeout(120_000);
+  const log = trackErrors(page);
+  const states = myanmarStates();
+  const state = () => page.evaluate(() => (window as unknown as { __GM__: { getState: () => any } }).__GM__.getState());
+  await loadState(page, states['mm-general'] as never, '?seed=42');
+  await expect(page.locator('.general-line')).toContainText('General: Mia, rank 4');
+  await page.locator('#act-power').click();
+  await expect(page.locator('[data-panel="power-target"], [data-panel="unrest"]').first()).toBeVisible();
+  const s1 = await state();
+  if (s1.flow.pending?.kind === 'powerTarget') {
+    await page.locator('button[id^="power-target-"]').first().click();
+  }
+  await expect(page.locator('[data-panel="unrest"]')).toBeVisible();
+  // One player shows unrest; the rest are held back by the clock.
+  await page.locator('#unrest-show-1').click();
+  await expect.poll(async () => (await state()).economy.unrestUsed).toBe(1);
+  await expect.poll(async () => (await state()).flow.pending?.kind ?? null, { timeout: 30_000 }).not.toBe('unrest');
   expect(log.errors).toEqual([]);
 });
 

@@ -105,6 +105,28 @@ export const MYANMAR_CHANCE: readonly CardData[] = [
     tone: 'neutral',
     effect: { type: 'lottery', ticket: MYANMAR.lotteryTicket },
   },
+  {
+    id: 'mm-chance-porter',
+    deck: 'chance',
+    title: 'Taken as a porter',
+    titleMy: 'ပေါ်တာ ဆွဲခံရပြီ',
+    text: 'Go straight to the Military camp and pay 500 lakh to get out. There is no other way: no hiding, fleeing, serving, merit or exemption card. Do not collect Start money.',
+    textMy: 'စစ်မှုထမ်းစခန်းသို့ ချက်ချင်း သွားပြီး ထွက်ဖို့ ၅၀၀ သိန်း ပေးရမယ်။ တခြား နည်းလမ်း မရှိ — ရှောင်ပုန်း၊ ထွက်ပြေး၊ တက်၊ ကုသိုလ်၊ ကင်းလွတ်ခွင့်ကတ် ဘာမှ မသုံးရ။ စတင်ရာ ဖြတ်ငွေ မရ။',
+    icon: 'jail',
+    tone: 'bad',
+    effect: { type: 'porter', amount: MYANMAR.porterFee },
+  },
+  {
+    id: 'mm-chance-brycen-loss',
+    deck: 'chance',
+    title: 'Brycen Myanmar posts a loss',
+    titleMy: 'Brycen Myanmar အရှုံးပေါ်',
+    text: 'To help the company, every player pays the owner of Brycen Myanmar 100 lakh. If nobody owns it, every player puts 100 lakh into the community pot.',
+    textMy: 'ကုမ္ပဏီကို ကူညီဖို့ ကစားသမားတိုင်း Brycen Myanmar ပိုင်ရှင်ကို ၁၀၀ သိန်းစီ ပေးရမယ်။ ဘယ်သူမှ မပိုင်သေးရင် ကစားသမားတိုင်း ၁၀၀ သိန်းစီ ရပ်ကွက်လှူဒါန်းပွဲ အိုးထဲ ထည့်ရမယ်။',
+    icon: 'trendDown',
+    tone: 'neutral',
+    effect: { type: 'companyRescue', company: 'brycen', amount: MYANMAR.brycenRescue },
+  },
 ];
 
 export const MYANMAR_NEWS: readonly CardData[] = [
@@ -206,6 +228,17 @@ export const MYANMAR_NEWS: readonly CardData[] = [
     icon: 'group',
     tone: 'neutral',
     effect: { type: 'potDonation', amount: MYANMAR.potDonation },
+  },
+  {
+    id: 'mm-event-porter-hunt',
+    deck: 'event',
+    title: 'Porters wanted',
+    titleMy: 'ပေါ်တာ လိုက်ဖမ်းနေတယ်',
+    text: 'One player, picked at random (you too), goes straight to the Military camp, with the usual five ways out. Players already in military service are left alone.',
+    textMy: 'ကစားသမား တစ်ယောက်ကို ကျပန်း ရွေးမယ် (သင်လည်း ပါ)။ အဲဒီလူ စစ်မှုထမ်းစခန်းသို့ ချက်ချင်း သွားရမယ်။ ထွက်နည်း ပုံမှန် ၅ ခု အကုန် သုံးလို့ရတယ်။ စစ်မှုထမ်းနေသူတွေကိုတော့ မရွေးဘူး။',
+    icon: 'jail',
+    tone: 'neutral',
+    effect: { type: 'porterHunt' },
   },
 ];
 

@@ -6119,3 +6119,105 @@ ol.rules-lines {
   }
 }
 
+
+/* Myanmar map: the general and unrest (spec v2, D107). */
+.badge-general {
+  background: #f6ead0;
+  color: var(--amber-ink);
+}
+
+.sign-general {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.general-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--tile-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.general-line svg {
+  color: var(--amber-ink);
+  flex: none;
+}
+
+.general-who {
+  font-weight: 700;
+}
+
+.general-meta {
+  color: var(--muted-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.phone-sheet-body .general-line {
+  margin-bottom: 8px;
+}
+
+.power-options,
+.unrest-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.power-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unrest-tally {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.unrest-count {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.unrest-clock {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--loss-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.unrest-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--tile-line);
+  border-radius: var(--r-tile);
+  background: var(--tile);
+}
+
+.unrest-row.is-used {
+  border-color: var(--loss-ink);
+}
+
+.unrest-name {
+  font-weight: 600;
+}

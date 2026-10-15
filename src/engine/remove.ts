@@ -11,6 +11,7 @@ import { cancelAuction, withdrawBidder } from './auction.js';
 import { discardCard } from './cards.js';
 import { type Ctx, emit } from './core.js';
 import { goBankrupt, settleDebts } from './debt.js';
+import { resolveUnrest } from './general.js';
 import { afterResolution } from './phases.js';
 
 export function removePlayer(c: Ctx, playerId: number): void {
@@ -40,6 +41,21 @@ export function removePlayer(c: Ctx, playerId: number): void {
     withdrawBidder(c, pending.auction, playerId);
   }
 
+  // Myanmar map (D107): a target or bribe receiver who leaves ends that step; someone leaving the
+  // unrest window no longer holds it up.
+  let resumeAfter = false;
+  const step = s.flow.pending;
+  if (!wasCurrent && step?.kind === 'unrest') {
+    if (step.target === playerId) {
+      s.flow.pending = null;
+      resumeAfter = true;
+    } else step.waiting = step.waiting.filter((id) => id !== playerId);
+  }
+  if (!wasCurrent && step?.kind === 'bribe' && step.to === playerId) {
+    s.flow.pending = null;
+    resumeAfter = true;
+  }
+
   const headBefore = s.flow.debts[0];
   const inDebt = s.flow.phase === 'Debt';
   const rentToThem = s.flow.pending?.kind === 'rent' && s.flow.pending.rent.creditor === playerId;
@@ -48,6 +64,17 @@ export function removePlayer(c: Ctx, playerId: number): void {
   goBankrupt(c, playerId, null);
   if (isOver(c)) return;
 
+  if (!wasCurrent) {
+    const now = s.flow.pending;
+    if (now?.kind === 'unrest' && now.waiting.length === 0) {
+      resolveUnrest(c);
+      return;
+    }
+    if (resumeAfter) {
+      afterResolution(c);
+      return;
+    }
+  }
   if (wasCurrent) {
     // The turn ends once the payments still queued (owed by others) are settled.
     s.flow.resume = { kind: 'passTurn' };

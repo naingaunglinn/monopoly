@@ -3,7 +3,7 @@
 import { describe, expect, test } from 'vitest';
 import { MYANMAR } from '../../src/data/balance';
 import { SPACES } from '../../src/data/board';
-import { borderSpace, legalActions, parseSave, serializeGame, type GameState } from '../../src/engine';
+import { fleeSpace, legalActions, parseSave, serializeGame, type GameState } from '../../src/engine';
 import { act, at, cashOf, edit, endTurn, eventsOf, forceCard, game, levels, nextDice, own, rollTo, rollWith, run, setCash, spaceOf, spacesOf } from './helpers';
 
 const mm = (settings: Parameters<typeof game>[0] = {}, seed = 7) => game({ map: 'myanmar', playerCount: 3, ...settings }, seed);
@@ -47,13 +47,13 @@ describe('tolls (spec 7.7)', () => {
     expect(landed.state.flow.pending).toMatchObject({ kind: 'rent' });
   });
 
-  test('no toll on your own, an unowned, a mortgaged one, or an owner in service', () => {
+  test('no toll on your own, an unowned or a mortgaged one; an owner in service still collects (D109)', () => {
     const expressway = (mm(), spaceOf('Yangon–Mandalay Expressway'));
     const pass = (s: GameState) => eventsOf(rollWith(at(s, 0, expressway - 2), 1, 3).events, 'tollPaid');
     expect(pass(mm())).toEqual([]);
     expect(pass(own(mm(), expressway, 0))).toEqual([]);
     expect(pass(act(own(mm(), expressway, 1), { type: 'debug', op: 'setMortgaged', space: expressway, mortgaged: true } as never))).toEqual([]);
-    expect(pass(edit(own(mm(), expressway, 1), (d) => void ((d.players[1] as P).draft = { status: 'hiding', turns: 2 })))).toEqual([]);
+    expect(pass(edit(own(mm(), expressway, 1), (d) => void ((d.players[1] as P).draft = { status: 'hiding', turns: 2 })))).toHaveLength(1);
   });
 
   test('a player who cannot pay a toll raises the money first, then lands', () => {
@@ -126,7 +126,7 @@ describe('the earthquake (spec 7.5)', () => {
 describe('remittance (spec 7.10)', () => {
   test('a player who fled receives 200 lakh at each round start while at the border', () => {
     let s = act(rollTo(setCash(mm(), 0, 3000), SPACES.goToJail).state, { type: 'draftChoose', how: 'flee' });
-    expect(s.players[0]?.position).toBe(borderSpace());
+    expect(s.players[0]?.position).toBe(fleeSpace());
     const cash = cashOf(s, 0);
     s = endTurn(s);
     s = endTurn(rollTo(s, SPACES.jail).state);

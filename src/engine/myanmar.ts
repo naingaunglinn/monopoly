@@ -5,12 +5,12 @@
 import { MYANMAR, roundMoney } from '../data/balance.js';
 import { AIRPORT_BY_SPACE, COMPANIES, COUNTRY_CITIES, RULES, SPACES } from '../data/board.js';
 import type { CompanyId } from '../data/companies.js';
-import { MYANMAR_TRANSPORT } from '../data/myanmar.js';
 import { addModifier, cardById, discardCard } from './cards.js';
-import { changeCash, currentPlayer, emit, livingPlayers, playerById, type Ctx } from './core.js';
+import { changeCash, currentPlayer, emit, livingPlayers, playerById, playersInTurnOrderFrom, type Ctx } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { promote } from './general.js';
 import { afterResolution, passTurn, rollDice, teleport } from './phases.js';
-import { rollDie } from './rng.js';
+import { randomInt, rollDie } from './rng.js';
 import type { DraftChoice, GameState, Player } from './types.js';
 
 /** Paying to stay out of service costs a tenth of the player's cash, and at least 500 lakh. */
@@ -18,9 +18,9 @@ export function draftPayCost(cash: number): number {
   return Math.max(MYANMAR.draftPayMin, roundMoney((cash * MYANMAR.draftPayPercent) / 100));
 }
 
-/** The space a player who flees runs to: the Muse Border Gate. */
-export function borderSpace(): number {
-  return MYANMAR_TRANSPORT.find((t) => t.kind === 'border')?.space ?? SPACES.jail;
+/** The space a player who flees runs to: the Chiang Mai corner (spec v2, D106). */
+export function fleeSpace(): number {
+  return SPACES.vacation;
 }
 
 /** Hiding or serving: no turns and no rent. A player who fled still collects rent. */
@@ -75,6 +75,11 @@ export function draftChoiceBlocker(p: Player, how: DraftChoice): 'cash' | 'merit
 export function chooseDraft(c: Ctx, how: DraftChoice): void {
   const s = c.s;
   const p = currentPlayer(s);
+  // Called up by the Porters news on someone else's turn, the player chooses at their turn start
+  // (no dice yet this turn): going free lets them play the turn; hiding, serving or fleeing counts
+  // it as the first turn skipped, as if called up on their own move (D106).
+  const atTurnStart = s.turn.dice === null;
+  if (p.draft?.status === 'called') p.draft = null;
   let cost = 0;
   switch (how) {
     case 'pay':
@@ -92,8 +97,8 @@ export function chooseDraft(c: Ctx, how: DraftChoice): void {
       cost = MYANMAR.draftFleeCost;
       changeCash(c, p.id, -cost, 'draft');
       toPot(c, p.id, cost);
-      // Straight to the border: no landing there and no Start money on the way.
-      teleport(c, p.id, borderSpace(), 'flee');
+      // Straight to Chiang Mai: no landing there (so not the pot) and no Start money on the way.
+      teleport(c, p.id, fleeSpace(), 'flee');
       p.draft = { status: 'fled', turns: MYANMAR.draftFleeTurns };
       break;
     case 'merit':
@@ -104,8 +109,16 @@ export function chooseDraft(c: Ctx, how: DraftChoice): void {
       break;
   }
   emit(c, { type: 'draftChosen', player: p.id, how, cost });
-  s.flow.phase = 'AwaitEndTurn';
   s.flow.pending = null;
+  if (atTurnStart) {
+    if (p.draft) {
+      skipDraftTurn(c);
+      return;
+    }
+    s.flow.phase = 'AwaitRoll';
+    return;
+  }
+  s.flow.phase = 'AwaitEndTurn';
 }
 
 /** A turn in service is skipped; after the last one the player is free (serving pays 300 lakh). */
@@ -117,10 +130,13 @@ export function skipDraftTurn(c: Ctx): void {
   if (draft) {
     draft.turns -= 1;
     if (draft.turns <= 0) {
-      const bonus = draft.status === 'serving' ? MYANMAR.draftServeBonus : 0;
+      const serving = draft.status === 'serving';
+      const bonus = serving ? MYANMAR.draftServeBonus : 0;
       p.draft = null;
       if (bonus > 0) changeCash(c, p.id, bonus, 'draft');
       emit(c, { type: 'draftEnded', player: p.id, how: 'done', bonus });
+      // Spec v2: serving also earns rank, and a salary for it (D107).
+      if (serving && RULES.general) promote(c, p);
     }
   }
   s.flow.pending = null;
@@ -164,7 +180,8 @@ export function donate(c: Ctx, give: boolean): void {
 /** True when the card on the table is a bad Chance card, which a merit point can cancel. */
 export function cancellableCard(cardId: string): boolean {
   const card = cardById(cardId);
-  return card.deck === 'chance' && card.tone === 'bad';
+  // The porter card says no merit can help (spec v2, D106).
+  return card.deck === 'chance' && card.tone === 'bad' && card.effect.type !== 'porter';
 }
 
 /** A merit point skips this rent, or cancels this bad Chance card (spec 7.2). */
@@ -258,6 +275,44 @@ export function applyMyanmarEffect(c: Ctx, cardId: string): boolean {
     case 'potDonation':
       for (const q of livingPlayers(s)) queueDebt(c, { debtor: q.id, creditor: null, amount: effect.amount, reason: { kind: 'card', cardId } });
       break;
+    case 'porter':
+      // Spec v2 (D106): to the camp, and the one way out is paying (as a debt, so a player short of
+      // cash raises it or goes bankrupt; never stuck). The fee goes into the pot. The turn ends.
+      teleport(c, p.id, SPACES.jail, 'jail');
+      s.turn.rollsLeft = 0;
+      s.turn.landedCity = null;
+      emit(c, { type: 'jailed', player: p.id, reason: 'card' });
+      queueDebt(c, { debtor: p.id, creditor: null, amount: effect.amount, reason: { kind: 'card', cardId } });
+      break;
+    case 'companyRescue': {
+      // Every player pays the owner (the owner, if it is the drawer, collects from the rest); with
+      // no owner every player puts the money into the pot.
+      const owner = companyOwner(s, effect.company);
+      for (const q of playersInTurnOrderFrom(s, p.id)) {
+        if (q.id === owner) continue;
+        queueDebt(c, { debtor: q.id, creditor: owner, amount: effect.amount, reason: { kind: 'card', cardId } });
+      }
+      break;
+    }
+    case 'porterHunt': {
+      const free = livingPlayers(s).filter((q) => q.draft === null);
+      if (free.length === 0) {
+        emit(c, { type: 'cardNoEffect', player: p.id, cardId });
+        break;
+      }
+      const picked = free[randomInt(s, 0, free.length - 1)] as Player;
+      if (picked.id === p.id) {
+        // The drawer: called up now, like the conscription card.
+        callUp(c, 'card');
+        return true;
+      }
+      // Someone else: to the camp now; they choose at the start of their next turn.
+      teleport(c, picked.id, SPACES.jail, 'jail');
+      picked.skipNextTurn = false;
+      picked.draft = { status: 'called', turns: 1 };
+      emit(c, { type: 'jailed', player: picked.id, reason: 'card' });
+      break;
+    }
     default:
       return false;
   }
@@ -323,7 +378,7 @@ export function tollsOnPath(s: GameState, mover: number, path: readonly number[]
     const ps = s.properties[space];
     if (!ps || ps.owner === null || ps.owner === mover || ps.mortgaged) continue;
     const owner = s.players[ps.owner];
-    if (!owner || owner.bankrupt || inService(owner)) continue;
+    if (!owner || owner.bankrupt) continue;
     out.push({ space, owner: ps.owner });
   }
   return out;

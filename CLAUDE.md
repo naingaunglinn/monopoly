@@ -82,7 +82,7 @@ docs/       SPEC.md (source of truth)
   `renderCue` (the sound spec keeps every cue between -36 and -18 dBFS).
 - Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
   both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
-- The save has a `schemaVersion` (now 4; D101 added the map, merit, military service and loans). A change to the state's shape bumps it and adds a migration
+- The save has a `schemaVersion` (now 5; D101 added the map, merit, military service and loans; D106 rank, unrest and the general). A change to the state's shape bumps it and adds a migration
   in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
   Saves record their board (`settings.board`): a save or room from another board is refused (D96).
 - Tests never hard-code a space index: they find spaces by name (`spaceOf`, `spacesOf`, `firstOf` in

@@ -30,14 +30,14 @@ function withoutV4(s: GameState): unknown {
   const { map: _map, ...settings } = s.meta.settings;
   return {
     ...rest,
-    players: s.players.map(({ merit: _merit, draft: _draft, ...p }) => p),
+    players: s.players.map(({ merit: _merit, draft: _draft, rank: _rank, rankAt: _rankAt, unrest: _unrest, ...p }) => p),
     flow,
     meta: { ...s.meta, schemaVersion: 3, settings },
   };
 }
 
 describe('version 3 saves', () => {
-  test.runIf(V3_BOARD_IN_PLAY)('a version 3 save loads on the World map as version 4, with nothing else changed', () => {
+  test.runIf(V3_BOARD_IN_PLAY)('a version 3 save loads on the World map as the current version, with nothing else changed', () => {
     const v3 = JSON.parse(v3Text);
     expect(v3.meta.schemaVersion).toBe(3);
     expect(v3.meta.settings.map).toBeUndefined();
@@ -45,23 +45,23 @@ describe('version 3 saves', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const s = parsed.state;
-    expect(SCHEMA_VERSION).toBe(4);
-    expect(s.meta.schemaVersion).toBe(4);
+    expect(SCHEMA_VERSION).toBe(5);
+    expect(s.meta.schemaVersion).toBe(5);
     expect(s.meta.settings.map).toBe('world');
     expect(Object.keys(s.meta.settings)).toEqual(Object.keys(normalizeSettings()));
     expect(s.players.map((p) => [p.merit, p.draft])).toEqual(s.players.map(() => [0, null]));
-    expect(s.economy).toEqual({ pot: 0, inflation: 0, loans: [], loanSeq: 0 });
+    expect(s.economy).toEqual({ pot: 0, inflation: 0, loans: [], loanSeq: 0, general: null, powerRound: null, unrestUsed: 0, bribed: [], rankSeq: 0 });
     expect(s.flow.loan).toBeNull();
     expect(withoutV4(s)).toEqual(v3);
     expect(checkInvariants(s)).toEqual([]);
-    // The trade on the table survived; the game plays on and saves as version 4.
+    // The trade on the table survived; the game plays on and saves as the current version.
     expect(s.flow.trade).not.toBeNull();
     const next = legalActions(s).find((a) => a.type === 'respondTrade' || a.type === 'roll');
     expect(next).toBeDefined();
     const step = reduce(s, (next?.type === 'respondTrade' ? { type: 'respondTrade', accept: false } : { type: 'roll' }) as never);
     expect(step.error).toBeNull();
     const again = parseSave(serializeGame(step.state));
-    expect(again.ok && again.state.meta.schemaVersion).toBe(4);
+    expect(again.ok && again.state.meta.schemaVersion).toBe(5);
   });
 
   test.runIf(V3_BOARD_IN_PLAY)('the server upgrades a kept version 3 game the same way', () => {
@@ -71,7 +71,7 @@ describe('version 3 saves', () => {
     expect(upgradeGame(JSON.parse(v3Text) as GameState)).toEqual(parsed.state);
     // A current game is returned as it is; one from a newer version is refused.
     expect(upgradeGame(parsed.state)).toBe(parsed.state);
-    expect(upgradeGame({ ...parsed.state, meta: { ...parsed.state.meta, schemaVersion: 5 } })).toBeNull();
+    expect(upgradeGame({ ...parsed.state, meta: { ...parsed.state.meta, schemaVersion: SCHEMA_VERSION + 1 } })).toBeNull();
   });
 
   test('checking a save leaves the map in play alone', () => {
@@ -130,7 +130,7 @@ describe('rooms kept from version 3', () => {
     const { map: _map, ...old } = defaultRoomSettings();
     const v3 = JSON.parse(v3Text) as GameState;
     const read = playable(room(v3, old));
-    expect(read?.game?.meta.schemaVersion).toBe(4);
+    expect(read?.game?.meta.schemaVersion).toBe(5);
     expect(read?.game?.meta.settings.map).toBe('world');
     expect(read && checkInvariants(read.game as GameState)).toEqual([]);
     const elsewhere = JSON.parse(v3Text);

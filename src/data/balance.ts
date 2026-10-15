@@ -98,6 +98,8 @@ export const SIM = {
   sensibleFreeStayAbove: 150,
   sensibleJailFeeAbove: 1000,
   sensibleUnmortgageAbove: 1500,
+  /** Myanmar map: the sensible bot takes a bribe of at least this much (D107). */
+  sensibleBribeAbove: 300,
   /** Myanmar map: the sensible bot spends a merit point on rent of at least this much. */
   sensibleMeritRentAbove: 400,
   /** Non-progress actions (trade, mortgage, sell...) a bot may take before it must make progress. */
@@ -116,8 +118,8 @@ export const MYANMAR = {
   luxuryTax: 500,
   /** Transport rent by how many of the four the owner holds. */
   transportRent: [50, 100, 200, 400] as readonly number[],
-  /** Company rent: the dice total times this, by how many of the four companies the owner holds. */
-  companyMultipliers: [25, 50, 100, 200] as readonly number[],
+  /** Company rent: the dice total times this, by how many of the five companies the owner holds (spec v2). */
+  companyMultipliers: [25, 50, 100, 200, 400] as readonly number[],
   /** "Go to the nearest airport" card: rent there is multiplied by this. */
   nearestAirportRentFactor: 2,
 
@@ -171,6 +173,34 @@ export const MYANMAR = {
   /** Passing Start pays back this percent of what is owed, when the cash is there. */
   loanStartRepayPercent: 25,
   loanMaxTerm: 30,
+
+  // Spec v2 (D106, D107)
+  /** The porter card: the only way out of the Military camp. */
+  porterFee: 500,
+  /** Brycen Myanmar's loss: each player pays its owner this. */
+  brycenRescue: 100,
+  rankMax: 6,
+  /** Serving ends with one die: an even number raises the rank by this... */
+  rankEven: 2,
+  /** ...an odd one by this. */
+  rankOdd: 1,
+  /** Salary: rank × this, from the bank, on return from serving and each time Start is passed (D109). */
+  salaryPerRank: 200,
+  /** A player with a rank collects this share of their rent: the army pays them (owner, D109). */
+  rankRentFactor: 0.5,
+  /** The general has at least this rank. */
+  generalMinRank: 4,
+  /** The general's power can be used once in this many rounds. */
+  powerEveryRounds: 2,
+  /** Power: a dice total up to this takes money, above it a property. */
+  powerMoneyUpTo: 8,
+  powerMoney: 1000,
+  /** Merit points the target spends to block one use of power. */
+  powerBlockMerit: 2,
+  /** Unrest cups each player holds. */
+  unrestCups: 2,
+  /** Cups shown against one general that bring them down (fewer with two players: D107). */
+  unrestToDepose: 3,
 } as const;
 
 /** The rules that differ by map. The World map's are spec sections 5 to 9 (and D100). */
@@ -193,6 +223,8 @@ export interface MapRules {
   tolls: boolean;
   lottery: boolean;
   loans: boolean;
+  /** Rank, the general and unrest (Myanmar spec v2, D107). */
+  general: boolean;
 }
 
 export const WORLD_RULES: MapRules = {
@@ -210,6 +242,7 @@ export const WORLD_RULES: MapRules = {
   tolls: false,
   lottery: false,
   loans: false,
+  general: false,
 };
 
 export const MYANMAR_RULES: MapRules = {
@@ -227,6 +260,7 @@ export const MYANMAR_RULES: MapRules = {
   tolls: true,
   lottery: true,
   loans: true,
+  general: true,
 };
 
 /** Index into `cityRentMultipliers` etc. is the building level. */

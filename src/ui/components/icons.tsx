@@ -39,6 +39,7 @@ import {
   Wheat,
   Zap,
   Coffee,
+  Cpu,
   Tent,
   Mail,
   Trees,
@@ -97,6 +98,7 @@ export const COMPANY_ICONS: Record<CompanyIcon, LucideIcon> = {
   radio: Radio,
   wheat: Wheat,
   landmark: Landmark,
+  cpu: Cpu,
 };
 
 /**

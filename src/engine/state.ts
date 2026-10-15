@@ -1,5 +1,5 @@
 // Creating a new game (spec 5.1 and section 8).
-import { BALANCE, BOARD_SHAPE, BOARD_SIZE, SETUP } from '../data/balance.js';
+import { BALANCE, BOARD_SHAPE, BOARD_SIZE, MYANMAR, SETUP } from '../data/balance.js';
 import { isProperty, LAYOUT, MAPS, useMap, type MapId } from '../data/board.js';
 import { PLAYER_COLORS, SEATS } from '../data/players.js';
 import { defaultPlayerName } from '../ui/strings.js';
@@ -14,7 +14,7 @@ import type { BoardSettings, GameState, Player, Settings } from './types.js';
  * map setting, merit and military service, the economy and loans); older saves are migrated on
  * load (save.ts).
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /** The World board in play, as the settings record it. */
 export const THIS_BOARD: Readonly<BoardSettings> = { spaces: BOARD_SIZE, shape: BOARD_SHAPE };
@@ -140,6 +140,9 @@ function newPlayer(seat: number, settings: Settings): Player {
     recap: [],
     merit: 0,
     draft: null,
+    rank: 0,
+    rankAt: 0,
+    unrest: MYANMAR.unrestCups,
   };
 }
 
@@ -178,7 +181,7 @@ export function createGame(input: Partial<Settings>, seed: number): GameState {
       forcedCards: { chance: null, event: null },
       stats: { housesBuilt: 0, hotelsBuilt: 0, bankruptcies: 0 },
     },
-    economy: { pot: 0, inflation: 0, loans: [], loanSeq: 0 },
+    economy: { pot: 0, inflation: 0, loans: [], loanSeq: 0, general: null, powerRound: null, unrestUsed: 0, bribed: [], rankSeq: 0 },
   };
   const c: Ctx = { s, events: [] };
   s.decks = buildDecks(s);

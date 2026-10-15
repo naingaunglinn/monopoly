@@ -139,7 +139,7 @@ export const T = {
     modifiersLabel: 'Active events',
     inflation: (rate: number) => `Inflation +${rate}%`,
     pot: (amount: number) => `Community pot ${money(amount)}`,
-    potTitle: 'Taxes and fines collect in the pot. Landing on the Refuge takes it all.',
+    potTitle: 'Taxes and fines collect in the pot. Landing on Chiang Mai takes it all.',
     potLabel: 'Community pot',
     inflationTitle: 'City rents are this much higher than printed. The owner of KBZ Bank pays without it.',
     until: (name: string) => `Until ${name}’s next turn`,
@@ -362,8 +362,14 @@ export const T = {
     },
     voucher: 'Free House card',
     merit: (n: number) => plural(n, 'merit point', 'merit points'),
-    draft: (status: 'hiding' | 'serving' | 'fled', turns: number) =>
-      status === 'hiding' ? `Hiding, ${plural(turns, 'turn', 'turns')}` : status === 'serving' ? `In the army, ${plural(turns, 'turn', 'turns')}` : 'At the border',
+    draft: (status: 'hiding' | 'serving' | 'fled' | 'called', turns: number) =>
+      status === 'hiding'
+        ? `Hiding, ${plural(turns, 'turn', 'turns')}`
+        : status === 'serving'
+          ? `In the army, ${plural(turns, 'turn', 'turns')}`
+          : status === 'fled'
+            ? 'In Chiang Mai'
+            : 'Called up',
     open: (name: string) => `Open ${name}’s properties`,
   },
   log: {
@@ -452,6 +458,7 @@ export const T = {
       toBank: 'Paid to the bank',
       freeStay: (left: number) => `Use Free Stay (${left} left)`,
       merit: (left: number) => `Skip it with a merit point (${left} left)`,
+      rankHalf: (owner: string, rank: number) => `${owner} holds army rank ${rank}: half rent, since the army pays them.`,
       freeStayHint: 'A Free Stay token skips the rent on another player’s city.',
     },
     company: {
@@ -519,25 +526,31 @@ export const T = {
     // Myanmar map (D102)
     draft: {
       title: (name: string) => `${name} is called up`,
-      intro: 'Choose how to deal with military service. During service no rent comes in, except at the border.',
+      intro: 'Choose how to deal with military service. Your rent still comes in meanwhile.',
       pay: (amount: number) => `Pay ${money(amount)}`,
       get payHint() {
         return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
       },
       hide: 'Hide',
-      hideHint: `Skip ${MYANMAR.draftHideTurns} turns. No rent meanwhile.`,
-      flee: (amount: number) => `Flee to the border · ${money(amount)}`,
-      fleeHint: `To the Muse Border Gate. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
+      hideHint: `Skip ${MYANMAR.draftHideTurns} turns.`,
+      flee: (amount: number) => `Flee to Chiang Mai · ${money(amount)}`,
+      fleeHint: `To the Chiang Mai corner. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
       serve: 'Serve',
       get serveHint() {
-        return `Skip ${MYANMAR.draftServeTurns} turns. No rent meanwhile. ${money(MYANMAR.draftServeBonus)} on return.`;
+        return `Skip ${MYANMAR.draftServeTurns} turns. ${money(MYANMAR.draftServeBonus)} on return, and a rank: army salary, but half rent.`;
       },
       merit: 'Use a merit point',
       meritHint: 'Free at once.',
       card: 'Use Call-up exemption card',
       cardHint: 'Free at once.',
-      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled') =>
-        status === 'hiding' ? `${name} is in hiding` : status === 'serving' ? `${name} is serving in the army` : `${name} is at the border`,
+      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled' | 'called') =>
+        status === 'hiding'
+          ? `${name} is in hiding`
+          : status === 'serving'
+            ? `${name} is serving in the army`
+            : status === 'fled'
+              ? `${name} is in Chiang Mai`
+              : `${name} is called up`,
       skip: (left: number) => (left > 0 ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.` : 'This turn is skipped. Free after it.'),
       noRent: 'No rent comes in meanwhile.',
       rentStill: 'Rent still comes in.',
@@ -627,6 +640,43 @@ export const T = {
     get notTradeable() {
       return byMap('Free Stay tokens and Free House cards cannot be traded.', 'Merit points cannot be traded.');
     },
+  },
+  // Myanmar map: rank, the general and unrest (spec v2, D107)
+  general: {
+    title: 'General',
+    none: `No general yet: rank ${MYANMAR.generalMinRank} is needed`,
+    who: (name: string, rank: number) => `General: ${name}, rank ${rank}`,
+    unrest: (used: number, needed: number) => `Unrest ${used}/${needed}`,
+    ready: 'Power ready',
+    wait: (rounds: number) => (rounds === 1 ? 'Power in 1 round' : `Power in ${rounds} rounds`),
+    rank: (n: number) => `Rank ${n}`,
+    badge: 'General',
+    cups: (n: number) => plural(n, 'unrest cup', 'unrest cups'),
+    usePower: 'Use power',
+    bribe: 'Bribe',
+    rolled: (total: number, outcome: 'money' | 'land') =>
+      outcome === 'money' ? `Rolled ${total}: take ${money(MYANMAR.powerMoney)} from a player` : `Rolled ${total}: take a property from a player`,
+    pickPlayer: 'Who pays?',
+    pickLand: 'Which property?',
+    targetTitle: 'The general’s power',
+    windowTitle: (general: string) => `${general} uses the general’s power`,
+    windowMoney: (target: string) => `${target} is to pay ${money(MYANMAR.powerMoney)}.`,
+    windowLand: (target: string, space: string) => `${target} is to lose ${space}.`,
+    windowHint: (needed: number) => `Show an unrest cup to stand against it. At ${needed} cups the general falls, loses all rank and this use is cancelled.`,
+    countdown: (seconds: number) => `${seconds} s`,
+    show: 'Show unrest',
+    hold: 'Hold back',
+    block: (merit: number) => `Block with ${merit} merit points`,
+    answered: (name: string, use: boolean, block: boolean) => (block ? `${name} blocked it` : use ? `${name} showed unrest` : `${name} held back`),
+    waiting: (name: string) => `${name} is deciding`,
+    bribeTitle: 'Offer a bribe',
+    bribeTo: 'To',
+    bribeAmount: 'Amount',
+    bribeHint: 'If they accept, they get the money now and cannot show unrest at your next use of power.',
+    bribeSend: 'Offer',
+    bribeOffer: (general: string, to: string, amount: number) => `${general} offers ${to} ${money(amount)} to hold back`,
+    bribeAccept: 'Take the money',
+    bribeReject: 'Turn it down',
   },
   // Myanmar map: loans between players (D104)
   loan: {
@@ -802,7 +852,7 @@ const MYANMAR_SPECIAL_NAMES: Readonly<Record<SpecialKey, readonly [string, strin
   luxuryTax: ['Special tax', 'အခွန်ထူး'],
   jail: ['Military camp', 'စစ်မှုထမ်းစခန်း'],
   goToJail: ['Call-up letter', 'ခေါ်စာရောက်ပြီ'],
-  vacation: ['Refuge', 'ရှောင်တိမ်းရာ'],
+  vacation: ['Chiang Mai', 'ချင်းမိုင်'],
   freeParking: ['Rest', 'နားရာ'],
   temple: ['Pagoda', 'ဘုရား'],
   rest: ['Rest', 'နားရာ'],
@@ -842,7 +892,9 @@ export function specialText(key: SpecialKey): string {
         ? `Go straight to the Military camp. You collect nothing for passing ${specialName('start')}.`
         : 'Go straight to Jail. You collect nothing for passing World Start.';
     case 'vacation':
-      return myanmar ? 'Take everything in the community pot.' : 'Your next turn is skipped. You still collect rent.';
+      return myanmar
+        ? 'Land here to take everything in the community pot. Players who flee military service come here.'
+        : 'Your next turn is skipped. You still collect rent.';
     case 'freeParking':
       return 'Nothing happens.';
     case 'temple':
@@ -989,6 +1041,10 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
       : 'Pick at least one property of the borrower as collateral.',
   pledged: (x) => `${p(x, 'name')} is pledged for a loan until it is paid back.`,
   loanRepay: (x) => `Pay back between ${money(1)} and ${m(x, 'max')}.`,
+  powerNotReady: () => `The general’s power can be used on the general’s own turn, once in ${MYANMAR.powerEveryRounds} rounds.`,
+  powerTarget: () => 'Pick another player, and for land a property without buildings, not pledged, in a region without buildings.',
+  unrestNone: () => 'No unrest cup left to show, or paid not to show one this time.',
+  meritShort: () => `Only the player the power hits can block it, with ${MYANMAR.powerBlockMerit} merit points.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -1051,6 +1107,9 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   remittance: 'money from home',
   lottery: 'lottery',
   loan: 'loan',
+  salary: 'army salary',
+  power: 'the general’s power',
+  bribe: 'bribe',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -1233,11 +1292,11 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         case 'pay':
           return `${who(e.player)} paid ${money(e.cost)} to stay out of military service.`;
         case 'hide':
-          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped, no rent.`;
+          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped.`;
         case 'serve':
-          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, no rent, ${money(MYANMAR.draftServeBonus)} on return.`;
+          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, ${money(MYANMAR.draftServeBonus)} on return.`;
         case 'flee':
-          return `${who(e.player)} fled to the border for ${money(e.cost)}.`;
+          return `${who(e.player)} fled to Chiang Mai for ${money(e.cost)}.`;
         case 'merit':
           return `${who(e.player)} spent a merit point and is free.`;
         case 'card':
@@ -1290,12 +1349,48 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return e.left > 0
         ? `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}; ${money(e.left)} still owed.`
         : `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}: the loan is paid off.`;
+    case 'loanDue':
+      return e.left <= 0
+        ? `${who(e.borrower)}’s loan from ${who(e.lender)} is due: ${who(e.borrower)} pays ${money(e.paid)}.`
+        : `${who(e.borrower)}’s loan from ${who(e.lender)} is due: ${who(e.borrower)} pays all their cash, ${money(e.paid)} of ${money(e.owed)}.`;
     case 'loanDefaulted':
       return e.why === 'term'
-        ? `${who(e.borrower)} did not pay back in time: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
+        ? `${who(e.borrower)} could not pay it all: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
         : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
     case 'loanForgiven':
       return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
+    case 'salaryPaid':
+      return `${who(e.player)} draws their army salary: ${signedMoney(e.amount)}.`;
+    case 'promoted':
+      return `${who(e.player)} rolled ${e.die} on leaving the army: rank ${e.rank}, salary ${signedMoney(e.salary)}.`;
+    case 'generalChanged':
+      return e.player === null ? 'There is no general now.' : `${who(e.player)} is the general now.`;
+    case 'powerRolled':
+      return `${who(e.player)} used the general’s power: ${e.dice[0]} + ${e.dice[1]}, ${e.outcome === 'money' ? 'money' : 'land'}.`;
+    case 'powerFizzled':
+      return 'Nobody has a property the power could take: nothing happens.';
+    case 'powerTargeted':
+      return e.space === null
+        ? `${who(e.player)} demands ${money(MYANMAR.powerMoney)} from ${who(e.target)}.`
+        : `${who(e.player)} moves to take ${n.space(e.space)} from ${who(e.target)}.`;
+    case 'unrestAnswered':
+      return e.block
+        ? `${who(e.player)} spends ${MYANMAR.powerBlockMerit} merit points to block it.`
+        : e.use
+          ? `${who(e.player)} shows unrest.`
+          : `${who(e.player)} holds back.`;
+    case 'generalDeposed':
+      return `${e.used} unrest cups: ${who(e.player)} is brought down and loses all rank.`;
+    case 'powerBlocked':
+      return `${who(e.target)} blocked the general’s power.`;
+    case 'powerSeized':
+      return `${who(e.to)} takes ${n.space(e.space)} from ${who(e.from)}.`;
+    case 'powerPaid':
+      return `${who(e.from)} pays ${who(e.to)} ${money(e.amount)}.`;
+    case 'bribeOffered':
+      return `${who(e.from)} offers ${who(e.to)} ${money(e.amount)} to hold back.`;
+    case 'bribeAnswered':
+      return e.accept ? `${who(e.to)} takes ${who(e.from)}’s ${money(e.amount)}.` : `${who(e.to)} turns down ${who(e.from)}’s money.`;
     case 'earthquake':
       return e.spaces.length > 0
         ? `Earthquake (die ${e.die}): every building in ${groupName(e.region)} fell.`
@@ -1361,7 +1456,8 @@ export type RuleTopicId =
   /** Myanmar map only (D102). */
   | 'merit'
   | 'companyEvents'
-  | 'loans';
+  | 'loans'
+  | 'general';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1507,7 +1603,7 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'The two airports, the Expressway and the Muse Border Gate are the transport spaces. They never have buildings.',
             'Rent grows with the number of transport spaces the owner holds.',
-            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned, mortgaged, or its owner is in military service).`,
+            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned or mortgaged).`,
           ]
         : ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
     },
@@ -1562,9 +1658,10 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'You are called up by the Call-up letter space, by a Chance card, or by rolling three doubles in one turn. You go to the Military camp and choose at once:',
             `Pay a tenth of your cash, at least ${money(MYANMAR.draftPayMin)}, and you are free.`,
-            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns and collect no rent.`,
-            `Flee: ${money(MYANMAR.draftFleeCost)} takes you to the Muse Border Gate. You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
-            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns, collect no rent, and get ${money(MYANMAR.draftServeBonus)} on return.`,
+            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns.`,
+            `Flee: ${money(MYANMAR.draftFleeCost)} takes you straight to Chiang Mai (without taking the pot). You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
+            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns and get ${money(MYANMAR.draftServeBonus)} on return, and a rank (see Rank and the general).`,
+            'Your rent still comes in during military service, whichever way you chose.',
             'A merit point or a Call-up exemption card frees you at once, also at the start of a skipped turn.',
             'Landing on the Military camp during a normal move is just visiting.',
           ]
@@ -1599,7 +1696,23 @@ export function ruleTopics(): readonly RuleTopic[] {
             `Inflation: city rents rise ${MYANMAR.inflationStep}% for the rest of the game, and again after every ${MYANMAR.inflationEvery} rounds. The rate shows at the top of the screen. The owner of KBZ Bank pays city rent without it.`,
             'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
             `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
-            `A player who fled to the border receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+            `A player who fled to Chiang Mai receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'general',
+          title: 'Rank and the general',
+          lines: [
+            `Serving in the army earns rank: when the service ends, one die is rolled, an even number adds 2 ranks and an odd one 1 (at most ${MYANMAR.rankMax}). Rank stays for the rest of the game.`,
+            `A player with a rank draws an army salary of rank × ${money(MYANMAR.salaryPerRank)}: on return from serving (on top of the ${money(MYANMAR.draftServeBonus)}) and every time they pass Start.`,
+            'Because the army pays them, a player with a rank collects half rent on their properties.',
+            `The one player with the highest rank, ${MYANMAR.generalMinRank} or more, is the general. Of equal ranks the one who got there first stays general; whoever climbs higher takes over.`,
+            `Once in ${MYANMAR.powerEveryRounds} rounds, on their own turn, the general may use their power: two dice, up to ${MYANMAR.powerMoneyUpTo} takes ${money(MYANMAR.powerMoney)} from a player of their choice, above ${MYANMAR.powerMoneyUpTo} takes one of their properties (never one with buildings, in a region with buildings, or pledged for a loan).`,
+            `The player hit can block it with ${MYANMAR.powerBlockMerit} merit points.`,
+            `Every other player holds ${MYANMAR.unrestCups} unrest cups. After each use everyone else decides, within 20 seconds, whether to show one; who did is shown to all. At ${MYANMAR.unrestToDepose} cups in all the general falls: that use is cancelled, the general loses all rank, and everyone gets their cups back. (With two players, two cups are enough.)`,
+            'Before a use of power the general may offer a player money to hold back. Taken, it is paid at once and that player cannot show unrest at the next use.',
           ],
         }
       : null,
@@ -1612,7 +1725,7 @@ export function ruleTopics(): readonly RuleTopic[] {
             'The other player accepts, rejects or answers with new terms. Only one offer, trade or loan, is on the table at a time.',
             `Interest is simple: each round adds the rate on the amount lent, up to ${MYANMAR.loanMaxMultiple} times the amount at most. The rate is at most ${MYANMAR.loanMaxRatePercent}% a round.`,
             `Pay back on your own turn from the Loans list. Passing Start pays back ${MYANMAR.loanStartRepayPercent}% of the debt when you have the cash.`,
-            'Not paid back in time, the collateral goes to the lender. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
+            'At the end of the term the debt, with its interest, is paid from the borrower’s cash. If the cash does not cover it, the borrower pays what they have and the lender takes the collateral too. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
             'Collateral cannot be mortgaged or traded, and its region cannot be built on, until the loan is paid back. A chain on the tile marks it.',
           ],
         }
@@ -1627,12 +1740,12 @@ export function ruleTopics(): readonly RuleTopic[] {
         },
     {
       id: 'taxes',
-      title: byMap('Taxes and Free Parking', 'Taxes, pagodas and the Refuge'),
+      title: byMap('Taxes and Free Parking', 'Tax, pagodas and Chiang Mai'),
       lines: myanmar
         ? [
-            `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}. ${specialName('luxuryTax')}: pay ${money(RULES.luxuryTax)}.`,
-            'Taxes and fines (paying out of military service, fleeing, the broker) go into the community pot, shown in the middle of the board and on the Refuge.',
-            'Land on the Refuge and you take everything in the pot.',
+            `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}.`,
+            'Taxes and fines (paying out of military service, fleeing, the broker, the porter card) go into the community pot, shown in the middle of the board and on Chiang Mai.',
+            'Land on Chiang Mai and you take everything in the pot.',
             'Pagodas: you may donate for a merit point.',
           ]
         : [`Income Tax: pay ${money(RULES.incomeTax)}. Luxury Tax: pay ${money(RULES.luxuryTax)}.`, 'Free Parking: nothing happens.'],
@@ -1724,7 +1837,10 @@ export function quickHelp(): Readonly<Record<'freeStay' | 'companies' | 'airport
     },
     companies: {
       lines: myanmar
-        ? ['Landing on someone’s company: roll two dice.', 'You pay the total times 25, 50, 100 or 200, by how many companies the owner holds.']
+        ? [
+            'Landing on someone’s company: roll two dice.',
+            `You pay the total times ${(RULES.companyMultipliers ?? []).join(', ').replace(/, (\d+)$/, ' or $1')}, by how many companies the owner holds.`,
+          ]
         : ['Landing on someone’s company: roll two dice.', 'You pay the total times the company’s multiplier.'],
       topic: 'companies',
     },
