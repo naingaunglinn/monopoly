@@ -119,8 +119,8 @@ describe('Myanmar rules', () => {
     const s = act(mm(), { type: 'debug', op: 'movePlayer', player: 0, space: 45 } as Action, { type: 'debug', op: 'setNextDice', dice: [3, 4] } as Action);
     const before = cashOf(s, 0);
     const passed = run(s, { type: 'roll' });
-    expect(passed.events.find((e) => e.type === 'passedStart')).toMatchObject({ amount: 500 });
-    expect(cashOf(passed.state, 0)).toBe(before + 500);
+    expect(passed.events.find((e) => e.type === 'passedStart')).toMatchObject({ amount: MYANMAR.startBonus });
+    expect(cashOf(passed.state, 0)).toBe(before + MYANMAR.startBonus);
 
     const income = BOARD.find((x) => x.type === 'tax' && x.tax === 'income')!.index;
     for (const [space, tax] of [[income, 300]] as const) {
@@ -141,12 +141,12 @@ describe('Myanmar rules', () => {
     const cash = cashOf(s, 0);
     const moved = run(s, { type: 'confirmCard' });
     expect(moved.state.players[0]?.position).toBe(yangonAirport);
-    expect(moved.events.find((e) => e.type === 'passedStart')).toMatchObject({ amount: 500 });
+    expect(moved.events.find((e) => e.type === 'passedStart')).toMatchObject({ amount: MYANMAR.startBonus });
     expect(moved.state.flow.pending).toMatchObject({ kind: 'rent' });
     const pending = moved.state.flow.pending as { rent: { amount: number } };
     expect(pending.rent.amount).toBe(2 * 50);
     const paid = act(moved.state, { type: 'payRent' });
-    expect(cashOf(paid, 0)).toBe(cash + 500 - 100);
+    expect(cashOf(paid, 0)).toBe(cash + MYANMAR.startBonus - 100);
   });
 
   test('News: tourist season doubles Rakhine and Shan rents only; border trade closed stops the Muse gate', () => {

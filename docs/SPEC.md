@@ -1296,4 +1296,4 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar ma
   - A player in military service still collects rent.
   - A player with an army rank collects half rent, since the army pays them.
   - Their salary, rank × 200 lakh, is paid every time they pass Start as well as on return from serving.
-
+- **Owner's change, Oct 15 (D110):** passing or landing on Start pays 750 lakh (was 500).

@@ -259,7 +259,7 @@ describe('army pay and half rent (owner, D109)', () => {
     const ranked = edit(mm(), (d) => void ((d.players[0] as P).rank = 3));
     const passed = run(nextDice(edit(ranked, (d) => void ((d.players[0] as P).position = 45)), 3, 4), { type: 'roll' });
     expect(eventsOf(passed.events, 'salaryPaid')).toEqual([{ type: 'salaryPaid', player: 0, amount: 600 }]);
-    expect(eventsOf(passed.events, 'passedStart')[0]?.amount).toBe(500);
+    expect(eventsOf(passed.events, 'passedStart')[0]?.amount).toBe(MYANMAR.startBonus);
     const plain = run(nextDice(edit(mm(), (d) => void ((d.players[0] as P).position = 45)), 3, 4), { type: 'roll' });
     expect(eventsOf(plain.events, 'salaryPaid')).toEqual([]);
   });

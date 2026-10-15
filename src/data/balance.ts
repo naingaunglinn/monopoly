@@ -111,8 +111,8 @@ export const SIM = {
  * rule of that map; the World map never reads them.
  */
 export const MYANMAR = {
-  /** Paid for passing or landing on Start. */
-  startBonus: 500,
+  /** Paid for passing or landing on Start: 750 lakh at the owner's request (spec: 500; D110). */
+  startBonus: 750,
   incomeTax: 300,
   /** The Special tax space. */
   luxuryTax: 500,
