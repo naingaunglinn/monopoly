@@ -23,6 +23,11 @@ export function removePlayer(c: Ctx, playerId: number): void {
     s.flow.trade = null;
     emit(c, { type: 'tradeCancelled', from: trade.from, to: trade.to });
   }
+  const loan = s.flow.loan;
+  if (loan && (loan.from === playerId || loan.to === playerId)) {
+    s.flow.loan = null;
+    emit(c, { type: 'loanCancelled', from: loan.from, to: loan.to });
+  }
   // A notice about them (Vacation) no longer matters.
   s.flow.notices = s.flow.notices.filter((n) => n.player !== playerId);
 

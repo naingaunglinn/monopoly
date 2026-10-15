@@ -1,7 +1,10 @@
 // Every UI string lives here so another language can be added later (spec section 2).
 // Plain data and pure formatting functions only: no React, no DOM.
-import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { AIRPORTS, type SpecialType } from '../data/board.js';
+import { BALANCE, BOARD_SIZE, MYANMAR } from '../data/balance.js';
+import { AIRPORTS, groupName, MAP, RULES, type SpecialType } from '../data/board.js';
+import { MYANMAR_COMPANIES, MYANMAR_TRANSPORT } from '../data/myanmar.js';
+import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
+import { burmeseDigits, language, pick } from '../data/lang.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
   ErrorCode,
@@ -26,16 +29,32 @@ export function defaultPlayerName(seat: number): string {
 const MINUS = '−';
 const TIMES = '×';
 
-/** $1,250 */
-export function money(amount: number): string {
-  const abs = Math.abs(Math.round(amount));
-  return `${amount < 0 ? MINUS : ''}$${abs.toLocaleString('en-US')}`;
+/** A whole amount in the map's currency, without a sign: $1,250, or 1,250 lakh (၁,၂၅၀ သိန်း in Burmese). */
+function amountText(abs: number): string {
+  const digits = abs.toLocaleString('en-US');
+  if (RULES.currency === 'usd') return `$${digits}`;
+  return language() === 'my' ? `${burmeseDigits(digits)} သိန်း` : `${digits} lakh`;
 }
 
-/** +$500 or −$300. Money always carries a sign and a symbol. */
+/** $1,250 (World map) or 1,250 lakh (Myanmar map, D101). */
+export function money(amount: number): string {
+  return `${amount < 0 ? MINUS : ''}${amountText(Math.abs(Math.round(amount)))}`;
+}
+
+/** +$500 or −$300 (+500 lakh on the Myanmar map). Money always carries a sign and a symbol. */
 export function signedMoney(amount: number): string {
-  if (amount === 0) return '$0';
-  return `${amount > 0 ? '+' : MINUS}$${Math.abs(Math.round(amount)).toLocaleString('en-US')}`;
+  if (amount === 0) return amountText(0);
+  return `${amount > 0 ? '+' : MINUS}${amountText(Math.abs(Math.round(amount)))}`;
+}
+
+/** The Myanmar map is in play (D101): texts below name its spaces, regions and rules. */
+function onMyanmar(): boolean {
+  return MAP.id === 'myanmar';
+}
+
+/** The World text, or the Myanmar map's version of it (D101). */
+function byMap(world: string, myanmar: string): string {
+  return onMyanmar() ? myanmar : world;
 }
 
 /** Small counts in words ("all seven"). */
@@ -82,8 +101,14 @@ export const T = {
     vacation: 'Vacation',
     auction: 'Auction',
     chance: 'Chance',
-    event: 'Event',
+    get event() {
+      return byMap('Event', 'News');
+    },
     randomFirst: 'Random first player',
+    map: 'Map',
+    maps: { world: 'World', myanmar: 'Myanmar' } as Record<'world' | 'myanmar', string>,
+    language: 'Names and cards',
+    languages: { en: 'English', my: 'မြန်မာ' } as Record<'en' | 'my', string>,
     passDevice: 'Pass-device screen',
     animation: 'Animation speed',
     on: 'On',
@@ -112,6 +137,11 @@ export const T = {
     saved: 'Game saved',
     saveFailed: 'Saving failed: this browser blocks storage.',
     modifiersLabel: 'Active events',
+    inflation: (rate: number) => `Inflation +${rate}%`,
+    pot: (amount: number) => `Community pot ${money(amount)}`,
+    potTitle: 'Taxes and fines collect in the pot. Landing on the Refuge takes it all.',
+    potLabel: 'Community pot',
+    inflationTitle: 'City rents are this much higher than printed. The owner of KBZ Bank pays without it.',
     until: (name: string) => `Until ${name}’s next turn`,
     sound: 'Sound effects',
     soundOn: 'Sound effects on',
@@ -175,6 +205,7 @@ export const T = {
     yourTurn: (name: string) => `Your turn, ${name}`,
     yourBid: (name: string) => `Your bid, ${name}`,
     yourTrade: (name: string) => `${name}, a trade offer for you`,
+    yourLoan: (name: string) => `${name}, a loan offer for you`,
     yourDecision: (name: string) => `${name}, your decision`,
     titleYourTurn: 'Your turn',
     tradeWaiting: (name: string) => `Waiting for ${name} to answer your offer`,
@@ -283,7 +314,9 @@ export const T = {
     rollForDoubles: 'Roll for doubles',
     move: (n: number) => `Move ${n} spaces`,
     doubles: 'Doubles: roll again',
-    thirdDouble: 'Third double: go to Jail',
+    get thirdDouble() {
+      return byMap('Third double: go to Jail', 'Third double: go to the Military camp');
+    },
     extraRoll: 'Roll again',
     trade: 'Trade',
     myProperties: 'My properties',
@@ -311,17 +344,26 @@ export const T = {
   players: {
     title: 'Players',
     cities: (n: number) => plural(n, 'city', 'cities'),
-    airports: (n: number) => plural(n, 'airport', 'airports'),
+    airports: (n: number) => (onMyanmar() ? plural(n, 'transport', 'transports') : plural(n, 'airport', 'airports')),
     companies: (n: number) => plural(n, 'company', 'companies'),
     freeStay: (n: number) => `${n} Free Stay`,
-    inJail: 'In Jail',
-    onVacation: 'On vacation',
+    get inJail() {
+      return byMap('In Jail', 'In the camp');
+    },
+    get onVacation() {
+      return byMap('On vacation', 'No fuel');
+    },
     bankrupt: 'Bankrupt',
     /** A bankrupt player's chip in the top bar (room play). */
     out: 'Out',
     current: 'Current player',
-    jailCard: 'Get Out of Jail card',
+    get jailCard() {
+      return byMap('Get Out of Jail card', 'Call-up exemption card');
+    },
     voucher: 'Free House card',
+    merit: (n: number) => plural(n, 'merit point', 'merit points'),
+    draft: (status: 'hiding' | 'serving' | 'fled', turns: number) =>
+      status === 'hiding' ? `Hiding, ${plural(turns, 'turn', 'turns')}` : status === 'serving' ? `In the army, ${plural(turns, 'turn', 'turns')}` : 'At the border',
     open: (name: string) => `Open ${name}’s properties`,
   },
   log: {
@@ -343,20 +385,28 @@ export const T = {
     notMortgaged: 'Not mortgaged',
     status: 'Status',
     level: 'Buildings',
-    country: 'Country',
-    complete: 'Country complete',
+    get country() {
+      return byMap('Country', 'Region');
+    },
+    get complete() {
+      return byMap('Country complete', 'Region complete');
+    },
     countryProgress: (owned: number, total: number) => `${owned} of ${total} owned`,
     countryOwners: 'No single owner yet',
     noBuilding: 'No building',
-    completeEmpty: 'Country complete, no building',
+    get completeEmpty() {
+      return byMap('Country complete, no building', 'Region complete, no building');
+    },
     houses: (n: number) => plural(n, 'house', 'houses'),
     hotel: 'Hotel',
-    airportsOwned: (n: number) => plural(n, 'airport', 'airports'),
+    airportsOwned: (n: number) => (onMyanmar() ? plural(n, 'transport', 'transports') : plural(n, 'airport', 'airports')),
     companyFormula: (multiplier: number) => `Dice total ${TIMES} ${money(multiplier)}`,
     companyBetween: (a: string, b: string) => `Between ${a} and ${b}`,
     pinned: 'Pinned',
     unpin: 'Unpin',
-    noAirportSet: 'Airports belong to no country set.',
+    get noAirportSet() {
+      return byMap('Airports belong to no country set.', 'Transport belongs to no region set.');
+    },
     landHere: 'If you land here',
   },
   tile: {
@@ -401,6 +451,7 @@ export const T = {
       amount: 'Amount',
       toBank: 'Paid to the bank',
       freeStay: (left: number) => `Use Free Stay (${left} left)`,
+      merit: (left: number) => `Skip it with a merit point (${left} left)`,
       freeStayHint: 'A Free Stay token skips the rent on another player’s city.',
     },
     company: {
@@ -420,30 +471,87 @@ export const T = {
       maxedShort: 'Hotel built',
       /** Marks the city the player is standing on. */
       here: 'You are here',
-      landingRule: 'You can build on any city of this country during this move. Build evenly: a city gets its next house only when every city here has as many.',
+      get landingRule() {
+        return byMap(
+          'You can build on any city of this country during this move. Build evenly: a city gets its next house only when every city here has as many.',
+          'You can build on any city of this region during this move. Build evenly: a city gets its next house only when every city here has as many.',
+        );
+      },
       rentNow: 'Rent now',
       rentNext: 'Rent after building',
     },
     card: {
       chance: 'Chance',
-      event: 'Event',
+      get event() {
+        return byMap('Event', 'News');
+      },
       boarding: 'Boarding pass',
-      news: 'World news',
+      cancelMerit: 'Cancel it with a merit point',
+      ticket: (amount: number) => `Buy a ticket · ${money(amount)}`,
+      noTicket: 'No ticket',
+      brokerPay: (amount: number) => `Pay ${money(amount)}`,
+      toCamp: 'Go to the Military camp',
+      get news() {
+        return byMap('World news', 'Myanmar news');
+      },
       kept: 'Keep this card until you use it.',
     },
     jail: {
-      title: (name: string) => `${name} is in Jail`,
+      title: (name: string) => byMap(`${name} is in Jail`, `${name} is in the Military camp`),
       attempts: (used: number, max: number) => `Doubles attempts used: ${used} of ${max}`,
-      lastAttempt: 'If this roll fails you must pay $300 and move.',
+      get lastAttempt() {
+        return `If this roll fails you must pay ${money(BALANCE.jailFine)} and move.`;
+      },
       pay: (amount: number) => `Pay ${money(amount)}`,
-      useCard: 'Use Get Out of Jail card',
+      get useCard() {
+        return byMap('Use Get Out of Jail card', 'Use Call-up exemption card');
+      },
       roll: 'Roll for doubles',
     },
     vacation: {
       title: 'Vacation',
       landed: (name: string) => `${name} is on vacation. Their next turn will be skipped.`,
-      skipTitle: (name: string) => `${name} is on vacation`,
-      skip: 'This turn is skipped. Rent still comes in as usual.',
+      skipTitle: (name: string) => byMap(`${name} is on vacation`, `${name} has no fuel`),
+      get skip() {
+        return byMap('This turn is skipped. Rent still comes in as usual.', 'Fuel shortage: this turn is skipped. Rent still comes in as usual.');
+      },
+    },
+    // Myanmar map (D102)
+    draft: {
+      title: (name: string) => `${name} is called up`,
+      intro: 'Choose how to deal with military service. During service no rent comes in, except at the border.',
+      pay: (amount: number) => `Pay ${money(amount)}`,
+      get payHint() {
+        return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
+      },
+      hide: 'Hide',
+      hideHint: `Skip ${MYANMAR.draftHideTurns} turns. No rent meanwhile.`,
+      flee: (amount: number) => `Flee to the border · ${money(amount)}`,
+      fleeHint: `To the Muse Border Gate. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
+      serve: 'Serve',
+      get serveHint() {
+        return `Skip ${MYANMAR.draftServeTurns} turns. No rent meanwhile. ${money(MYANMAR.draftServeBonus)} on return.`;
+      },
+      merit: 'Use a merit point',
+      meritHint: 'Free at once.',
+      card: 'Use Call-up exemption card',
+      cardHint: 'Free at once.',
+      skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled') =>
+        status === 'hiding' ? `${name} is in hiding` : status === 'serving' ? `${name} is serving in the army` : `${name} is at the border`,
+      skip: (left: number) => (left > 0 ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.` : 'This turn is skipped. Free after it.'),
+      noRent: 'No rent comes in meanwhile.',
+      rentStill: 'Rent still comes in.',
+      bonus: (amount: number) => `Back from the army after this turn: ${signedMoney(amount)}.`,
+      leaveMerit: 'Leave now with a merit point',
+      leaveCard: 'Leave now with the exemption card',
+    },
+    donation: {
+      title: (name: string) => `Donate at ${name}?`,
+      text: (amount: number) => `Donate ${money(amount)} for 1 merit point.`,
+      have: (merit: number, max: number) => `Merit points: ${merit} of ${max}`,
+      uses: 'A merit point frees you from military service, skips one rent, or cancels a bad Chance card.',
+      give: (amount: number) => `Donate ${money(amount)}`,
+      no: 'No thanks',
     },
     debt: {
       title: (name: string) => `${name} owes money`,
@@ -463,7 +571,10 @@ export const T = {
         rent: (name: string) => `Rent for ${name}`,
         tax: (name: string) => name,
         card: (title: string) => `Card: ${title}`,
-        jailFine: 'Jail fine',
+        toll: (name: string) => `Toll for ${name}`,
+        get jailFine() {
+          return byMap('Jail fine', 'Military camp fine');
+        },
       },
     },
     bankruptcy: {
@@ -480,7 +591,9 @@ export const T = {
     youGive: 'You give',
     youGet: 'You get',
     cash: 'Cash',
-    jailCards: 'Get Out of Jail cards',
+    get jailCards() {
+      return byMap('Get Out of Jail cards', 'Call-up exemption cards');
+    },
     none: 'Nothing to offer',
     blocked: (country: string) => `Sell the buildings in ${country} first`,
     send: 'Send offer',
@@ -511,12 +624,49 @@ export const T = {
     sendCounter: 'Send counter-offer',
     nothing: 'Nothing',
     mortgagedNote: 'Mortgaged properties stay mortgaged.',
-    notTradeable: 'Free Stay tokens and Free House cards cannot be traded.',
+    get notTradeable() {
+      return byMap('Free Stay tokens and Free House cards cannot be traded.', 'Merit points cannot be traded.');
+    },
+  },
+  // Myanmar map: loans between players (D104)
+  loan: {
+    button: 'Loan',
+    title: 'Ask for a loan',
+    counterTitle: (name: string) => `New loan terms for ${name}`,
+    borrower: 'Borrower',
+    lender: 'Ask',
+    amount: 'Amount',
+    rate: 'Interest each round',
+    term: 'Rounds to pay back',
+    collateral: 'Collateral',
+    collateralHint: 'If the loan is not paid back in time, the lender takes these. Until then they cannot be built on, mortgaged or traded.',
+    noCollateral: 'Nothing can be pledged now: it must be yours, unmortgaged, with no buildings in its region.',
+    send: 'Ask for the loan',
+    sendCounter: 'Send new terms',
+    cancel: 'Cancel',
+    request: (borrower: string, lender: string) => `${borrower} asks ${lender} for a loan`,
+    counterBetween: (from: string, to: string) => `${from}’s new loan terms for ${to}`,
+    stamp: (round: number) => (round > 1 ? `New terms ${round}` : 'New terms'),
+    lends: (lender: string, borrower: string) => `${lender} lends ${borrower}`,
+    terms: (rate: number, term: number) => `${rate}% a round · ${plural(term, 'round', 'rounds')}`,
+    cap: (amount: number) => `Never more than ${money(amount)} owed`,
+    accept: 'Accept',
+    counter: 'New terms',
+    reject: 'Reject',
+    withdraw: 'Withdraw request',
+    listTitle: 'Loans',
+    owes: (borrower: string, lender: string) => `${borrower} owes ${lender}`,
+    owedNow: 'Owed now',
+    roundsLeft: (n: number) => (n === 0 ? 'Due at the next round' : `${plural(n, 'round', 'rounds')} left`),
+    payBack: (amount: number) => `Pay back · ${money(amount)}`,
+    pledged: 'Pledged for a loan',
   },
   properties: {
     title: (name: string) => `${name}’s properties`,
     none: 'No properties yet.',
-    airports: 'Airports',
+    get airports() {
+      return byMap('Airports', 'Transport');
+    },
     companies: 'Companies',
     sellHouse: (refund: number) => `Sell house · ${signedMoney(refund)}`,
     sellHotel: (refund: number) => `Sell hotel · ${signedMoney(refund)}`,
@@ -550,7 +700,9 @@ export const T = {
     cash: 'Cash',
     property: 'Cities',
     buildings: 'Buildings',
-    airports: 'Airports',
+    get airports() {
+      return byMap('Airports', 'Transport');
+    },
     companies: 'Companies',
     netWorth: 'Net worth',
     bankrupt: 'Bankrupt',
@@ -567,12 +719,17 @@ export const T = {
     offInGame: (what: string) => `${what} is switched off in this game.`,
     tableLevel: 'Building level',
     tableRent: 'Rent',
-    tableAirports: 'Airports owned',
+    get tableAirports() {
+      return byMap('Airports owned', 'Transport owned');
+    },
     tableCompany: 'Company',
+    tableCompaniesOwned: 'Companies owned',
     tablePrice: 'Price',
     tableMultiplier: 'Multiplier',
     baseRent: 'Base rent',
-    incompleteRow: 'Country not complete',
+    get incompleteRow() {
+      return byMap('Country not complete', 'Region not complete');
+    },
     cityRentIntro: 'Rent as a multiple of the city’s base rent:',
   },
   debug: {
@@ -618,7 +775,9 @@ export function chatTime(at: number): string {
   }
 }
 
-export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
+type SpecialKey = SpecialType | 'incomeTax' | 'luxuryTax' | 'rest';
+
+const WORLD_SPECIAL_NAMES: Readonly<Record<SpecialKey, string>> = {
   start: 'World Start',
   chance: 'Chance',
   event: 'Event',
@@ -629,23 +788,69 @@ export const SPECIAL_NAMES: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryT
   goToJail: 'Go To Jail',
   vacation: 'Vacation',
   freeParking: 'Free Parking',
+  temple: 'Pagoda',
   rest: 'Rest',
 };
 
-/** What happens on each special space (Focus Card). */
-export const SPECIAL_TEXT: Readonly<Record<SpecialType | 'incomeTax' | 'luxuryTax' | 'rest', string>> = {
-  start: `Collect ${money(BALANCE.startBonus)} each time you pass or land here moving forward.`,
-  chance: 'Draw the top Chance card and do what it says.',
-  event: 'Draw the top Event card: world news that can affect everyone.',
-  tax: 'Pay the tax to the bank.',
-  incomeTax: 'Pay $300 to the bank.',
-  luxuryTax: 'Pay $500 to the bank.',
-  jail: 'Just visiting: nothing happens. Players sent to Jail wait here.',
-  goToJail: 'Go straight to Jail. You collect nothing for passing World Start.',
-  vacation: 'Your next turn is skipped. You still collect rent.',
-  freeParking: 'Nothing happens.',
-  rest: 'Nothing happens: this card deck is switched off.',
+/** The Myanmar map's special spaces, in English and Burmese (D101). */
+const MYANMAR_SPECIAL_NAMES: Readonly<Record<SpecialKey, readonly [string, string]>> = {
+  start: ['Start', 'စတင်ရာ'],
+  chance: ['Chance', 'ကံစမ်းမဲ'],
+  event: ['News', 'သတင်း'],
+  tax: ['Tax', 'အခွန်'],
+  incomeTax: ['Income tax', 'ဝင်ငွေခွန်'],
+  luxuryTax: ['Special tax', 'အခွန်ထူး'],
+  jail: ['Military camp', 'စစ်မှုထမ်းစခန်း'],
+  goToJail: ['Call-up letter', 'ခေါ်စာရောက်ပြီ'],
+  vacation: ['Refuge', 'ရှောင်တိမ်းရာ'],
+  freeParking: ['Rest', 'နားရာ'],
+  temple: ['Pagoda', 'ဘုရား'],
+  rest: ['Rest', 'နားရာ'],
 };
+
+/** A special space's name on the map in play (pagodas are named from the board data). */
+export function specialName(key: SpecialKey): string {
+  if (MAP.id === 'myanmar') {
+    const [en, my] = MYANMAR_SPECIAL_NAMES[key];
+    return pick(en, my);
+  }
+  return WORLD_SPECIAL_NAMES[key];
+}
+
+/** What happens on each special space (Focus Card), on the map in play. */
+export function specialText(key: SpecialKey): string {
+  const myanmar = MAP.id === 'myanmar';
+  switch (key) {
+    case 'start':
+      return `Collect ${money(RULES.startBonus)} each time you pass or land here moving forward.`;
+    case 'chance':
+      return 'Draw the top Chance card and do what it says.';
+    case 'event':
+      return myanmar ? 'Draw the top News card: Myanmar news that can affect everyone.' : 'Draw the top Event card: world news that can affect everyone.';
+    case 'tax':
+      return 'Pay the tax to the bank.';
+    case 'incomeTax':
+      return `Pay ${money(RULES.incomeTax)} to the bank.`;
+    case 'luxuryTax':
+      return `Pay ${money(RULES.luxuryTax)} to the bank.`;
+    case 'jail':
+      return myanmar
+        ? 'Just visiting: nothing happens. Players called up for military service wait here.'
+        : 'Just visiting: nothing happens. Players sent to Jail wait here.';
+    case 'goToJail':
+      return myanmar
+        ? `Go straight to the Military camp. You collect nothing for passing ${specialName('start')}.`
+        : 'Go straight to Jail. You collect nothing for passing World Start.';
+    case 'vacation':
+      return myanmar ? 'Take everything in the community pot.' : 'Your next turn is skipped. You still collect rent.';
+    case 'freeParking':
+      return 'Nothing happens.';
+    case 'temple':
+      return 'A place to pause: nothing happens.';
+    case 'rest':
+      return 'Nothing happens: this card deck is switched off.';
+  }
+}
 
 export const TOKEN_NAMES: Readonly<Record<TokenKind, string>> = {
   globe: 'Globe',
@@ -672,19 +877,46 @@ export function colorName(color: string): string {
   return COLOR_NAMES[color] ?? color;
 }
 
-export const DECK_NAMES: Readonly<Record<DeckId, string>> = { chance: 'Chance', event: 'Event' };
+/** A deck's name on the map in play: Chance, and Event (News on the Myanmar map). */
+export function deckName(deck: DeckId): string {
+  return specialName(deck);
+}
 
 const MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
   cityRent: 'City rent',
   airportRent: 'Airport rent',
   companyRent: 'Company rent',
   buildCost: 'Build cost',
+  groupRent: 'City rent',
+  transportRent: 'Transport rent',
+  companyBoost: 'Company rent',
+  noTrade: 'Trading closed',
 };
 
-/** "City rent +25%" */
-export function modifierLabel(type: ModifierType, factor: number): string {
+/** A Myanmar company's name in the device's language. */
+function companyName(id: string): string {
+  const company = MYANMAR_COMPANIES.find((c) => c.id === id);
+  return company ? pick(company.shortName, company.shortNameMy) : id;
+}
+
+/** "A and B", "A, B and C". */
+function andList(items: string[]): string {
+  return items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/** "City rent +25%"; on the Myanmar map "Rakhine and Shan rent +100%" or "Muse Border Gate closed". */
+export function modifierLabel(type: ModifierType, factor: number, cardId: string | null = null): string {
   const pct = Math.round((factor - 1) * 100);
-  return `${MODIFIER_NAMES[type]} ${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
+  const change = `${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
+  const effect = cardId ? MYANMAR_CARD_BY_ID.get(cardId)?.effect : undefined;
+  if (effect?.type === 'groupRent') return `${andList(effect.groups.map(groupName))} rent ${change}`;
+  if (effect?.type === 'blackout' && type === 'companyBoost') return `${companyName(effect.company)} rent ${change}`;
+  if (effect?.type === 'noTrade') return `Only the ${companyName(effect.company)} owner trades`;
+  if (effect?.type === 'transportClosed') {
+    const transport = MYANMAR_TRANSPORT.find((t) => t.kind === effect.kind);
+    return transport ? `${pick(transport.name, transport.nameMy)} closed` : `${MODIFIER_NAMES[type]} ${change}`;
+  }
+  return `${MODIFIER_NAMES[type]} ${change}`;
 }
 
 export function levelText(level: number): string {
@@ -725,15 +957,15 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   notLandedHere: (x) =>
     p(x, 'country')
       ? `You can build in ${p(x, 'country')} only during a move that lands on one of its cities.`
-      : 'You can build only during a move that lands on a city of that country.',
+      : byMap('You can build only during a move that lands on a city of that country.', 'You can build only during a move that lands on a city of that region.'),
   evenBuild: (x) => `Your other ${p(x, 'country')} cities must have the same number of houses first.`,
   hasHotel: (x) => `${p(x, 'name')} already has a hotel.`,
   noBuildings: (x) => `${p(x, 'name')} has no buildings to sell.`,
   evenSell: (x) => `Sell evenly: start with the ${p(x, 'country')} city that has the most buildings.`,
-  noJailCard: () => 'You have no Get Out of Jail card.',
+  noJailCard: () => byMap('You have no Get Out of Jail card.', 'You have no Call-up exemption card.'),
   bidTooLow: (x) => `Your bid must be at least ${m(x, 'min')}.`,
   bidTooHigh: (x) => `You can't bid more than your cash (${m(x, 'cash')}).`,
-  invalidAmount: () => 'Enter a whole number of dollars.',
+  invalidAmount: () => byMap('Enter a whole number of dollars.', 'Enter a whole number of lakh.'),
   freeStayUnavailable: () => "Free Stay can be used only on another player's city, and you need a token.",
   debtNotCovered: (x) => `You still need ${m(x, 'shortfall')} more to pay.`,
   tradeInvalidPlayer: () => 'Pick another player who is still in the game.',
@@ -741,9 +973,22 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   tradeNotOwned: (x) => `${p(x, 'name')} does not belong to ${p(x, 'player')}.`,
   tradeBuildings: (x) => `Sell the buildings in ${p(x, 'country')} before trading ${p(x, 'name')}.`,
   tradeCash: (x) => `${p(x, 'player')} doesn't have ${m(x, 'amount')}.`,
-  tradeCards: (x) => `${p(x, 'player')} doesn't have that many Get Out of Jail cards.`,
+  tradeCards: (x) =>
+    byMap(`${p(x, 'player')} doesn't have that many Get Out of Jail cards.`, `${p(x, 'player')} doesn't have that many Call-up exemption cards.`),
   noUnmortgageInDebt: () => 'Pay your debt before unmortgaging.',
   invalidAction: () => 'That action is not available.',
+  noMerit: () => 'You have no merit point.',
+  meritFull: () => `You already hold ${MYANMAR.meritMax} merit points, the most anyone keeps.`,
+  tradeBlocked: () => 'The internet is cut: only the owner of MPT can offer trades or loans until it is back.',
+  loanPending: (x) => `${p(x, 'player')} must answer the loan offer first.`,
+  loanTerms: () =>
+    `A loan needs a whole amount of at least ${money(1)}, a rate of 0 to ${MYANMAR.loanMaxRatePercent}% a round and a term of 1 to ${MYANMAR.loanMaxTerm} rounds.`,
+  loanCollateral: (x) =>
+    p(x, 'name')
+      ? `${p(x, 'name')} cannot be collateral: it must be the borrower’s, unmortgaged, with no buildings in its region.`
+      : 'Pick at least one property of the borrower as collateral.',
+  pledged: (x) => `${p(x, 'name')} is pledged for a loan until it is paid back.`,
+  loanRepay: (x) => `Pay back between ${money(1)} and ${m(x, 'max')}.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -767,7 +1012,7 @@ export function rentCalcText(calc: RentCalc, amount: number, spaceName: string):
     case 'cityBase':
       return `${spaceName}, base rent: ${total(calc.baseRent, calc.factor)}`;
     case 'cityComplete': {
-      const what = calc.level === 0 ? 'country complete' : levelText(calc.level).toLowerCase();
+      const what = calc.level === 0 ? byMap('country complete', 'region complete') : levelText(calc.level).toLowerCase();
       return `${spaceName}, ${what}: ${money(calc.baseRent)} ${TIMES} ${calc.multiplier} = ${total(calc.baseRent * calc.multiplier, calc.factor)}`;
     }
     case 'airport':
@@ -775,12 +1020,14 @@ export function rentCalcText(calc: RentCalc, amount: number, spaceName: string):
     case 'company':
       return `Dice ${calc.dice[0]} + ${calc.dice[1]} = ${calc.total}: ${calc.total} ${TIMES} ${money(calc.multiplier)} = ${total(calc.total * calc.multiplier, calc.factor)}`;
     case 'tax':
-      return calc.tax === 'income' ? 'Income Tax: pay $300 to the bank' : 'Luxury Tax: pay $500 to the bank';
+      return `${specialName(calc.tax === 'income' ? 'incomeTax' : 'luxuryTax')}: pay ${money(calc.tax === 'income' ? RULES.incomeTax : RULES.luxuryTax)} to the bank`;
   }
 }
 
 const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
-  start: 'World Start',
+  get start() {
+    return specialName('start');
+  },
   buy: 'purchase',
   auction: 'auction',
   rent: 'rent',
@@ -791,10 +1038,19 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   sell: 'sold building',
   mortgage: 'mortgage',
   unmortgage: 'unmortgage',
-  jailFine: 'Jail fine',
+  get jailFine() {
+    return byMap('Jail fine', 'Military camp fine');
+  },
   trade: 'trade',
   bankruptcy: 'bankruptcy',
   debug: 'debug',
+  draft: 'military service',
+  merit: 'donation',
+  toll: 'toll',
+  pot: 'community pot',
+  remittance: 'money from home',
+  lottery: 'lottery',
+  loan: 'loan',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -858,7 +1114,7 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       if (e.reason === 'debug') return `Debug: ${who(e.player)} placed on ${n.space(e.to)}.`;
       return null;
     case 'passedStart':
-      return `${who(e.player)} passed World Start: ${signedMoney(e.amount)}.`;
+      return `${who(e.player)} passed ${specialName('start')}: ${signedMoney(e.amount)}.`;
     case 'landed':
     case 'money':
     case 'settingChanged':
@@ -884,13 +1140,14 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
     case 'noRent':
       return `${n.space(e.space)} is mortgaged: no rent.`;
     case 'feePaid': {
-      const what = e.reason === 'incomeTax' ? 'Income Tax' : e.reason === 'luxuryTax' ? 'Luxury Tax' : 'the Jail fine';
+      const what =
+        e.reason === 'incomeTax' || e.reason === 'luxuryTax' ? specialName(e.reason) : byMap('the Jail fine', 'the Military camp fine');
       return `${who(e.player)} paid ${what}: ${signedMoney(-e.amount)}.`;
     }
     case 'cardDrawn':
-      return `${who(e.player)} drew ${DECK_NAMES[e.deck]}: ${n.cardTitle(e.cardId)}.`;
+      return `${who(e.player)} drew ${deckName(e.deck)}: ${n.cardTitle(e.cardId)}.`;
     case 'deckShuffled':
-      return `The ${DECK_NAMES[e.deck]} deck was reshuffled.`;
+      return `The ${deckName(e.deck)} deck was reshuffled.`;
     case 'cardCash':
       return `${who(e.player)}: ${signedMoney(e.amount)} (${n.cardTitle(e.cardId)}).`;
     case 'cardTransfer':
@@ -904,9 +1161,9 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
     case 'rollAgainGranted':
       return `${who(e.player)} gets an extra roll.`;
     case 'modifierStarted':
-      return `${modifierLabel(e.modifier.type, e.modifier.factor)} until ${who(e.modifier.drawnBy)}’s next turn.`;
+      return `${modifierLabel(e.modifier.type, e.modifier.factor, e.modifier.cardId)} until ${who(e.modifier.drawnBy)}’s next turn.`;
     case 'modifierEnded':
-      return `${modifierLabel(e.modifier.type, e.modifier.factor)} has ended.`;
+      return `${modifierLabel(e.modifier.type, e.modifier.factor, e.modifier.cardId)} has ended.`;
     case 'built':
       return `${who(e.player)} built ${e.level === 5 ? 'a hotel' : 'a house'} on ${n.space(e.space)}${e.voucher ? ' with a Free House card' : ` for ${money(e.cost)}`}.`;
     case 'buildingSold':
@@ -916,12 +1173,26 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
     case 'unmortgaged':
       return `${who(e.player)} unmortgaged ${n.space(e.space)}: ${signedMoney(-e.cost)}.`;
     case 'jailed':
+      if (onMyanmar()) {
+        return e.reason === 'doubles'
+          ? `${who(e.player)} rolled a third double and went to the Military camp.`
+          : `${who(e.player)} went to the Military camp.`;
+      }
       return e.reason === 'doubles'
         ? `${who(e.player)} rolled a third double and went to Jail.`
         : `${who(e.player)} went to Jail.`;
     case 'jailRollFailed':
-      return `${who(e.player)} stays in Jail (attempt ${e.attempts}).`;
+      return byMap(`${who(e.player)} stays in Jail (attempt ${e.attempts}).`, `${who(e.player)} stays in the camp (attempt ${e.attempts}).`);
     case 'leftJail':
+      if (onMyanmar()) {
+        return e.how === 'card'
+          ? `${who(e.player)} used a Call-up exemption card.`
+          : e.how === 'fine'
+            ? `${who(e.player)} paid to leave the camp.`
+            : e.how === 'forcedFine'
+              ? `${who(e.player)} paid the fine and leaves the camp.`
+              : `${who(e.player)} rolled doubles and leaves the camp.`;
+      }
       return e.how === 'card'
         ? `${who(e.player)} used a Get Out of Jail card.`
         : e.how === 'fine'
@@ -957,6 +1228,78 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return e.winners.length > 1
         ? `Game over: shared win for ${e.winners.map(who).join(' and ')}.`
         : `Game over: ${who(e.winners[0] ?? 0)} wins.`;
+    case 'draftChosen':
+      switch (e.how) {
+        case 'pay':
+          return `${who(e.player)} paid ${money(e.cost)} to stay out of military service.`;
+        case 'hide':
+          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped, no rent.`;
+        case 'serve':
+          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, no rent, ${money(MYANMAR.draftServeBonus)} on return.`;
+        case 'flee':
+          return `${who(e.player)} fled to the border for ${money(e.cost)}.`;
+        case 'merit':
+          return `${who(e.player)} spent a merit point and is free.`;
+        case 'card':
+          return `${who(e.player)} used a Call-up exemption card and is free.`;
+      }
+      return null;
+    case 'draftEnded':
+      if (e.how === 'merit') return `${who(e.player)} spent a merit point to leave military service.`;
+      if (e.how === 'card') return `${who(e.player)} used a Call-up exemption card to leave military service.`;
+      return e.bonus > 0 ? `${who(e.player)} is back from the army: ${signedMoney(e.bonus)}.` : `${who(e.player)} is free again.`;
+    case 'meritGained':
+      return `${who(e.player)} now has ${plural(e.merit, 'merit point', 'merit points')}.`;
+    case 'rentWaived':
+      return e.why === 'draft'
+        ? `${who(e.owner)} is in military service: no rent for ${n.space(e.space)}.`
+        : `${who(e.player)} spent a merit point: no rent for ${n.space(e.space)}.`;
+    case 'cardCancelled':
+      return `${who(e.player)} spent a merit point to cancel ${n.cardTitle(e.cardId)}.`;
+    case 'fuelShortage':
+      return e.players.length > 0
+        ? `Fuel shortage: ${andList(e.players.map(who))} skip their next turn.`
+        : 'Fuel shortage: nobody has to skip a turn.';
+    case 'inflationRose':
+      return `Inflation: city rents are now +${e.rate}%.`;
+    case 'tollPaid':
+      return `${who(e.from)} paid ${who(e.to)} a ${money(e.amount)} toll for passing ${n.space(e.space)}.`;
+    case 'potAdded':
+      return `${money(e.amount)} went into the community pot (now ${money(e.pot)}).`;
+    case 'potTaken':
+      return `${who(e.player)} took the community pot: ${signedMoney(e.amount)}.`;
+    case 'remittance':
+      return `${who(e.player)} received money from home: ${signedMoney(e.amount)}.`;
+    case 'lotteryDrawn':
+      return e.prize > 0
+        ? `${who(e.player)} drew ${e.total} in the lottery and won ${money(e.prize)}.`
+        : `${who(e.player)} drew ${e.total} in the lottery: no prize.`;
+    case 'loanRequested':
+      return `${who(e.from)} asked ${who(e.to)} for a loan.`;
+    case 'loanCountered':
+      return `${who(e.from)} answered ${who(e.to)} with new loan terms.`;
+    case 'loanRejected':
+      return `${who(e.to)} turned down ${who(e.from)}’s loan offer.`;
+    case 'loanWithdrawn':
+      return `${who(e.from)} withdrew their loan offer to ${who(e.to)}.`;
+    case 'loanCancelled':
+      return `The loan talks between ${who(e.from)} and ${who(e.to)} ended.`;
+    case 'loanAccepted':
+      return `${who(e.loan.lender)} lent ${who(e.loan.borrower)} ${money(e.loan.principal)} at ${e.loan.ratePercent}% a round for ${plural(e.loan.term, 'round', 'rounds')}.`;
+    case 'loanRepaid':
+      return e.left > 0
+        ? `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}; ${money(e.left)} still owed.`
+        : `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}: the loan is paid off.`;
+    case 'loanDefaulted':
+      return e.why === 'term'
+        ? `${who(e.borrower)} did not pay back in time: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
+        : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
+    case 'loanForgiven':
+      return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
+    case 'earthquake':
+      return e.spaces.length > 0
+        ? `Earthquake (die ${e.die}): every building in ${groupName(e.region)} fell.`
+        : `Earthquake (die ${e.die}): ${groupName(e.region)} had no buildings to lose.`;
     case 'debugApplied':
       return `Debug: ${e.op}.`;
   }
@@ -1014,7 +1357,11 @@ export type RuleTopicId =
   | 'debt'
   | 'winning'
   | 'controls'
-  | 'online';
+  | 'online'
+  /** Myanmar map only (D102). */
+  | 'merit'
+  | 'companyEvents'
+  | 'loans';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1032,234 +1379,373 @@ export const SWITCH_NAMES = {
   vacation: 'Vacation',
   auction: 'Auction',
   chance: 'Chance',
-  event: 'Event',
-} as const;
-
-export const RULE_TOPICS: readonly RuleTopic[] = [
-  {
-    id: 'quickStart',
-    title: 'Quick start',
-    lines: [
-      'Roll the dice and move clockwise.',
-      'Land on a property nobody owns: buy it, or let everyone bid for it.',
-      'Land on someone else’s property: pay rent.',
-      'Own every city of a country and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
-      `Pass World Start and collect ${money(BALANCE.startBonus)}.`,
-      'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
-      'The yellow button always shows your next step.',
-    ],
-  },
-  {
-    id: 'yourTurn',
-    title: 'Your turn',
-    ordered: true,
-    lines: [
-      'Tap I’m ready, then Roll dice.',
-      'Your token moves. Do what the space says.',
-      'Before or after rolling you can trade, mortgage, or sell buildings.',
-      'Rolled doubles? Roll again. Three doubles in one turn sends you to Jail.',
-      'Press End turn and pass the device.',
-    ],
-  },
-  {
-    id: 'worldStart',
-    title: 'World Start',
-    lines: [
-      `Collect ${money(BALANCE.startBonus)} each time you pass it or land on it.`,
-      'You collect nothing when a card moves you backward or when you go to Jail.',
-    ],
-  },
-  {
-    id: 'buying',
-    title: 'Buying and auctions',
-    switches: ['auction'],
-    lines: [
-      'Land on an unowned city, airport or company and you may buy it at its price.',
-      'White tiles are still for sale. A tile you own takes your colour.',
-      'If you pass, it is auctioned. Everyone can bid, including you. Bids start at $1.',
-      'In an auction, players take turns to raise or fold. The last bidder left wins and pays the bank.',
-    ],
-  },
-  {
-    id: 'citiesRent',
-    title: 'Cities and rent',
-    lines: [
-      'Land on another player’s city and you pay its rent. The tile shows the rent you would pay right now.',
-      'A mortgaged city charges no rent.',
-      'You can use a Free Stay token instead of paying.',
-    ],
-  },
-  {
-    id: 'countries',
-    title: 'Countries',
-    table: 'cityRent',
-    lines: [
-      'A country is complete when one player owns all of its cities.',
-      'In a complete country, rent on empty cities doubles and building becomes possible.',
-    ],
-  },
-  {
-    id: 'houses',
-    title: 'Houses and hotels',
-    lines: [
-      'You need the whole country, with none of its cities mortgaged.',
-      'Land on any city of the country, and during that move you can build on every city of it.',
-      'Build evenly: a city gets its next house only when every city in the country has as many. With one house on each, any of them can get a second.',
-      'You may build several houses in one landing if the even rule and your cash allow it.',
-      'After 4 houses you can build a hotel. A hotel costs twice the house cost.',
-    ],
-  },
-  {
-    id: 'selling',
-    title: 'Selling buildings',
-    lines: [
-      'Sell on your own turn or when you owe money. You get half the cost back.',
-      'Sell evenly, tallest city first. Selling a hotel leaves 4 houses.',
-    ],
-  },
-  {
-    id: 'airports',
-    title: 'Airports',
-    table: 'airportRent',
-    lines: ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
-  },
-  {
-    id: 'companies',
-    title: 'Companies',
-    table: 'companies',
-    lines: ['Land on another player’s company, roll two dice and pay the total times the company’s multiplier.'],
-  },
-  {
-    id: 'cards',
-    title: 'Chance and Event cards',
-    switches: ['chance', 'event'],
-    lines: [
-      'Land on Chance or Event to draw a card, then do what it says.',
-      'Chance mostly affects you: money, movement, Jail and bonus cards.',
-      'Events are world news. They can affect everyone, and some change rents or building costs for one round. Active events show at the top of the screen.',
-      'Free House: your next house is free, in a country you land in.',
-      'Get Out of Jail: keep it until you need it. You can trade it.',
-    ],
-  },
-  {
-    id: 'freeStay',
-    title: 'Free Stay',
-    switches: ['freeStay'],
-    lines: [
-      'You start with 3 tokens. Use one to skip the rent on another player’s city.',
-      'It does not work on airports, companies, taxes or cards.',
-      'You never hold more than 3.',
-    ],
-  },
-  {
-    id: 'jail',
-    title: 'Jail',
-    lines: [
-      'You go to Jail from the Go To Jail space, from a card, or by rolling three doubles in one turn.',
-      'To leave: pay $300, use a Get Out of Jail card, or roll doubles.',
-      'Rolling doubles moves you out by that roll, with no extra roll.',
-      'After three failed rolls you must pay $300 and move.',
-      'In Jail you still collect rent, trade and bid.',
-      'Landing on the Jail space during a normal move is just visiting.',
-    ],
-  },
-  {
-    id: 'vacation',
-    title: 'Vacation',
-    switches: ['vacation'],
-    lines: ['Land on Vacation and your next turn is skipped, once.', 'You still own everything and still collect rent.'],
-  },
-  {
-    id: 'taxes',
-    title: 'Taxes and Free Parking',
-    lines: ['Income Tax: pay $300. Luxury Tax: pay $500.', 'Free Parking: nothing happens.'],
-  },
-  {
-    id: 'mortgages',
-    title: 'Mortgages',
-    lines: [
-      'Short of cash? Mortgage a property to the bank for half its price. You keep it, but it earns no rent.',
-      'For a city, sell all buildings in that country first.',
-      'To unmortgage, pay the mortgage value plus 10%.',
-      'You cannot build in a country while one of its cities is mortgaged.',
-    ],
-  },
-  {
-    id: 'trading',
-    title: 'Trading',
-    lines: [
-      'Any player can offer a trade to one other player, on anyone’s turn, whenever the game is between decisions: properties, Get Out of Jail cards and cash, in any mix.',
-      'Everyone sees the offer. The other player accepts it, rejects it or answers with a counter-offer, and the talks go on until one of you accepts or rejects. Nobody can be forced.',
-      'Whoever made the offer on the table can withdraw it. The game waits while an offer is on the table.',
-      'Cities in a country with buildings cannot be traded until the buildings are sold.',
-      'A mortgaged property stays mortgaged after a trade.',
-    ],
-  },
-  {
-    id: 'debt',
-    title: 'Debt and bankruptcy',
-    lines: [
-      'If you cannot pay, raise money: sell buildings, mortgage properties or make a trade.',
-      'If that is still not enough, you are bankrupt and out of the game.',
-      'Owing a player: they receive everything you have left. Owing the bank: your properties become free to buy again.',
-    ],
-  },
-  {
-    id: 'winning',
-    title: 'Winning',
-    lines: [
-      'Quick game: it ends after the round limit, or when the first player goes bankrupt. The highest net worth wins.',
-      'Normal game: the last player left wins.',
-      'Net worth is cash, plus properties at their price (mortgaged ones at half), plus buildings at cost.',
-    ],
-  },
-  {
-    id: 'controls',
-    title: 'Controls',
-    lines: [
-      'Space or Enter presses the yellow button. B buys, P passes, T trades, R opens this guide.',
-      'Hover over or tap a tile to see its details. Click a player to see what they own.',
-      'Any click skips an animation. Animation speed is in Settings.',
-    ],
-  },
-  {
-    id: 'online',
-    title: 'Playing online',
-    lines: [
-      'Create a room and send its link or 4-letter code. Friends join from any browser, phone or computer.',
-      'Everyone types a name and takes a seat. One device can hold several seats.',
-      'The host picks the settings and starts the game with 2 to 6 players.',
-      'You act only on your own decisions; everyone sees the dice, moves, cards and money live.',
-      'Bids and trade answers happen on each player’s own device.',
-      'Lost the connection? Open the link again to get your seat back. The game waits; there is no timer.',
-      'If a player is gone, the host can play for them or remove them (bankrupt to the bank): open their properties from their card or chip.',
-      'Chat with the table: on a large screen the chat is open beside the board and you can type at any time; on a phone use the Chat tab, in the lobby the Chat button. Stamps are quick reactions that land on your card.',
-      'Animation speed and sound are chosen on each device.',
-    ],
-  },
-];
-
-/** Two-line explanations behind the small help buttons (spec 14, Comfort). */
-export const QUICK_HELP: Readonly<Record<'freeStay' | 'companies' | 'airports' | 'building', { lines: [string, string]; topic: RuleTopicId }>> = {
-  freeStay: {
-    lines: ['Use a Free Stay token to skip rent on another player’s city.', 'Not for airports, companies, taxes or cards. You hold at most 3.'],
-    topic: 'freeStay',
-  },
-  companies: {
-    lines: ['Landing on someone’s company: roll two dice.', 'You pay the total times the company’s multiplier.'],
-    topic: 'companies',
-  },
-  airports: {
-    lines: [
-      'Airport rent depends on how many airports the owner holds.',
-      `From ${money(BALANCE.airportRent[0] as number)} for one up to ${money(BALANCE.airportRent[AIRPORTS.length - 1] as number)} for all ${COUNT_WORDS[AIRPORTS.length] ?? AIRPORTS.length}.`,
-    ],
-    topic: 'airports',
-  },
-  building: {
-    lines: ['Own the whole country, then land on any of its cities to build on all of them.', 'Build evenly; after 4 houses comes a hotel.'],
-    topic: 'houses',
+  get event() {
+    return byMap('Event', 'News');
   },
 };
+
+/**
+ * The rule guide for the map in play. The Myanmar map words the same rules with its own spaces
+ * (Military camp, regions, transport) and leaves out Free Stay and Vacation, which it does not use
+ * (D101). Topic ids stay the same on both maps.
+ */
+export function ruleTopics(): readonly RuleTopic[] {
+  const myanmar = onMyanmar();
+  const start = specialName('start');
+  const topics: Array<RuleTopic | null> = [
+    {
+      id: 'quickStart',
+      title: 'Quick start',
+      lines: [
+        'Roll the dice and move clockwise.',
+        'Land on a property nobody owns: buy it, or let everyone bid for it.',
+        'Land on someone else’s property: pay rent.',
+        byMap(
+          'Own every city of a country and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
+          'Own every city of a region and its rent doubles. Then, each time you land on one of its cities, you can build houses on all of them.',
+        ),
+        `Pass ${start} and collect ${money(RULES.startBonus)}.`,
+        'Quick game: the richest player after the last round wins. Normal game: the last player not bankrupt wins.',
+        'The yellow button always shows your next step.',
+      ],
+    },
+    {
+      id: 'yourTurn',
+      title: 'Your turn',
+      ordered: true,
+      lines: [
+        'Tap I’m ready, then Roll dice.',
+        'Your token moves. Do what the space says.',
+        'Before or after rolling you can trade, mortgage, or sell buildings.',
+        byMap(
+          'Rolled doubles? Roll again. Three doubles in one turn sends you to Jail.',
+          'Rolled doubles? Roll again. Three doubles in one turn sends you to the Military camp.',
+        ),
+        'Press End turn and pass the device.',
+      ],
+    },
+    {
+      id: 'worldStart',
+      title: start,
+      lines: [
+        `Collect ${money(RULES.startBonus)} each time you pass it or land on it.`,
+        byMap(
+          'You collect nothing when a card moves you backward or when you go to Jail.',
+          'You collect nothing when a card moves you backward or when you go to the Military camp.',
+        ),
+      ],
+    },
+    {
+      id: 'buying',
+      title: 'Buying and auctions',
+      switches: ['auction'],
+      lines: [
+        byMap(
+          'Land on an unowned city, airport or company and you may buy it at its price.',
+          'Land on an unowned city, transport space or company and you may buy it at its price.',
+        ),
+        'White tiles are still for sale. A tile you own takes your colour.',
+        `If you pass, it is auctioned. Everyone can bid, including you. Bids start at ${money(BALANCE.auctionMinBid)}.`,
+        'In an auction, players take turns to raise or fold. The last bidder left wins and pays the bank.',
+      ],
+    },
+    {
+      id: 'citiesRent',
+      title: 'Cities and rent',
+      lines: [
+        'Land on another player’s city and you pay its rent. The tile shows the rent you would pay right now.',
+        'A mortgaged city charges no rent.',
+        ...(myanmar ? [] : ['You can use a Free Stay token instead of paying.']),
+      ],
+    },
+    {
+      id: 'countries',
+      title: byMap('Countries', 'Regions'),
+      table: 'cityRent',
+      lines: myanmar
+        ? [
+            'A region is complete when one player owns all of its cities.',
+            'In a complete region, rent on empty cities doubles and building becomes possible.',
+          ]
+        : [
+            'A country is complete when one player owns all of its cities.',
+            'In a complete country, rent on empty cities doubles and building becomes possible.',
+          ],
+    },
+    {
+      id: 'houses',
+      title: 'Houses and hotels',
+      lines: myanmar
+        ? [
+            'You need the whole region, with none of its cities mortgaged.',
+            'Land on any city of the region, and during that move you can build on every city of it.',
+            'Build evenly: a city gets its next house only when every city in the region has as many. With one house on each, any of them can get a second.',
+            'You may build several houses in one landing if the even rule and your cash allow it.',
+            'After 4 houses you can build a hotel. A hotel costs twice the house cost.',
+          ]
+        : [
+            'You need the whole country, with none of its cities mortgaged.',
+            'Land on any city of the country, and during that move you can build on every city of it.',
+            'Build evenly: a city gets its next house only when every city in the country has as many. With one house on each, any of them can get a second.',
+            'You may build several houses in one landing if the even rule and your cash allow it.',
+            'After 4 houses you can build a hotel. A hotel costs twice the house cost.',
+          ],
+    },
+    {
+      id: 'selling',
+      title: 'Selling buildings',
+      lines: [
+        'Sell on your own turn or when you owe money. You get half the cost back.',
+        'Sell evenly, tallest city first. Selling a hotel leaves 4 houses.',
+      ],
+    },
+    {
+      id: 'airports',
+      title: byMap('Airports', 'Transport'),
+      table: 'airportRent',
+      lines: myanmar
+        ? [
+            'The two airports, the Expressway and the Muse Border Gate are the transport spaces. They never have buildings.',
+            'Rent grows with the number of transport spaces the owner holds.',
+            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned, mortgaged, or its owner is in military service).`,
+          ]
+        : ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
+    },
+    {
+      id: 'companies',
+      title: 'Companies',
+      table: 'companies',
+      lines: myanmar
+        ? [
+            `Land on another player’s company, roll two dice and pay the total times ${andList(
+              (RULES.companyMultipliers ?? []).map(String),
+            ).replace(/ and /, ' or ')}, by how many companies the owner holds.`,
+          ]
+        : ['Land on another player’s company, roll two dice and pay the total times the company’s multiplier.'],
+    },
+    {
+      id: 'cards',
+      title: byMap('Chance and Event cards', 'Chance and News cards'),
+      switches: ['chance', 'event'],
+      lines: myanmar
+        ? [
+            'Land on Chance or News to draw a card, then do what it says.',
+            'Chance mostly affects you: money, movement, merit and military service. A merit point cancels a bad Chance card.',
+            `The lottery: pay ${money(MYANMAR.lotteryTicket)} and roll two dice. 12 wins ${money(3000)}, 10 or 11 wins ${money(500)}, 7 to 9 wins ${money(100)}.`,
+            'News is Myanmar news. Some cards change rents or trading until the next turn of the player who drew it. Active news shows at the top of the screen.',
+            'Call-up exemption: keep it until you need it. You can trade it.',
+          ]
+        : [
+            'Land on Chance or Event to draw a card, then do what it says.',
+            'Chance mostly affects you: money, movement, Jail and bonus cards.',
+            'Events are world news. They can affect everyone, and some change rents or building costs for one round. Active events show at the top of the screen.',
+            'Free House: your next house is free, in a country you land in.',
+            'Get Out of Jail: keep it until you need it. You can trade it.',
+          ],
+    },
+    myanmar
+      ? null
+      : {
+          id: 'freeStay',
+          title: 'Free Stay',
+          switches: ['freeStay'],
+          lines: [
+            'You start with 3 tokens. Use one to skip the rent on another player’s city.',
+            'It does not work on airports, companies, taxes or cards.',
+            'You never hold more than 3.',
+          ],
+        },
+    {
+      id: 'jail',
+      title: byMap('Jail', 'Military service'),
+      lines: myanmar
+        ? [
+            'You are called up by the Call-up letter space, by a Chance card, or by rolling three doubles in one turn. You go to the Military camp and choose at once:',
+            `Pay a tenth of your cash, at least ${money(MYANMAR.draftPayMin)}, and you are free.`,
+            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns and collect no rent.`,
+            `Flee: ${money(MYANMAR.draftFleeCost)} takes you to the Muse Border Gate. You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
+            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns, collect no rent, and get ${money(MYANMAR.draftServeBonus)} on return.`,
+            'A merit point or a Call-up exemption card frees you at once, also at the start of a skipped turn.',
+            'Landing on the Military camp during a normal move is just visiting.',
+          ]
+        : [
+            'You go to Jail from the Go To Jail space, from a card, or by rolling three doubles in one turn.',
+            `To leave: pay ${money(BALANCE.jailFine)}, use a Get Out of Jail card, or roll doubles.`,
+            'Rolling doubles moves you out by that roll, with no extra roll.',
+            `After three failed rolls you must pay ${money(BALANCE.jailFine)} and move.`,
+            'In Jail you still collect rent, trade and bid.',
+            'Landing on the Jail space during a normal move is just visiting.',
+          ],
+    },
+    myanmar
+      ? {
+          id: 'merit',
+          title: 'Merit',
+          lines: [
+            `Land on a pagoda (Shwedagon, Kyaiktiyo or Mahamuni) and you may donate ${money(MYANMAR.meritDonation)} for 1 merit point. You keep at most ${MYANMAR.meritMax}.`,
+            'Spend a merit point to leave military service at once, to skip one rent owed to a player, or to cancel a bad Chance card.',
+            'Merit points cannot be traded.',
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'companyEvents',
+          title: 'Myanmar news and inflation',
+          lines: [
+            'Blackout: until the next turn of the player who drew it, city rents are halved and YESC earns double.',
+            'Internet cut: until then only the owner of MPT can offer trades. Offers can still be accepted or rejected.',
+            'Fuel shortage: every player skips their next turn, except the owner of Denko and players in military service.',
+            `Inflation: city rents rise ${MYANMAR.inflationStep}% for the rest of the game, and again after every ${MYANMAR.inflationEvery} rounds. The rate shows at the top of the screen. The owner of KBZ Bank pays city rent without it.`,
+            'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
+            `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
+            `A player who fled to the border receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'loans',
+          title: 'Loans',
+          lines: [
+            'Ask another player for a loan whenever the game is between decisions, even on someone else’s turn: the amount, the interest each round, the rounds to pay it back, and at least one of your properties as collateral.',
+            'The other player accepts, rejects or answers with new terms. Only one offer, trade or loan, is on the table at a time.',
+            `Interest is simple: each round adds the rate on the amount lent, up to ${MYANMAR.loanMaxMultiple} times the amount at most. The rate is at most ${MYANMAR.loanMaxRatePercent}% a round.`,
+            `Pay back on your own turn from the Loans list. Passing Start pays back ${MYANMAR.loanStartRepayPercent}% of the debt when you have the cash.`,
+            'Not paid back in time, the collateral goes to the lender. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
+            'Collateral cannot be mortgaged or traded, and its region cannot be built on, until the loan is paid back. A chain on the tile marks it.',
+          ],
+        }
+      : null,
+    myanmar
+      ? null
+      : {
+          id: 'vacation',
+          title: 'Vacation',
+          switches: ['vacation'],
+          lines: ['Land on Vacation and your next turn is skipped, once.', 'You still own everything and still collect rent.'],
+        },
+    {
+      id: 'taxes',
+      title: byMap('Taxes and Free Parking', 'Taxes, pagodas and the Refuge'),
+      lines: myanmar
+        ? [
+            `${specialName('incomeTax')}: pay ${money(RULES.incomeTax)}. ${specialName('luxuryTax')}: pay ${money(RULES.luxuryTax)}.`,
+            'Taxes and fines (paying out of military service, fleeing, the broker) go into the community pot, shown in the middle of the board and on the Refuge.',
+            'Land on the Refuge and you take everything in the pot.',
+            'Pagodas: you may donate for a merit point.',
+          ]
+        : [`Income Tax: pay ${money(RULES.incomeTax)}. Luxury Tax: pay ${money(RULES.luxuryTax)}.`, 'Free Parking: nothing happens.'],
+    },
+    {
+      id: 'mortgages',
+      title: 'Mortgages',
+      lines: [
+        'Short of cash? Mortgage a property to the bank for half its price. You keep it, but it earns no rent.',
+        byMap('For a city, sell all buildings in that country first.', 'For a city, sell all buildings in that region first.'),
+        'To unmortgage, pay the mortgage value plus 10%.',
+        byMap(
+          'You cannot build in a country while one of its cities is mortgaged.',
+          'You cannot build in a region while one of its cities is mortgaged.',
+        ),
+      ],
+    },
+    {
+      id: 'trading',
+      title: 'Trading',
+      lines: [
+        byMap(
+          'Any player can offer a trade to one other player, on anyone’s turn, whenever the game is between decisions: properties, Get Out of Jail cards and cash, in any mix.',
+          'Any player can offer a trade to one other player, on anyone’s turn, whenever the game is between decisions: properties, Call-up exemption cards and cash, in any mix.',
+        ),
+        'Everyone sees the offer. The other player accepts it, rejects it or answers with a counter-offer, and the talks go on until one of you accepts or rejects. Nobody can be forced.',
+        'Whoever made the offer on the table can withdraw it. The game waits while an offer is on the table.',
+        byMap(
+          'Cities in a country with buildings cannot be traded until the buildings are sold.',
+          'Cities in a region with buildings cannot be traded until the buildings are sold.',
+        ),
+        'A mortgaged property stays mortgaged after a trade.',
+      ],
+    },
+    {
+      id: 'debt',
+      title: 'Debt and bankruptcy',
+      lines: [
+        'If you cannot pay, raise money: sell buildings, mortgage properties or make a trade.',
+        'If that is still not enough, you are bankrupt and out of the game.',
+        'Owing a player: they receive everything you have left. Owing the bank: your properties become free to buy again.',
+      ],
+    },
+    {
+      id: 'winning',
+      title: 'Winning',
+      lines: [
+        'Quick game: it ends after the round limit, or when the first player goes bankrupt. The highest net worth wins.',
+        'Normal game: the last player left wins.',
+        'Net worth is cash, plus properties at their price (mortgaged ones at half), plus buildings at cost.',
+      ],
+    },
+    {
+      id: 'controls',
+      title: 'Controls',
+      lines: [
+        'Space or Enter presses the yellow button. B buys, P passes, T trades, R opens this guide.',
+        'Hover over or tap a tile to see its details. Click a player to see what they own.',
+        'Any click skips an animation. Animation speed is in Settings.',
+      ],
+    },
+    {
+      id: 'online',
+      title: 'Playing online',
+      lines: [
+        'Create a room and send its link or 4-letter code. Friends join from any browser, phone or computer.',
+        'Everyone types a name and takes a seat. One device can hold several seats.',
+        'The host picks the settings and starts the game with 2 to 6 players.',
+        'You act only on your own decisions; everyone sees the dice, moves, cards and money live.',
+        'Bids and trade answers happen on each player’s own device.',
+        'Lost the connection? Open the link again to get your seat back. The game waits; there is no timer.',
+        'If a player is gone, the host can play for them or remove them (bankrupt to the bank): open their properties from their card or chip.',
+        'Chat with the table: on a large screen the chat is open beside the board and you can type at any time; on a phone use the Chat tab, in the lobby the Chat button. Stamps are quick reactions that land on your card.',
+        'Animation speed and sound are chosen on each device.',
+      ],
+    },
+  ];
+  return topics.filter((t): t is RuleTopic => t !== null);
+}
+
+/** Two-line explanations behind the small help buttons (spec 14, Comfort). */
+/** Two-line explanations for the map in play. */
+export function quickHelp(): Readonly<Record<'freeStay' | 'companies' | 'airports' | 'building', { lines: [string, string]; topic: RuleTopicId }>> {
+  const myanmar = onMyanmar();
+  return {
+    freeStay: {
+      lines: ['Use a Free Stay token to skip rent on another player’s city.', 'Not for airports, companies, taxes or cards. You hold at most 3.'],
+      topic: 'freeStay',
+    },
+    companies: {
+      lines: myanmar
+        ? ['Landing on someone’s company: roll two dice.', 'You pay the total times 25, 50, 100 or 200, by how many companies the owner holds.']
+        : ['Landing on someone’s company: roll two dice.', 'You pay the total times the company’s multiplier.'],
+      topic: 'companies',
+    },
+    airports: {
+      lines: [
+        byMap('Airport rent depends on how many airports the owner holds.', 'Transport rent depends on how many transport spaces the owner holds.'),
+        `From ${money(RULES.airportRent[0] as number)} for one up to ${money(RULES.airportRent[AIRPORTS.length - 1] as number)} for all ${COUNT_WORDS[AIRPORTS.length] ?? AIRPORTS.length}.`,
+      ],
+      topic: 'airports',
+    },
+    building: {
+      lines: [
+        byMap(
+          'Own the whole country, then land on any of its cities to build on all of them.',
+          'Own the whole region, then land on any of its cities to build on all of them.',
+        ),
+        'Build evenly; after 4 houses comes a hotel.',
+      ],
+      topic: 'houses',
+    },
+  };
+}
 
 export const RULE_LINK = 'Open the rule guide';

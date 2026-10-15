@@ -3,6 +3,7 @@
 import { ArrowLeft, Check, Copy, Crown, LogIn, LogOut, MessageCircle, Play, Plus, Share2, UserRound, Wifi, WifiOff, X } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { SETUP } from '../../data/balance';
+import { setActiveMap } from '../../data/board';
 import { SEATS } from '../../data/players';
 import { MAX_SEATS, MIN_SEATS, type RoomSettings } from '../../online/protocol';
 import { Button } from '../components/Button';
@@ -10,7 +11,7 @@ import { ChatPanel, ChatPreview, StampLayer, UnreadBadge } from '../components/C
 import { VoiceBadge, VoiceButton } from '../components/Voice';
 import { PHONE_QUERY, useMediaQuery } from '../hooks';
 import { ColorPicker } from '../components/ColorPicker';
-import { ModeFields, RuleToggles, type GameOptions } from '../components/Fields';
+import { LanguageField, MapField, ModeFields, RuleToggles, type GameOptions } from '../components/Fields';
 import { TokenChip } from '../components/glyphs';
 import { OceanArt } from '../components/OceanArt';
 import { Sheet } from '../overlays/Overlays';
@@ -286,6 +287,8 @@ export function LobbyScreen() {
   const count = view.seats.length;
   const canStart = count >= MIN_SEATS && count <= MAX_SEATS;
   const options: GameOptions = view.settings;
+  // The room's map is the map in play in the lobby: money shows in its currency (D101).
+  setActiveMap(options.map);
   const change = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => {
     void changeRoomSettings({ [key]: value } as Partial<RoomSettings>).then((err) => err && showToast(err));
   };
@@ -373,9 +376,11 @@ export function LobbyScreen() {
           </section>
           <section className="setup-col" aria-label={T.online.settings}>
             {!host && <p className="field-hint lobby-host-only">{T.online.hostOnly}</p>}
+            <MapField value={options.map} onChange={(v) => change('map', v)} disabled={!host} />
             <ModeFields options={options} onChange={change} disabled={!host} />
           </section>
           <section className="setup-col" aria-label={T.setup.rules}>
+            {options.map === 'myanmar' && <LanguageField />}
             <RuleToggles options={options} onChange={change} disabled={!host} />
           </section>
         </div>

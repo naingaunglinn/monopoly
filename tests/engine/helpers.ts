@@ -13,8 +13,7 @@ import {
   type Settings,
 } from '../../src/engine';
 import { cloneState } from '../../src/engine/core';
-import { BOARD_SIZE } from '../../src/data/balance';
-import { BOARD, PROPERTY_SPACES, propertyName, type SpaceType } from '../../src/data/board';
+import { BOARD, LAYOUT, PROPERTY_SPACES, propertyName, type SpaceType } from '../../src/data/board';
 
 /** The index of the city, airport or company with this name on the board in play. */
 export function spaceOf(name: string): number {
@@ -96,7 +95,7 @@ export function nextDice(s: GameState, a: number, b: number): GameState {
 }
 
 export function forceCard(s: GameState, cardId: string): GameState {
-  const deck = cardId.startsWith('chance-') ? 'chance' : 'event';
+  const deck = cardId.startsWith('chance-') || cardId.startsWith('mm-chance-') ? 'chance' : 'event';
   return dbg(s, { op: 'forceCard', deck, cardId });
 }
 
@@ -115,7 +114,7 @@ export function rollTo(
   dice: [number, number] = target >= 7 ? [3, 4] : target >= 3 ? [1, target - 1] : [3, 4],
 ): { state: GameState; events: GameEvent[] } {
   const steps = dice[0] + dice[1];
-  const from = (target - steps + BOARD_SIZE) % BOARD_SIZE;
+  const from = (target - steps + LAYOUT.size) % LAYOUT.size;
   return rollWith(at(s, s.turn.currentPlayerIndex, from), dice[0], dice[1]);
 }
 

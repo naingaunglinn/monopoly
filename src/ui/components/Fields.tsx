@@ -1,8 +1,10 @@
 // Form fields shared by the local setup screen and the online lobby: segmented choices, switches,
-// and the game options of spec section 8 (starting money, mode, round limit, house rules).
+// and the game options of spec section 8 (map, starting money, mode, round limit, house rules).
 import type { ReactNode } from 'react';
 import { SETUP } from '../../data/balance';
+import { MAP_IDS } from '../../data/board';
 import type { Settings } from '../../engine';
+import { setPrefs, usePrefs } from '../prefs';
 import { money, T } from '../strings';
 
 export function Segmented<V extends string | number>({
@@ -13,6 +15,8 @@ export function Segmented<V extends string | number>({
   render,
   name,
   disabled = false,
+  hideLabel = false,
+  className = '',
 }: {
   label: string;
   value: V;
@@ -21,10 +25,13 @@ export function Segmented<V extends string | number>({
   render: (v: V) => string;
   name: string;
   disabled?: boolean;
+  /** The label is read out but not shown (the choices speak for themselves). */
+  hideLabel?: boolean;
+  className?: string;
 }) {
   return (
-    <fieldset className="field" disabled={disabled}>
-      <legend className="field-label">{label}</legend>
+    <fieldset className={`field ${className}`} disabled={disabled}>
+      <legend className={hideLabel ? 'sr-only' : 'field-label'}>{label}</legend>
       <div className="segmented" role="radiogroup" aria-label={label}>
         {options.map((opt) => (
           <label key={String(opt)} className={`segment ${opt === value ? 'is-on' : ''}`}>
@@ -72,10 +79,58 @@ export function Toggle({
 
 export type GameOptions = Pick<
   Settings,
-  'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer'
+  'map' | 'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer'
 >;
 
 type Change = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => void;
+
+/**
+ * The language of the Myanmar map's city names and card texts (spec 7.6, D101). It belongs to this
+ * device, not to the game: each player reads the board in their own language.
+ */
+export function LanguageField({ compact = false }: { compact?: boolean }) {
+  const { language } = usePrefs();
+  return (
+    <fieldset className={`field ${compact ? 'compact' : ''}`}>
+      <legend className="field-label">{T.setup.language}</legend>
+      <div className="segmented" role="radiogroup" aria-label={T.setup.language}>
+        {(['en', 'my'] as const).map((lang) => (
+          <label key={lang} className={`segment ${language === lang ? 'is-on' : ''}`}>
+            <input type="radio" name="language" value={lang} checked={language === lang} onChange={() => setPrefs({ language: lang })} />
+            <span lang={lang}>{T.setup.languages[lang]}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** The map: World or Myanmar (D101). On the setup screen it sits beside the title, unlabelled. */
+export function MapField({
+  value,
+  onChange,
+  disabled = false,
+  inHeader = false,
+}: {
+  value: GameOptions['map'];
+  onChange: (v: GameOptions['map']) => void;
+  disabled?: boolean;
+  inHeader?: boolean;
+}) {
+  return (
+    <Segmented
+      name="map"
+      label={T.setup.map}
+      value={value}
+      options={MAP_IDS}
+      onChange={onChange}
+      render={(v) => T.setup.maps[v]}
+      disabled={disabled}
+      hideLabel={inHeader}
+      className={inHeader ? 'map-field' : ''}
+    />
+  );
+}
 
 /** Starting money, game mode (with its one-line explanation) and the Quick round limit. */
 export function ModeFields({ options, onChange, disabled = false }: { options: GameOptions; onChange: Change; disabled?: boolean }) {
@@ -133,8 +188,13 @@ export function RuleToggles({
     <fieldset className="field">
       <legend className="field-label">{T.setup.rules}</legend>
       <div className="toggle-list">
-        <Toggle id="opt-freestay" label={T.setup.freeStay} checked={options.freeStay} onChange={(v) => onChange('freeStay', v)} disabled={disabled} />
-        <Toggle id="opt-vacation" label={T.setup.vacation} checked={options.vacation} onChange={(v) => onChange('vacation', v)} disabled={disabled} />
+        {/* The Myanmar map has no Free Stay tokens and no Vacation corner (D101). */}
+        {options.map !== 'myanmar' && (
+          <>
+            <Toggle id="opt-freestay" label={T.setup.freeStay} checked={options.freeStay} onChange={(v) => onChange('freeStay', v)} disabled={disabled} />
+            <Toggle id="opt-vacation" label={T.setup.vacation} checked={options.vacation} onChange={(v) => onChange('vacation', v)} disabled={disabled} />
+          </>
+        )}
         <Toggle id="opt-auction" label={T.setup.auction} checked={options.auction} onChange={(v) => onChange('auction', v)} disabled={disabled} />
         <Toggle id="opt-chance" label={T.setup.chance} checked={options.chance} onChange={(v) => onChange('chance', v)} disabled={disabled} />
         <Toggle id="opt-event" label={T.setup.event} checked={options.event} onChange={(v) => onChange('event', v)} disabled={disabled} />

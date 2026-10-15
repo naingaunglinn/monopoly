@@ -1,6 +1,6 @@
 // Creating a new game (spec 5.1 and section 8).
 import { BALANCE, BOARD_SHAPE, BOARD_SIZE, SETUP } from '../data/balance.js';
-import { isProperty } from '../data/board.js';
+import { isProperty, LAYOUT, MAPS, useMap, type MapId } from '../data/board.js';
 import { PLAYER_COLORS, SEATS } from '../data/players.js';
 import { defaultPlayerName } from '../ui/strings.js';
 import { buildDecks } from './cards.js';
@@ -10,19 +10,32 @@ import { normalizeSeed, randomInt } from './rng.js';
 import type { BoardSettings, GameState, Player, Settings } from './types.js';
 
 /**
- * Version 2 added settings.playerColors, version 3 settings.board; older saves are migrated on load
- * (save.ts).
+ * Version 2 added settings.playerColors, version 3 settings.board, version 4 the Myanmar map (the
+ * map setting, merit and military service, the economy and loans); older saves are migrated on
+ * load (save.ts).
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
-/** The board in play, as the settings record it. */
+/** The World board in play, as the settings record it. */
 export const THIS_BOARD: Readonly<BoardSettings> = { spaces: BOARD_SIZE, shape: BOARD_SHAPE };
 
-/** True when settings' board is the board in play (a game from another board cannot go on). */
-export function isThisBoard(board: unknown): boolean {
+/** The board of a map, as the settings record it: the World board in play, or Myanmar's 48 spaces. */
+export function boardOf(map: MapId): BoardSettings {
+  if (map === 'myanmar') return { spaces: MAPS.myanmar.layout.size, shape: MAPS.myanmar.layout.shape };
+  return { ...THIS_BOARD };
+}
+
+/**
+ * True when these settings' board is the board of their map in this version (a game from another
+ * board cannot go on). Settings from before the map existed are on the World map.
+ */
+export function isThisBoard(settings: unknown): boolean {
+  if (typeof settings !== 'object' || settings === null) return false;
+  const { board, map } = settings as Record<string, unknown>;
   if (typeof board !== 'object' || board === null) return false;
+  const want = boardOf(map === 'myanmar' ? 'myanmar' : 'world');
   const b = board as Record<string, unknown>;
-  return b.spaces === THIS_BOARD.spaces && b.shape === THIS_BOARD.shape;
+  return b.spaces === want.spaces && b.shape === want.shape;
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = {
@@ -41,6 +54,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   passDevice: true,
   animationSpeed: 'normal',
   board: THIS_BOARD,
+  map: 'world',
 };
 
 /**
@@ -69,6 +83,9 @@ function normalizeColors(input: unknown): string[] {
 /** Fills gaps and clamps every option to the values the setup screen offers. */
 export function normalizeSettings(input: Partial<Settings> = {}): Settings {
   const merged: Settings = { ...DEFAULT_SETTINGS, ...input, playerNames: [] };
+  const map: MapId = merged.map === 'myanmar' ? 'myanmar' : 'world';
+  // The Myanmar map has no Free Stay tokens (merit replaces them) and no Vacation (D101).
+  const myanmar = map === 'myanmar';
   const playerCount = SETUP.playerCounts.includes(merged.playerCount) ? merged.playerCount : SETUP.defaultPlayerCount;
   const names = input.playerNames ?? [];
   const playerNames = SEATS.map((_, i) => {
@@ -88,8 +105,8 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
       merged.roundLimit <= SETUP.maxRoundLimit
         ? merged.roundLimit
         : SETUP.defaultRoundLimit,
-    freeStay: merged.freeStay !== false,
-    vacation: merged.vacation !== false,
+    freeStay: !myanmar && merged.freeStay !== false,
+    vacation: !myanmar && merged.vacation !== false,
     auction: merged.auction !== false,
     chance: merged.chance !== false,
     event: merged.event !== false,
@@ -97,7 +114,8 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
     passDevice: merged.passDevice !== false,
     animationSpeed:
       merged.animationSpeed === 'fast' || merged.animationSpeed === 'off' ? merged.animationSpeed : 'normal',
-    board: { ...THIS_BOARD },
+    board: boardOf(map),
+    map,
   };
 }
 
@@ -120,15 +138,18 @@ function newPlayer(seat: number, settings: Settings): Player {
     bankrupt: false,
     bankruptOrder: null,
     recap: [],
+    merit: 0,
+    draft: null,
   };
 }
 
 /** A new game, already at the first player's turn start. Same settings + seed = same game. */
 export function createGame(input: Partial<Settings>, seed: number): GameState {
   const settings = normalizeSettings(input);
+  useMap(settings);
   const s: GameState = {
     players: Array.from({ length: settings.playerCount }, (_, seat) => newPlayer(seat, settings)),
-    properties: Array.from({ length: BOARD_SIZE }, (_, i) =>
+    properties: Array.from({ length: LAYOUT.size }, (_, i) =>
       isProperty(i) ? { owner: null, level: 0, mortgaged: false } : null,
     ),
     decks: { chanceDeck: [], chanceDiscard: [], eventDeck: [], eventDiscard: [] },
@@ -143,7 +164,7 @@ export function createGame(input: Partial<Settings>, seed: number): GameState {
       dice: null,
       recap: [],
     },
-    flow: { phase: 'PassDevice', pending: null, trade: null, notices: [], debts: [], resume: null, modifiers: [] },
+    flow: { phase: 'PassDevice', pending: null, trade: null, loan: null, notices: [], debts: [], resume: null, modifiers: [] },
     meta: {
       schemaVersion: SCHEMA_VERSION,
       settings,
@@ -157,6 +178,7 @@ export function createGame(input: Partial<Settings>, seed: number): GameState {
       forcedCards: { chance: null, event: null },
       stats: { housesBuilt: 0, hotelsBuilt: 0, bankruptcies: 0 },
     },
+    economy: { pot: 0, inflation: 0, loans: [], loanSeq: 0 },
   };
   const c: Ctx = { s, events: [] };
   s.decks = buildDecks(s);

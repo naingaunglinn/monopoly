@@ -3,6 +3,11 @@
 import type { CountryId } from './countries.js';
 
 export type CompanyId =
+  /** Myanmar map (D101). */
+  | 'yesc'
+  | 'denko'
+  | 'mpt'
+  | 'kbz'
   | 'transport'
   | 'oil'
   | 'shipping'

@@ -1,7 +1,7 @@
 // Turn flow (spec 5.2): turn start, rolls, movement, landing, Jail, Vacation, turn passing and
 // game end. Every function here works on a draft inside reduce().
-import { BALANCE, BOARD_SIZE } from '../data/balance.js';
-import { BOARD, COUNTRY_CITIES, propertyKind, SPACES } from '../data/board.js';
+import { BALANCE, MYANMAR, roundMoney } from '../data/balance.js';
+import { BOARD, COUNTRY_CITIES, LAYOUT, propertyKind, RULES, SPACES } from '../data/board.js';
 import { startAuction } from './auction.js';
 import { discardCard, drawCard } from './cards.js';
 import {
@@ -16,6 +16,8 @@ import {
   prop,
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { defaultLoans, regionPledged, startRepayments } from './loans.js';
+import { callUp, inService, offerDonation, remittance, roundInflation, takePot, tollsOnPath } from './myanmar.js';
 import { computeWinners } from './networth.js';
 import { airportRent, cityRent } from './rent.js';
 import { rollDie } from './rng.js';
@@ -63,7 +65,11 @@ export function beginTurn(c: Ctx, seat: number): void {
 export function enterTurnStart(c: Ctx): void {
   const s = c.s;
   const p = currentPlayer(s);
-  if (p.skipNextTurn) {
+  if (p.draft) {
+    // Myanmar map: a turn in military service (hiding, serving or at the border) is skipped (D102).
+    s.flow.phase = 'TurnStart';
+    s.flow.pending = { kind: 'draftSkip' };
+  } else if (p.skipNextTurn) {
     s.flow.phase = 'TurnStart';
     s.flow.pending = { kind: 'vacationSkip' };
   } else if (p.inJail) {
@@ -102,6 +108,9 @@ export function passTurn(c: Ctx): void {
     }
     s.turn.roundNumber += 1;
     emit(c, { type: 'roundStarted', round: s.turn.roundNumber });
+    roundInflation(c);
+    remittance(c);
+    defaultLoans(c);
   }
   beginTurn(c, next);
 }
@@ -113,6 +122,7 @@ export function endGame(c: Ctx, reason: EndReason): void {
   s.flow.phase = 'GameOver';
   s.flow.pending = null;
   s.flow.trade = null;
+  s.flow.loan = null;
   s.flow.debts = [];
   s.flow.resume = null;
   s.turn.landedCity = null;
@@ -148,7 +158,7 @@ export function movementRoll(c: Ctx): void {
   moveSteps(c, p.id, dice[0] + dice[1], 'dice');
 }
 
-/** Moves one space at a time. Forward moves pay the World Start pay (BALANCE.startBonus) for passing or landing on it. */
+/** Moves one space at a time. Forward moves pay the map's Start pay (RULES.startBonus) for passing or landing on it. */
 export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 'card'): void {
   const p = playerById(c.s, playerId);
   const direction: 1 | -1 = steps >= 0 ? 1 : -1;
@@ -157,21 +167,33 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
   let pos = from;
   let passedStart = false;
   for (let i = 0; i < Math.abs(steps); i++) {
-    pos = (pos + direction + BOARD_SIZE) % BOARD_SIZE;
+    pos = (pos + direction + LAYOUT.size) % LAYOUT.size;
     path.push(pos);
     if (direction === 1 && pos === SPACES.start) passedStart = true;
   }
   p.position = pos;
   emit(c, { type: 'moved', player: playerId, from, to: pos, path, direction, by });
   if (passedStart) {
-    changeCash(c, playerId, BALANCE.startBonus, 'start');
-    emit(c, { type: 'passedStart', player: playerId, amount: BALANCE.startBonus });
+    changeCash(c, playerId, RULES.startBonus, 'start');
+    emit(c, { type: 'passedStart', player: playerId, amount: RULES.startBonus });
+    // Myanmar map: a quarter of each loan is paid back from it, when the cash is there (D104).
+    startRepayments(c, playerId);
+  }
+  // Myanmar map: tolls for the roads and gates passed are paid first, then the landing (D103).
+  const tolls = tollsOnPath(c.s, playerId, path);
+  if (tolls.length > 0) {
+    for (const toll of tolls) {
+      queueDebt(c, { debtor: playerId, creditor: toll.owner, amount: MYANMAR.toll, reason: { kind: 'toll', space: toll.space } });
+    }
+    c.s.flow.resume = { kind: 'landing', rentFactor: c.rentFactor ?? null };
+    settleDebts(c);
+    return;
   }
   resolveLanding(c);
 }
 
 /** Moves straight to a space without passing World Start (Jail, Vacation). */
-export function teleport(c: Ctx, playerId: number, to: number, reason: 'jail' | 'vacation' | 'debug'): void {
+export function teleport(c: Ctx, playerId: number, to: number, reason: 'jail' | 'vacation' | 'flee' | 'debug'): void {
   const p = playerById(c.s, playerId);
   const from = p.position;
   p.position = to;
@@ -204,7 +226,7 @@ export function resolveLanding(c: Ctx): void {
       else afterResolution(c);
       return;
     case 'tax': {
-      const amount = space.tax === 'income' ? BALANCE.incomeTax : BALANCE.luxuryTax;
+      const amount = space.tax === 'income' ? RULES.incomeTax : RULES.luxuryTax;
       setRentDue(c, {
         space: space.index,
         payer: p.id,
@@ -220,7 +242,13 @@ export function resolveLanding(c: Ctx): void {
       return;
     case 'vacation':
       if (s.meta.settings.vacation) startVacation(c, p.id);
+      // Myanmar map: the Refuge takes the community pot (D103).
+      takePot(c);
       afterResolution(c);
+      return;
+    case 'temple':
+      // Myanmar map: a donation for merit is offered (D102).
+      if (!offerDonation(c, space.index)) afterResolution(c);
       return;
     default:
       // World Start (paid while moving), Jail (just visiting), Free Parking.
@@ -247,18 +275,28 @@ function resolveProperty(c: Ctx, space: number): void {
     return;
   }
   const kind = propertyKind(space);
+  // Myanmar map: an owner hiding or serving in the army collects no rent (D102).
+  const owner = s.players[ps.owner];
+  if (owner && inService(owner)) {
+    const amount = kind === 'city' ? cityRent(s, space, p.id).amount : kind === 'airport' ? airportRent(s, space).amount : 0;
+    emit(c, { type: 'rentWaived', player: p.id, space, owner: ps.owner, amount, why: 'draft' });
+    afterResolution(c);
+    return;
+  }
   if (kind === 'company') {
     s.flow.phase = 'CompanyRoll';
     s.flow.pending = { kind: 'companyRoll', space, owner: ps.owner };
     return;
   }
-  const quote = kind === 'city' ? cityRent(s, space) : airportRent(s, space);
+  const quote = kind === 'city' ? cityRent(s, space, p.id) : airportRent(s, space);
+  // A card that moved the player here may multiply the rent (Myanmar's nearest airport card).
+  const extra = c.rentFactor ?? null;
   setRentDue(c, {
     space,
     payer: p.id,
     creditor: ps.owner,
-    amount: quote.amount,
-    calc: quote.calc,
+    amount: extra === null ? quote.amount : roundMoney(quote.amount * extra),
+    calc: extra === null || quote.calc.kind === 'tax' ? quote.calc : { ...quote.calc, factor: (quote.calc.factor ?? 1) * extra },
     freeStayAllowed: kind === 'city' && s.meta.settings.freeStay && p.freeStay > 0,
   });
 }
@@ -291,6 +329,8 @@ export function canOfferBuild(s: GameState): boolean {
   if (p.position !== space || p.inJail) return false;
   const country = countryOf(space);
   if (country === null || !ownsCountry(s, p.id, country)) return false;
+  // Myanmar map: a region with a city pledged for a loan cannot be built on (D104).
+  if (regionPledged(s, space) !== null) return false;
   return COUNTRY_CITIES[country].some((sp) => (s.properties[sp]?.level ?? 0) < BALANCE.hotelLevel);
 }
 
@@ -316,6 +356,11 @@ export function endOfMove(c: Ctx): void {
 // Jail (5.11) and Vacation (5.12)
 
 export function sendToJail(c: Ctx, reason: 'space' | 'card' | 'doubles'): void {
+  // The Myanmar map calls the player up for military service instead (D102).
+  if (RULES.conscription) {
+    callUp(c, reason);
+    return;
+  }
   const s = c.s;
   const p = currentPlayer(s);
   teleport(c, p.id, SPACES.jail, 'jail');

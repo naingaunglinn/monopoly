@@ -2,10 +2,11 @@
 // straight JSON round trip.
 import type { BoardShape } from '../data/balance.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
-import type { TaxKind } from '../data/board.js';
+import type { CountryId } from '../data/countries.js';
+import type { MapId, TaxKind } from '../data/board.js';
 import type { TokenKind } from '../data/players.js';
 
-export type { DeckId, ModifierType, TokenKind };
+export type { DeckId, MapId, ModifierType, TokenKind };
 
 /** The phase state machine has exactly these values (spec section 9). */
 export const PHASES = [
@@ -51,8 +52,10 @@ export interface Settings {
   randomFirstPlayer: boolean;
   passDevice: boolean;
   animationSpeed: AnimationSpeed;
-  /** Always the board in play: the code sets it, never a player. */
+  /** Always the board of the map: the code sets it, never a player. */
   board: BoardSettings;
+  /** The map: the World board, or the Myanmar map (D101). */
+  map: MapId;
 }
 
 export type MoneyReason =
@@ -70,7 +73,18 @@ export type MoneyReason =
   | 'jailFine'
   | 'trade'
   | 'bankruptcy'
-  | 'debug';
+  | 'debug'
+  /** Myanmar map: paying or fleeing military service, and the bonus for serving (D102). */
+  | 'draft'
+  /** Myanmar map: a donation for merit (D102). */
+  | 'merit'
+  /** Myanmar map (D103): tolls, the community pot, money sent home from the border, the lottery. */
+  | 'toll'
+  | 'pot'
+  | 'remittance'
+  | 'lottery'
+  /** Myanmar map: a loan paid out or paid back (D104). */
+  | 'loan';
 
 /** Something that changed a player's cash while it was not their turn (shown at turn start). */
 export interface RecapItem {
@@ -102,6 +116,62 @@ export interface Player {
   /** Order of elimination (1 = first out), for ranking. */
   bankruptOrder: number | null;
   recap: RecapItem[];
+  /** Myanmar map: merit points from pagoda donations, 0 to 3 (D102). Always 0 on the World map. */
+  merit: number;
+  /** Myanmar map: military service in progress (D102). Always null on the World map. */
+  draft: Draft | null;
+}
+
+/** How a player called up for military service chose to go through it (spec 7.1). */
+export type DraftStatus = 'hiding' | 'serving' | 'fled';
+
+export interface Draft {
+  status: DraftStatus;
+  /** Turns still to skip. */
+  turns: number;
+}
+
+/** A loan between two players (spec 7.11, D105). */
+export interface Loan {
+  id: number;
+  lender: number;
+  borrower: number;
+  /** The amount lent. */
+  principal: number;
+  /** Simple interest per round, in percent of the amount lent. */
+  ratePercent: number;
+  /** Rounds until it must be paid back. */
+  term: number;
+  /** The round it was made in. */
+  startRound: number;
+  /** Properties pledged: they go to the lender if it is not paid back in time. */
+  collateral: number[];
+  /** Paid back so far. */
+  repaid: number;
+}
+
+/** A loan asked for or offered, waiting for the other player's answer, like a trade offer. */
+export interface LoanOffer {
+  /** Who made this offer, and who answers it. */
+  from: number;
+  to: number;
+  lender: number;
+  borrower: number;
+  amount: number;
+  ratePercent: number;
+  term: number;
+  collateral: number[];
+}
+
+/** Money that belongs to no player: the Myanmar map's community pot, inflation and loans. */
+export interface Economy {
+  /** Taxes and fines, waiting for the next player to reach the Refuge (D104). */
+  pot: number;
+  /** City rents are this many percent higher (D103). */
+  inflation: number;
+  loans: Loan[];
+  /** Id of the next loan. */
+  loanSeq: number;
 }
 
 export interface PropertyState {
@@ -173,13 +243,24 @@ export type Pending =
   | { kind: 'companyRoll'; space: number; owner: number }
   | { kind: 'card'; deck: DeckId; cardId: string }
   | { kind: 'build'; space: number }
-  | { kind: 'debt' };
+  | { kind: 'debt' }
+  /** Myanmar map: just called up, the player chooses how to deal with military service (D102). */
+  | { kind: 'draftChoice' }
+  /** Myanmar map: a turn spent hiding, serving or at the border is skipped (D102). */
+  | { kind: 'draftSkip' }
+  /** Myanmar map: landed on a pagoda, the player may donate for merit (D102). */
+  | { kind: 'donation'; space: number };
+
+/** The five ways out of military service, and the Call-up exemption card (spec 7.1, D102). */
+export type DraftChoice = 'pay' | 'hide' | 'flee' | 'serve' | 'merit' | 'card';
 
 export type DebtReason =
   | { kind: 'rent'; space: number }
   | { kind: 'tax'; tax: TaxKind }
   | { kind: 'card'; cardId: string }
-  | { kind: 'jailFine' };
+  | { kind: 'jailFine' }
+  /** Myanmar map: passing a toll road or gate (D103). */
+  | { kind: 'toll'; space: number };
 
 export interface DebtItem {
   debtor: number;
@@ -193,7 +274,9 @@ export interface DebtItem {
 export type Resume =
   | { kind: 'afterResolution' }
   | { kind: 'jailMove'; total: number }
-  | { kind: 'passTurn' };
+  | { kind: 'passTurn' }
+  /** Myanmar map: tolls paid on the way, the landing is resolved now (D103). */
+  | { kind: 'landing'; rentFactor: number | null };
 
 export type Notice =
   | { kind: 'vacation'; player: number }
@@ -229,6 +312,8 @@ export interface FlowState {
    * sees it; the game waits until it is answered or withdrawn.
    */
   trade: TradeOffer | null;
+  /** Myanmar map: a loan asked for or offered, on the table like a trade (D105). */
+  loan: LoanOffer | null;
   /** Acknowledgement overlays (vacation, bankruptcy). They block other actions until OK. */
   notices: Notice[];
   /** Payments waiting to be made, in order. The head is the one being settled. */
@@ -277,6 +362,7 @@ export interface GameState {
   turn: TurnState;
   flow: FlowState;
   meta: MetaState;
+  economy: Economy;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -320,6 +406,27 @@ export type Action =
   | { type: 'counterTrade'; offer: TradeOffer }
   /** The player who made the offer on the table takes it back (D99). */
   | { type: 'withdrawTrade' }
+  /** Myanmar map (D102): the choice on being called up. */
+  | { type: 'draftChoose'; how: DraftChoice }
+  /** Myanmar map: leave military service now, at the start of a skipped turn. */
+  | { type: 'leaveDraft'; how: 'merit' | 'card' }
+  /** Myanmar map: donate at a pagoda for a merit point, or not. */
+  | { type: 'donate'; give: boolean }
+  /** Myanmar map: spend a merit point to skip this rent or cancel this bad Chance card. */
+  | { type: 'useMerit' }
+  /** Myanmar map: buy the lottery ticket on the card (D103). */
+  | { type: 'buyTicket' }
+  /** Myanmar map (D104): ask another player for a loan (`offer.from` is the borrower). */
+  | { type: 'requestLoan'; offer: LoanOffer }
+  /** The answer to the loan offer on the table, with new terms back the other way. */
+  | { type: 'counterLoan'; offer: LoanOffer }
+  | { type: 'respondLoan'; accept: boolean }
+  /** The player who made the loan offer on the table takes it back. */
+  | { type: 'withdrawLoan' }
+  /** The borrower pays back part or all of a loan on their own turn. */
+  | { type: 'repayLoan'; loanId: number; amount: number }
+  /** Myanmar map: pay the broker on the card instead of going to the Military camp. */
+  | { type: 'brokerPay' }
   | { type: 'endTurn' }
   | { type: 'setPassDevice'; on: boolean }
   | { type: 'setAnimationSpeed'; speed: AnimationSpeed }
@@ -331,9 +438,11 @@ export type ActionType = Action['type'];
 
 /** legalActions() lists concrete actions, plus trade templates the caller fills in. */
 export type LegalAction =
-  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' }>
+  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' } | { type: 'requestLoan' } | { type: 'counterLoan' }>
   | { type: 'proposeTrade'; offer: null }
-  | { type: 'counterTrade'; offer: null };
+  | { type: 'counterTrade'; offer: null }
+  | { type: 'requestLoan'; offer: null }
+  | { type: 'counterLoan'; offer: null };
 
 // ---------------------------------------------------------------------------------------------
 // Events: what just happened, for animation and the log. State is final when they are emitted.
@@ -344,9 +453,9 @@ export type GameEvent =
   | { type: 'turnStarted'; player: number }
   | { type: 'turnSkipped'; player: number }
   | { type: 'turnEnded'; player: number }
-  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company'; doubles: boolean }
+  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company' | 'lottery'; doubles: boolean }
   | { type: 'moved'; player: number; from: number; to: number; path: number[]; direction: 1 | -1; by: 'dice' | 'card' }
-  | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'debug' }
+  | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'flee' | 'debug' }
   | { type: 'passedStart'; player: number; amount: number }
   | { type: 'landed'; player: number; space: number }
   | { type: 'money'; player: number; delta: number; reason: MoneyReason; counterparty: number | null }
@@ -393,6 +502,35 @@ export type GameEvent =
   | { type: 'playerRemoved'; player: number }
   | { type: 'gameOver'; winners: number[]; reason: EndReason }
   | { type: 'settingChanged'; setting: 'passDevice' | 'animationSpeed' }
+  // Myanmar map (D102)
+  | { type: 'draftChosen'; player: number; how: DraftChoice; cost: number }
+  | { type: 'draftEnded'; player: number; how: 'done' | 'merit' | 'card'; bonus: number }
+  | { type: 'meritGained'; player: number; merit: number }
+  /** Rent not collected: the owner is in military service, or the payer spent a merit point. */
+  | { type: 'rentWaived'; player: number; space: number; owner: number; amount: number; why: 'draft' | 'merit' }
+  | { type: 'cardCancelled'; player: number; cardId: string }
+  /** Fuel shortage: these players skip their next turn. */
+  | { type: 'fuelShortage'; players: number[]; cardId: string }
+  | { type: 'inflationRose'; rate: number; by: 'round' | 'card' }
+  // Myanmar map (D103)
+  | { type: 'tollPaid'; from: number; to: number; space: number; amount: number }
+  | { type: 'potAdded'; player: number; amount: number; pot: number }
+  | { type: 'potTaken'; player: number; amount: number }
+  | { type: 'remittance'; player: number; amount: number }
+  | { type: 'lotteryDrawn'; player: number; dice: Dice; total: number; prize: number }
+  | { type: 'earthquake'; die: number; region: CountryId; spaces: number[] }
+  // Myanmar map: loans (D104)
+  | { type: 'loanRequested'; from: number; to: number }
+  | { type: 'loanCountered'; from: number; to: number }
+  | { type: 'loanRejected'; from: number; to: number }
+  | { type: 'loanWithdrawn'; from: number; to: number }
+  | { type: 'loanCancelled'; from: number; to: number }
+  | { type: 'loanAccepted'; loan: Loan }
+  | { type: 'loanRepaid'; loanId: number; borrower: number; lender: number; amount: number; left: number; auto: boolean }
+  /** Unpaid at the end of its term, or the borrower went bankrupt: the collateral goes to the lender. */
+  | { type: 'loanDefaulted'; loanId: number; borrower: number; lender: number; collateral: number[]; why: 'term' | 'bankruptcy' }
+  /** The lender went bankrupt: the loan is cancelled and its collateral freed. */
+  | { type: 'loanForgiven'; loanId: number; borrower: number; lender: number }
   | { type: 'debugApplied'; op: DebugOp['op'] };
 
 export type GameEventType = GameEvent['type'];
@@ -433,7 +571,17 @@ export type ErrorCode =
   | 'tradeCash'
   | 'tradeCards'
   | 'noUnmortgageInDebt'
-  | 'invalidAction';
+  | 'invalidAction'
+  /** Myanmar map (D102). */
+  | 'noMerit'
+  | 'meritFull'
+  | 'tradeBlocked'
+  /** Myanmar map: loans (D104). */
+  | 'loanPending'
+  | 'loanTerms'
+  | 'loanCollateral'
+  | 'pledged'
+  | 'loanRepay';
 
 export type ErrorParams = Record<string, string | number>;
 

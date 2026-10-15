@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-10-14T07:35:53.551Z",
-  "seconds": 97.531,
+  "generatedAt": "2026-10-14T14:00:31.668Z",
+  "seconds": 83.15,
+  "map": "world",
   "players": 4,
   "bots": "two sensible and two random bots per game (seats alternate by seed)",
   "normalRoundCap": 2000,

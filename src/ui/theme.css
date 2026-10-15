@@ -10,6 +10,9 @@
   --tile-line: #d5dce3;
   --ocean: #12436b;
   --ocean-line: #1e5a8a;
+  /* The Myanmar map's board centre (D101): rivers a step lighter than Ocean line, pagodas in gold */
+  --river: #3a78ad;
+  --gold: #d4a017;
   --ink: #14202b;
   --ink-soft: #5b6875;
   --signal: #ffc233;
@@ -653,6 +656,18 @@ select {
   margin-bottom: 16px;
 }
 
+/* The map choice beside the title (D101). */
+.setup-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 24px;
+}
+
+.setup-header .map-field {
+  margin-bottom: 16px;
+}
+
 .setup-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
@@ -898,7 +913,7 @@ select {
 
 .tb-cash {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: calc(21px * var(--cash-scale, 1));
 }
 
 .tb-modifiers {
@@ -1645,14 +1660,36 @@ select {
   white-space: nowrap;
 }
 
+/* --cash-scale: Burmese digits and သိန်း run wider than dollars, so they are set smaller (D101). */
 .pc-cash {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 19px;
+  font-size: calc(19px * var(--cash-scale, 1));
 }
 
 .player-card.is-current .pc-cash {
-  font-size: 23px;
+  font-size: calc(23px * var(--cash-scale, 1));
+}
+
+/* Amounts in lakh run longer than in dollars: a little smaller on the Myanmar map, more in Burmese. */
+.app[data-map='myanmar'] {
+  --cash-scale: 0.88;
+}
+
+.app[data-names='my'] {
+  --cash-scale: 0.7;
+}
+
+/* Burmese card titles: smaller and with room for the script's stacked marks (D101). */
+.app[data-names='my'] .bp-title,
+.app[data-names='my'] .news-title {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+/* Burmese writes words without spaces: a long name on a crowded tile may break between letters. */
+.app[data-names='my'] .tile .tile-name {
+  overflow-wrap: anywhere;
 }
 
 .player-card.is-bankrupt .pc-cash {
@@ -1699,11 +1736,11 @@ select {
 }
 
 .player-list.is-compact .pc-cash {
-  font-size: 18px;
+  font-size: calc(18px * var(--cash-scale, 1));
 }
 
 .player-list.is-compact .player-card.is-current .pc-cash {
-  font-size: 20px;
+  font-size: calc(20px * var(--cash-scale, 1));
 }
 
 .pc-badges {
@@ -2045,8 +2082,10 @@ select {
   text-align: left;
 }
 
+/* Values never break: amounts in lakh are longer than in dollars (D101). */
 .rent-table td {
   text-align: right;
+  white-space: nowrap;
 }
 
 .rent-table tr.is-current th,
@@ -3300,11 +3339,11 @@ ol.rules-lines {
   }
 
   .pc-cash {
-    font-size: 22px;
+    font-size: calc(22px * var(--cash-scale, 1));
   }
 
   .player-card.is-current .pc-cash {
-    font-size: 27px;
+    font-size: calc(27px * var(--cash-scale, 1));
   }
 
   .bp-title,
@@ -3352,6 +3391,24 @@ ol.rules-lines {
 
   .tile-card .tile-text {
     padding-top: 4px;
+  }
+
+  /* The Myanmar map has no flags to name its regions and fewer, wider tiles: names stay (D101). */
+  .board[data-map='myanmar'] .tile-card .tile-name {
+    display: -webkit-box;
+  }
+
+  .board[data-map='myanmar'] .tile-card .tile-text {
+    padding-top: 3px;
+  }
+
+  /* Cash in lakh is longer than in dollars; the player column is narrower here. */
+  .app[data-map='myanmar'] {
+    --cash-scale: 0.8;
+  }
+
+  .app[data-map='myanmar'][data-names='my'] {
+    --cash-scale: 0.6;
   }
 
   .tb-title {
@@ -3945,7 +4002,7 @@ ol.rules-lines {
   align-items: center;
   gap: 4px;
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: calc(20px * var(--cash-scale, 1));
   font-weight: 700;
   white-space: nowrap;
 }
@@ -5050,7 +5107,7 @@ ol.rules-lines {
 
 .tb-me-cash {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: calc(21px * var(--cash-scale, 1));
   font-weight: 700;
 }
 
@@ -5116,7 +5173,7 @@ ol.rules-lines {
 
 .tb-other-cash {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: max(11px, calc(16px * var(--cash-scale, 1)));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -5299,7 +5356,7 @@ ol.rules-lines {
   }
 
   .tb-players.is-crowded .tb-other-cash {
-    font-size: 15px;
+    font-size: max(11px, calc(15px * var(--cash-scale, 1)));
   }
 
   .tb-players.is-crowded .tb-counts {
@@ -5320,6 +5377,11 @@ ol.rules-lines {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Phones: active events and the Myanmar inflation rate above the players (D102). */
+.phone-modifiers {
+  margin-bottom: 8px;
 }
 
 /* The play area and the chat side by side; no player column. */
@@ -5831,3 +5893,229 @@ ol.rules-lines {
 .phone-panel .trade-panel .panel-whose {
   display: none;
 }
+
+/* Myanmar map: the call-up choices, each beside what it costs and what follows (D102). */
+.draft-intro {
+  margin: 0 0 8px;
+}
+
+.draft-options {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-option {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 12px;
+}
+
+.draft-option .btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.draft-hint {
+  font-size: var(--fs-small);
+  color: var(--muted-ink);
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .draft-option {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Myanmar map: the community pot (D103), on the Refuge corner and, on phones, in the open middle
+   of the board. */
+.tile-corner-value {
+  font-weight: 700;
+}
+
+.pot-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  width: fit-content;
+}
+
+.pot-line svg {
+  color: var(--amber-ink);
+}
+
+.pot-line-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.phone-sheet-body .pot-line {
+  margin-bottom: 8px;
+}
+
+.pot-plaque {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 22px;
+  border: 2px solid var(--gold);
+  border-radius: var(--r-panel);
+  background: rgba(18, 67, 107, 0.88);
+  color: #fff;
+  pointer-events: none;
+}
+
+.pot-plaque-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--on-ocean-soft);
+}
+
+.pot-plaque-amount {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+}
+
+/* Myanmar map: collateral for a loan, in the spot of the build mark (D104). */
+.pledge-marker {
+  background: var(--amber-ink);
+}
+
+/* Myanmar map: loans (D104). The request is a promissory note; the list shows each debt now. */
+/* Room above the note for the "New terms" stamp, which sits on its top edge like the trade slip's. */
+.loan-note-wrap {
+  padding-top: 12px;
+}
+
+.loan-note-frame {
+  position: relative;
+}
+
+.loan-note {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px dashed var(--tile-line);
+  border-radius: var(--r-tile);
+  background: #fffdf5;
+}
+
+.loan-parties {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.loan-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.loan-amount {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.loan-terms {
+  margin: 0;
+  font-weight: 600;
+}
+
+.loan-collateral-label {
+  margin: 6px 0 0;
+}
+
+.loan-collateral,
+.loan-pick,
+.loans-list ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loan-collateral li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loan-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.loan-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loan-field .text-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.loan-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loan-pick-row.is-blocked {
+  color: var(--muted-ink);
+}
+
+.loans-list {
+  margin-top: 12px;
+}
+
+.loan-row {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--tile-line);
+  border-radius: var(--r-tile);
+  background: var(--tile);
+}
+
+.loan-row .btn {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.loan-row-who {
+  font-weight: 700;
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .loan-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

@@ -1,6 +1,8 @@
 // `npm run sim`: 200 Quick + 200 Normal seeded games with 4 bots, invariants checked after every
 // action. Prints a summary and writes reports/sim-report.json.
-// Options: --quick N --normal N --seed S (first seed) --out PATH
+// Options: --quick N --normal N --seed S (first seed) --out PATH --map world|myanmar
+// (`--map myanmar` plays the Myanmar map and writes reports/sim-report-myanmar.json, D101).
+import type { MapId } from '../engine';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { SIM } from '../data/balance';
@@ -36,7 +38,8 @@ function main(): void {
   const quickGames = arg('quick', SIM.quickGames);
   const normalGames = arg('normal', SIM.normalGames);
   const firstSeed = arg('seed', 1);
-  const out = resolve(argText('out', 'reports/sim-report.json'));
+  const map: MapId = argText('map', 'world') === 'myanmar' ? 'myanmar' : 'world';
+  const out = resolve(argText('out', map === 'myanmar' ? 'reports/sim-report-myanmar.json' : 'reports/sim-report.json'));
   const started = Date.now();
   const results: GameResult[] = [];
   const plan: Array<{ seed: number; mode: 'quick' | 'normal' }> = [
@@ -45,7 +48,7 @@ function main(): void {
   ];
   for (const [i, game] of plan.entries()) {
     try {
-      results.push(simulateGame(game.seed, game.mode));
+      results.push(simulateGame(game.seed, game.mode, { map }));
     } catch (error) {
       if (error instanceof SimulationFailure) {
         console.error(`FAILED ${error.mode} game, seed ${error.seed}: ${error.message}`);
@@ -64,6 +67,7 @@ function main(): void {
   const report = {
     generatedAt: new Date().toISOString(),
     seconds,
+    map,
     players: SIM.playersPerGame,
     bots: 'two sensible and two random bots per game (seats alternate by seed)',
     normalRoundCap: SIM.normalRoundCap,

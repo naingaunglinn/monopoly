@@ -1214,3 +1214,59 @@ Added at the owner's request, after section 17, to make playing with friends liv
 - **Talking.** The microphone switch reads Mic on or Muted and glows while you talk. Each player's token carries a badge: listening, talking (green) or muted (red). Leave voice is beside the switch (phones: in the menu). Voice volume is set per device in the menu.
 - **How it works.** The devices in voice connect to each other directly, audio only; the game's server only lists who is in voice and passes each connection's set-up to its receiver. Voice carries on from the lobby into the game and stops when the device leaves the room.
 - **Networks.** Devices find each other with a public STUN server (Cloudflare's). Some networks also need a relay (TURN), which the deployment can add (DEPLOY.md). Devices in a voice chat learn each other's network addresses.
+
+## 19. The Myanmar map
+
+Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen beside the World map when a game or room is set up. Everything in this section applies only to the Myanmar map; the World map (sections 3 to 9) does not change. The owner's own text, in Burmese, is `docs/myanmar-map-spec.md`; this section is its English version. The decisions behind it start at D101 in `DECISIONS.md`. It is built in the owner's four stages; stage 1 alone is a complete, playable game.
+
+| Stage | Contents | Status |
+| --- | --- | --- |
+| 1 | Board, 25 cities, 4 transport spaces, 4 companies, money in lakh, Burmese/English names and cards | Done (D101) |
+| 2 | Military service, merit, the four company events (and inflation, which the Inflation card needs) | Done (D102) |
+| 3 | Earthquake, tolls, lottery, community pot, remittance | Done (D103) |
+| 4 | Loans | Done (D104) |
+
+### Board
+
+- **48 spaces**: 4 corners and 11 along each side. 33 can be bought: 25 cities in 9 regions, 4 transport spaces, 4 companies. 2 to 6 players, tuned for 4.
+- **Money**: kyat, in lakh (သိန်း), never `$`. Starting money 3,000, 4,000 or 5,000 lakh. Passing or landing on Start pays **500 lakh**.
+- **Cities** (price in lakh; one house costs the same for every city of a region):
+
+| Region | Cities and prices | House |
+| --- | --- | --- |
+| Chin | Falam 60, Hakha 90 | 50 |
+| Kachin | Putao 130, Bhamo 160, Myitkyina 190 | 50 |
+| Anyar (Sagaing and Magway) | Pakokku 230, Monywa 260, Magway 290 | 100 |
+| Rakhine | Kyaukphyu 330, Thandwe 370 | 100 |
+| Southern (Tanintharyi, Mon, Kayin) | Kawthaung 410, Myeik 440, Mawlamyine 470 | 150 |
+| Delta (Ayeyarwady and Bago) | Hinthada 500, Pathein 530, Bago 560 | 150 |
+| Shan | Lashio 590, Kalaw 620, Taunggyi 650 | 200 |
+| Mandalay | Meiktila 680, Pyin Oo Lwin 710, Mandalay 740 | 200 |
+| Yangon | North Okkalapa 770, North Dagon 800, Bahan 830 | 250 |
+
+- **City rent**: base rent is a tenth of the price. Region not complete: base × 1; complete with no building: × 2; 1 to 4 houses: × 4, × 7, × 11, × 15; hotel: × 20. Example, Mandalay (740): 74, 148, 296, 518, 814, 1,110, 1,480. A hotel costs two houses. Building is even within a region, as on the World map.
+- **Transport**, 200 lakh each: Yangon International Airport, Mandalay International Airport, the Yangon–Mandalay Expressway and the Muse Border Gate. Rent by how many the owner holds: 50, 100, 200, 400 lakh.
+- **Companies**, 250 lakh each: YESC (Yangon electricity), Denko (fuel stations), MPT (mobile network), KBZ Bank. Rent: the dice total × 25 with one, × 50 with two, × 100 with three, × 200 with all four.
+- **Corners**: Start (500 lakh); the **Military camp** (where called-up players are held, 7.1); the **Refuge** (whoever lands here takes the community pot, 7.9); **Call-up letter** (go straight to the Military camp).
+- **Order, clockwise from Start** (the owner's list numbers the 44 spaces between the corners; the board numbers every space, so the corners are 0, 12, 24 and 36): Falam, Chance, Hakha, Yangon Airport, Putao, Shwedagon Pagoda, Bhamo, Myitkyina, YESC, Income tax (300 lakh), Pakokku, *Military camp*, Monywa, News, Magway, Expressway, Kyaukphyu, Chance, Thandwe, Denko, Kawthaung, Kyaiktiyo Pagoda, Myeik, *Refuge*, Mawlamyine, Mandalay Airport, Hinthada, News, Pathein, Bago, MPT, Mahamuni Pagoda, Lashio, Chance, Kalaw, *Call-up letter*, Taunggyi, Muse Border Gate, Meiktila, News, Pyin Oo Lwin, Mandalay, KBZ Bank, Special tax (500 lakh), North Okkalapa, North Dagon, Bahan.
+- **Kept from the World map**: auctions on or off, even building, mortgages, trading land and cash, chat, voice and stamps, random first player, Quick and Normal modes, the choice of starting money. **Free Stay tokens are not used**: merit points take their place.
+
+### The eleven features
+
+1. **Military service** (instead of Jail). A player is called up by the Call-up letter corner, by the Chance card "On the conscription list", or by three doubles in a row. On arriving they choose one of five ways: **pay** 10% of their cash (at least 500 lakh) and go free at once; **hide**, free, skipping 2 turns and collecting no rent; **flee**, 800 lakh, moving to the Muse Border Gate and skipping 1 turn, still collecting rent; **serve**, free, skipping 3 turns and collecting no rent, with 300 lakh on return; **use a merit point** and go free at once. During military service a player collects no rent, except one who fled. *(Stage 2.)*
+2. **Merit**. The three pagodas (Shwedagon, Kyaiktiyo, Mahamuni): landing there, a player may donate 200 lakh for 1 merit point; at most 3 are kept. A merit point may be spent at any time to leave military service at once, to skip one rent payment, or to cancel one bad Chance card. *(Stage 2.)*
+3. **Company events** (News cards): **Blackout**: this round every city's rent is 50% lower, and YESC's owner earns double. **Internet cut**: this round nobody may trade or take a loan, except MPT's owner. **Fuel shortage**: every player skips a turn, except Denko's owner. **Inflation**: see 4; KBZ Bank's owner is not affected. *(Stage 2.)*
+4. **Inflation**. After every 5 rounds every city's rent rises 10%; cash in hand does not. The current rate (for example +30%) is always shown. *(Built in stage 2, with the Inflation card.)*
+5. **Earthquake** (News card): one die is rolled; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund. *(Stage 3.)*
+6. **Money in lakh**, never `$` (for example 830 lakh), and a **Burmese / English switch** for city names and card texts. *(Stage 1.)*
+7. **Tolls**. Passing (not landing on) the Expressway or the Muse Border Gate costs 20 lakh, paid to its owner; nothing when it has no owner or is the player's own. *(Stage 3.)*
+8. **Lottery** (Chance card "Buy a lottery ticket?"): the player may pay 10 lakh and roll two dice: 12 wins 3,000 lakh, 10 or 11 wins 500, 7 to 9 wins 100, 2 to 6 nothing. *(Stage 3.)*
+9. **Community pot**. Every tax and fine goes into a pot in the middle of the board, shown at all times; whoever lands on the Refuge takes it all. *(Stage 3.)*
+10. **Remittance**. A player who fled to the border receives 200 lakh each round while they are there. *(Stage 3.)*
+11. **Loans** *(stage 4)*. A player may ask another for a loan at any time, even on someone else's turn, in a panel like the trade offer: the amount, the interest rate per round (set by the borrower, adjustable before sending), the term in rounds and **collateral (required)**. The lender accepts, rejects or counters. Interest is simple: debt = principal + principal × rate × rounds passed. Limits: at most 20% a round; the debt stops growing at 3 times the principal; no building on collateral. The borrower may repay on their own turn at any time; passing Start takes 25% of the debt automatically when the cash is there. Unpaid at the end of the term, the collateral goes to the lender; if the borrower goes bankrupt, the lender takes the collateral before the bank. The screen lists every loan (who owes whom, how much, the rate, the rounds left), updates the interest every round and marks collateral on the board.
+
+### Cards
+
+- **Chance**: On the conscription list (go to the Military camp); A broker calls (pay 500 lakh to come off the list); Call-up exemption (keep the card and use it later); Buy a lottery ticket? (8); Pagoda festival (pay 100 lakh, gain 1 merit); Yangon traffic jam (move back 3 spaces); Hospital bill (pay 200 lakh); Fly from the nearest airport (pay double rent if you land on an owned one); Back to Start (collect 500 lakh).
+- **News**: Blackout, Internet cut, Fuel shortage (3); Inflation (4); Earthquake (5); Tourist season (Rakhine and Shan rents double this round); Rice prices climb (Delta rents double this round); Border trade closed (the Muse Border Gate earns nothing this round); Community donation (every player puts 50 lakh in the pot).
+- Each card arrives with the stage of the rule it needs. Stage 1 has the six Chance and three News cards that need no new rule.

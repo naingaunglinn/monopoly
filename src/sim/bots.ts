@@ -4,7 +4,12 @@ import { SIM } from '../data/balance';
 import { COUNTRY_CITIES, propertyPrice } from '../data/board';
 import {
   buildBlocker,
+  collateralValue,
   countryOf,
+  draftPayCost,
+  loanOfferBlocker,
+  pledgedSpaces,
+  type LoanOffer,
   netWorth,
   tradeBlocker,
   type Action,
@@ -32,14 +37,51 @@ export class BotRandom {
   }
 }
 
-const FREE_ACTIONS: ReadonlySet<Action['type']> = new Set(['mortgage', 'unmortgage', 'sellBuilding', 'proposeTrade']);
+const FREE_ACTIONS: ReadonlySet<Action['type']> = new Set(['mortgage', 'unmortgage', 'sellBuilding', 'proposeTrade', 'requestLoan', 'repayLoan']);
 
 export function isFreeAction(type: Action['type']): boolean {
   return FREE_ACTIONS.has(type);
 }
 
 function concrete(legal: LegalAction[]): Action[] {
-  return legal.filter((a) => !((a.type === 'proposeTrade' || a.type === 'counterTrade') && a.offer === null)) as Action[];
+  return legal.filter(
+    (a) =>
+      !(
+        (a.type === 'proposeTrade' || a.type === 'counterTrade' || a.type === 'requestLoan' || a.type === 'counterLoan') &&
+        a.offer === null
+      ),
+  ) as Action[];
+}
+
+/**
+ * Myanmar map: a random loan request from `borrower` (to a random lender, or to `lender`), or the
+ * same with new terms for a counter-offer. Null when the pick is not a valid loan.
+ */
+export function randomLoanOffer(s: GameState, borrower: number, rnd: BotRandom, table: LoanOffer | null = null): LoanOffer | null {
+  const lenders = s.players.filter((p) => !p.bankrupt && p.id !== borrower && p.cash >= 100 && (table === null || p.id === table.lender));
+  if (lenders.length === 0) return null;
+  const lender = rnd.pick(lenders);
+  const pledged = pledgedSpaces(s);
+  const collateral =
+    table?.collateral ??
+    (() => {
+      const options: number[] = [];
+      s.properties.forEach((ps, space) => {
+        if (ps && ps.owner === borrower && !ps.mortgaged && !pledged.has(space)) options.push(space);
+      });
+      return options.length > 0 ? [rnd.pick(options)] : [];
+    })();
+  const offer: LoanOffer = {
+    from: table ? table.to : borrower,
+    to: table ? table.from : lender.id,
+    lender: lender.id,
+    borrower,
+    amount: 100 + Math.floor(rnd.next() * Math.min(900, lender.cash - 99)),
+    ratePercent: Math.floor(rnd.next() * 21),
+    term: 1 + Math.floor(rnd.next() * 10),
+    collateral,
+  };
+  return loanOfferBlocker(s, offer) === null ? offer : null;
 }
 
 function tradeable(s: GameState, owner: number): number[] {
@@ -98,7 +140,21 @@ export function randomBot(ctx: BotContext): Action {
   if (canTrade && !capped) types.push('proposeTrade');
   const canCounter = legal.some((a) => a.type === 'counterTrade') && state.flow.trade !== null;
   if (canCounter) types.push('counterTrade');
+  // Myanmar map: loans (D104). Never offered on the World map, so its games are unchanged.
+  if (legal.some((a) => a.type === 'requestLoan') && !capped) types.push('requestLoan');
+  if (legal.some((a) => a.type === 'counterLoan') && state.flow.loan !== null) types.push('counterLoan');
   const type = rnd.pick(types);
+  if (type === 'counterLoan' && state.flow.loan) {
+    const counter = randomLoanOffer(state, state.flow.loan.borrower, rnd, state.flow.loan);
+    if (counter) return { type: 'counterLoan', offer: counter };
+    return { type: 'respondLoan', accept: false };
+  }
+  if (type === 'requestLoan' && !options.some((a) => a.type === 'requestLoan')) {
+    const offer = randomLoanOffer(state, actor, rnd);
+    if (offer) return { type: 'requestLoan', offer };
+    const progress = options.filter((a) => !isFreeAction(a.type));
+    return rnd.pick(progress.length > 0 ? progress : options);
+  }
   if (type === 'counterTrade' && state.flow.trade) {
     const counter = randomTradeOffer(state, actor, rnd, state.flow.trade.from);
     if (counter) return { type: 'counterTrade', offer: counter };
@@ -142,6 +198,18 @@ export function sensibleBot(ctx: BotContext): Action {
   const ack = has('acknowledge');
   if (ack) return ack;
 
+  // Myanmar map: a loan on the table (D104). A lender wants 5% a round and collateral worth the
+  // amount; a borrower takes up to 10%.
+  if (s.flow.loan && s.flow.loan.to === actor) {
+    const offer = s.flow.loan;
+    const canAccept = legal.some((a) => a.type === 'respondLoan' && a.accept);
+    const good =
+      offer.lender === actor
+        ? offer.ratePercent >= 5 && collateralValue(offer.collateral) >= offer.amount && me.cash - offer.amount >= SIM.sensibleKeepCash
+        : offer.ratePercent <= 10;
+    return { type: 'respondLoan', accept: canAccept && good };
+  }
+
   if (s.flow.trade && s.flow.trade.to === actor) {
     const offer = s.flow.trade;
     const gain = sideValue(s, offer.give);
@@ -149,6 +217,11 @@ export function sensibleBot(ctx: BotContext): Action {
     return { type: 'respondTrade', accept: gain >= loss * 1.25 && gain > 0 };
   }
 
+  // Myanmar map: pay a loan back when the cash is plentiful.
+  const repay = () => {
+    const option = has('repayLoan');
+    return option && me.cash - option.amount > SIM.sensibleUnmortgageAbove ? option : undefined;
+  };
   const unmortgage = () => {
     if (me.cash <= SIM.sensibleUnmortgageAbove) return undefined;
     const options = legal.filter((a): a is Extract<Action, { type: 'unmortgage' }> => a.type === 'unmortgage');
@@ -167,6 +240,19 @@ export function sensibleBot(ctx: BotContext): Action {
     case 'PassDevice':
       return { type: 'ready' };
     case 'TurnStart':
+      // Myanmar map, called up (D102): a merit point, the exemption card, paying if cash allows, else hiding.
+      if (s.flow.pending?.kind === 'draftChoice') {
+        const choose = (how: string) => legal.find((a) => a.type === 'draftChoose' && a.how === how) as Action | undefined;
+        const pay = choose('pay');
+        const payCost = pay ? draftPayCost(me.cash) : Infinity;
+        return (
+          choose('merit') ??
+          choose('card') ??
+          (me.cash - payCost >= SIM.sensibleJailFeeAbove ? pay : undefined) ??
+          choose('hide') ??
+          (concrete(legal)[0] as Action)
+        );
+      }
       return (
         has('useJailCard') ??
         (me.cash > SIM.sensibleJailFeeAbove ? has('payJailFine') : undefined) ??
@@ -174,8 +260,13 @@ export function sensibleBot(ctx: BotContext): Action {
         (concrete(legal)[0] as Action)
       );
     case 'AwaitRoll':
-      return unmortgage() ?? (buildAvailable() ? { type: 'openBuild' } : { type: 'roll' });
+      return repay() ?? unmortgage() ?? (buildAvailable() ? { type: 'openBuild' } : { type: 'roll' });
     case 'BuyDecision': {
+      if (s.flow.pending?.kind === 'donation') {
+        return me.cash > SIM.sensibleUnmortgageAbove && has('donate') && legal.some((a) => a.type === 'donate' && a.give)
+          ? { type: 'donate', give: true }
+          : { type: 'donate', give: false };
+      }
       const space = s.flow.pending?.kind === 'buy' ? s.flow.pending.space : -1;
       const buy = has('buy');
       return buy && me.cash - propertyPrice(space) >= SIM.sensibleKeepCash ? buy : { type: 'decline' };
@@ -191,12 +282,23 @@ export function sensibleBot(ctx: BotContext): Action {
     case 'RentDue': {
       const rent = s.flow.pending?.kind === 'rent' ? s.flow.pending.rent : null;
       const freeStay = has('useFreeStay');
-      return freeStay && rent && rent.amount > SIM.sensibleFreeStayAbove ? freeStay : { type: 'payRent' };
+      if (freeStay && rent && rent.amount > SIM.sensibleFreeStayAbove) return freeStay;
+      // Myanmar map: a merit point on a big rent.
+      const merit = has('useMerit');
+      return merit && rent && rent.amount >= SIM.sensibleMeritRentAbove ? merit : { type: 'payRent' };
     }
     case 'CompanyRoll':
       return { type: 'rollCompanyDice' };
-    case 'CardReveal':
+    case 'CardReveal': {
+      // Myanmar map: cancel a bad card with spare merit; pay the broker when cash allows.
+      const merit = has('useMerit');
+      if (merit && me.merit >= 2) return merit;
+      const broker = has('brokerPay');
+      if (broker && me.cash > SIM.sensibleJailFeeAbove) return broker;
+      const ticket = has('buyTicket');
+      if (ticket && me.cash > SIM.sensibleJailFeeAbove) return ticket;
       return { type: 'confirmCard' };
+    }
     case 'BuildOffer':
       return has('build') ?? { type: 'finishBuilding' };
     case 'Debt': {
@@ -209,7 +311,7 @@ export function sensibleBot(ctx: BotContext): Action {
       return sell ?? { type: 'declareBankruptcy' };
     }
     case 'AwaitEndTurn':
-      return unmortgage() ?? (buildAvailable() ? { type: 'openBuild' } : { type: 'endTurn' });
+      return repay() ?? unmortgage() ?? (buildAvailable() ? { type: 'openBuild' } : { type: 'endTurn' });
     case 'GameOver':
       throw new Error('no move after game over');
   }

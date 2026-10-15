@@ -2,11 +2,11 @@
 // It opens over anything, even a mandatory decision, and never changes game state: it only reads
 // the settings to say which topics are switched off.
 import { Search, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BALANCE } from '../../data/balance';
-import { AIRPORTS, COMPANIES } from '../../data/board';
+import { AIRPORTS, COMPANIES, RULES } from '../../data/board';
 import { closeRules, useApp, useUi } from '../store';
-import { money, RULE_TOPICS, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
+import { money, ruleTopics, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
 import { useFocusTrap } from './Overlays';
 
 function tableRows(topic: RuleTopic): Array<[string, string]> {
@@ -21,8 +21,12 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
       ];
     case 'airportRent':
       // Up to the number of airports on the board.
-      return BALANCE.airportRent.slice(0, AIRPORTS.length).map((rent, i): [string, string] => [T.focus.airportsOwned(i + 1), money(rent)]);
+      return RULES.airportRent.slice(0, AIRPORTS.length).map((rent, i): [string, string] => [T.focus.airportsOwned(i + 1), money(rent)]);
     case 'companies':
+      // The Myanmar map: one multiplier by how many companies the owner holds (D101).
+      if (RULES.companyMultipliers) {
+        return RULES.companyMultipliers.map((m, i): [string, string] => [T.players.companies(i + 1), T.focus.companyFormula(m)]);
+      }
       return COMPANIES.map((c): [string, string] => [c.name, `${money(c.price)} · ${T.focus.companyFormula(c.multiplier)}`]);
     default:
       return [];
@@ -31,7 +35,9 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
 
 function tableHead(topic: RuleTopic): [string, string] {
   if (topic.table === 'airportRent') return [T.rules.tableAirports, T.rules.tableRent];
-  if (topic.table === 'companies') return [T.rules.tableCompany, `${T.rules.tablePrice} · ${T.rules.tableRent}`];
+  if (topic.table === 'companies') {
+    return RULES.companyMultipliers ? [T.rules.tableCompaniesOwned, T.rules.tableRent] : [T.rules.tableCompany, `${T.rules.tablePrice} · ${T.rules.tableRent}`];
+  }
   return [T.rules.tableLevel, T.rules.tableRent];
 }
 
@@ -65,10 +71,8 @@ export function RuleGuide() {
   }, []);
 
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const visible = useMemo(
-    () => RULE_TOPICS.filter((t) => words.every((w) => searchText(t).includes(w))),
-    [query],
-  );
+  // Worded for the map in play (D101); cheap enough to filter on every render.
+  const visible = ruleTopics().filter((t) => words.every((w) => searchText(t).includes(w)));
   const topic = visible.find((t) => t.id === active) ?? visible[0] ?? null;
   const off = topic?.switches?.filter((sw) => settings && settings[sw] === false) ?? [];
 

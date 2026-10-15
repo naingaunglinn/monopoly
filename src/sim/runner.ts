@@ -9,6 +9,7 @@ import {
   type Action,
   type GameMode,
   type GameState,
+  type MapId,
 } from '../engine';
 import { BotRandom, chooseAction, isFreeAction, type BotKind } from './bots';
 
@@ -49,6 +50,8 @@ export interface SimOptions {
   /** Safety net against an engine loop (far above anything a real game needs). */
   maxActions?: number;
   checkInvariants?: boolean;
+  /** The map to play on (World by default). */
+  map?: MapId;
 }
 
 /** Seats alternate between the two bots; the pattern shifts with the seed to avoid seat bias. */
@@ -63,7 +66,7 @@ export function simulateGame(seed: number, mode: GameMode, options: SimOptions =
   const check = options.checkInvariants ?? true;
   const bots = botsForSeed(seed, players);
   const rnd = new BotRandom(seed * 7919 + 17);
-  let s: GameState = createGame({ playerCount: players, mode }, seed);
+  let s: GameState = createGame({ playerCount: players, mode, map: options.map ?? 'world' }, seed);
   const recent: Action[] = [];
   let actions = 0;
   let hitCap = false;

@@ -35,7 +35,7 @@ async function startedRoom(): Promise<{ code: string; tokens: string[]; view: Ro
 
 async function play(code: string, tokens: string[], view: RoomView): Promise<RoomView> {
   const game = view.game as GameState;
-  const action = legalActions(game).find((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action;
+  const action = legalActions(game).find((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action;
   const res = await post('action', { code, token: tokens[decisionMaker(game) as number], action, expectedVersion: view.version });
   expect(res.v, JSON.stringify(res)).toBe(view.version + 1);
   return res.view;

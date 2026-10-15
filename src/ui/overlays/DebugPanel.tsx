@@ -3,7 +3,7 @@
 import { Bug, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { BOARD, PROPERTY_SPACES } from '../../data/board';
-import { ALL_CARDS, type GameState } from '../../engine';
+import { cardsForSettings, type GameState } from '../../engine';
 import { dispatch } from '../store';
 import { T } from '../strings';
 import { spaceName } from '../view';
@@ -18,9 +18,10 @@ export function DebugPanel({ s }: { s: GameState }) {
   const [propSpace, setPropSpace] = useState(PROPERTY_SPACES[0] ?? 1);
   const [owner, setOwner] = useState<number | null>(0);
   const [level, setLevel] = useState(1);
-  const [card, setCard] = useState(ALL_CARDS[0]?.id ?? '');
+  const cards = [...cardsForSettings('chance', s.meta.settings), ...cardsForSettings('event', s.meta.settings)];
+  const [card, setCard] = useState(cards[0]?.id ?? '');
   const living = s.players.filter((p) => !p.bankrupt);
-  const cardDeck = card.startsWith('chance-') ? 'chance' : 'event';
+  const cardDeck = cards.find((c) => c.id === card)?.deck ?? 'chance';
   return (
     <aside className={`debug-panel ${open ? 'is-open' : ''}`} aria-label={T.debug.title}>
       <button type="button" className="debug-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
@@ -100,7 +101,7 @@ export function DebugPanel({ s }: { s: GameState }) {
           <div className="debug-row">
             <span>{T.debug.forceCard}</span>
             <select value={card} onChange={(e) => setCard(e.target.value)} aria-label={T.debug.forceCard}>
-              {ALL_CARDS.map((c) => (
+              {cards.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.deck}: {c.title}
                 </option>

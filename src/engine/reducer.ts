@@ -1,10 +1,10 @@
 // reduce(state, action) -> { state, events, error }. Pure: no React, DOM, timers, Date.now or
 // Math.random. The input state is never mutated; handlers work on a fresh clone.
 import { BALANCE } from '../data/balance.js';
-import { COUNTRY_CITIES } from '../data/board.js';
+import { COUNTRY_CITIES, useMap } from '../data/board.js';
 import { foldBid, placeBid } from './auction.js';
 import { doBuild, doMortgage, doSell, doUnmortgage } from './building.js';
-import { applyCard, discardCard } from './cards.js';
+import { applyCard, cardById, discardCard } from './cards.js';
 import { type Ctx, changeCash, cloneState, countryOf, currentPlayer, deepCopy, emit, prop } from './core.js';
 import { canRaiseMoney, goBankrupt, payHeadDebt, settleDebts } from './debt.js';
 import { freeActor, validateAction } from './legal.js';
@@ -24,12 +24,15 @@ import {
   setRentDue,
   teleport,
 } from './phases.js';
+import { acceptLoan, repayLoan } from './loans.js';
+import { buyTicket, chooseDraft, donate, leaveDraft, payBroker, skipDraftTurn, useMerit } from './myanmar.js';
 import { removePlayer } from './remove.js';
 import { companyRent } from './rent.js';
 import { applyTrade, tradeBlocker } from './trade.js';
 import type { Action, GameState, ReduceResult } from './types.js';
 
 export function reduce(state: GameState, action: Action): ReduceResult {
+  useMap(state);
   const error = validateAction(state, action);
   if (error) return { state, events: [], error };
   const c: Ctx = { s: cloneState(state), events: [] };
@@ -59,6 +62,11 @@ function apply(c: Ctx, action: Action): void {
     case 'acknowledge':
       if (s.flow.notices.length > 0) {
         s.flow.notices.shift();
+        return;
+      }
+      // Myanmar map: a turn in military service (D102).
+      if (pending?.kind === 'draftSkip') {
+        skipDraftTurn(c);
         return;
       }
       // Vacation: this turn is skipped exactly once.
@@ -194,6 +202,58 @@ function apply(c: Ctx, action: Action): void {
       bankruptIfStuck(c);
       return;
     }
+    case 'draftChoose':
+      chooseDraft(c, action.how);
+      return;
+    case 'leaveDraft':
+      leaveDraft(c, action.how);
+      return;
+    case 'donate':
+      donate(c, action.give);
+      return;
+    case 'useMerit':
+      useMerit(c);
+      return;
+    case 'requestLoan':
+      s.flow.loan = deepCopy(action.offer);
+      emit(c, { type: 'loanRequested', from: action.offer.from, to: action.offer.to });
+      return;
+    case 'counterLoan':
+      // New terms back the other way; now the first player answers (D104).
+      s.flow.loan = deepCopy(action.offer);
+      emit(c, { type: 'loanCountered', from: action.offer.from, to: action.offer.to });
+      return;
+    case 'withdrawLoan': {
+      const offer = s.flow.loan;
+      s.flow.loan = null;
+      if (offer) emit(c, { type: 'loanWithdrawn', from: offer.from, to: offer.to });
+      bankruptIfStuck(c);
+      return;
+    }
+    case 'respondLoan': {
+      const offer = s.flow.loan;
+      s.flow.loan = null;
+      if (!offer) return;
+      if (action.accept) acceptLoan(c, offer);
+      else emit(c, { type: 'loanRejected', from: offer.from, to: offer.to });
+      bankruptIfStuck(c);
+      return;
+    }
+    case 'repayLoan':
+      repayLoan(c, action.loanId, action.amount, false);
+      return;
+    case 'buyTicket': {
+      if (pending?.kind !== 'card') return;
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type === 'lottery') buyTicket(c, pending.cardId, effect.ticket);
+      return;
+    }
+    case 'brokerPay': {
+      if (pending?.kind !== 'card') return;
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type === 'broker') payBroker(c, pending.cardId, effect.amount);
+      return;
+    }
     case 'endTurn':
       emit(c, { type: 'turnEnded', player: s.turn.currentPlayerIndex });
       passTurn(c);
@@ -208,7 +268,7 @@ function apply(c: Ctx, action: Action): void {
 function bankruptIfStuck(c: Ctx): void {
   const s = c.s;
   const debt = s.flow.debts[0];
-  if (s.flow.phase !== 'Debt' || s.flow.trade !== null || !debt) return;
+  if (s.flow.phase !== 'Debt' || s.flow.trade !== null || s.flow.loan !== null || !debt) return;
   const debtor = s.players[debt.debtor];
   if (!debtor || debtor.cash >= debt.amount || canRaiseMoney(s, debt.debtor)) return;
   goBankrupt(c, debt.debtor, debt.creditor);

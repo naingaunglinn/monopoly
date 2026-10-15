@@ -19,8 +19,9 @@ import type { FlagCode } from '../../data/countries';
 
 const FLAGS: Record<FlagCode, string> = { br, ca, cn, de, eg, es, fr, gb, il, it, jp, kr, mm, mx, nl, us };
 
-/** Without `width`, CSS sizes the flag (4:3). */
-export function Flag({ code, width, className }: { code: FlagCode; width?: number; className?: string }) {
+/** Without `width`, CSS sizes the flag (4:3). A Myanmar region has no flag (`code` null): nothing shows. */
+export function Flag({ code, width, className }: { code: FlagCode | null; width?: number; className?: string }) {
+  if (code === null) return null;
   return (
     <img
       className={`flag ${className ?? ''}`}

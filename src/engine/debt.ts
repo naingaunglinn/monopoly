@@ -1,7 +1,7 @@
 // Debt and bankruptcy (spec 7.3, 7.4). Payments go through a queue processed in order; the head
 // of the queue may belong to any player (card effects can put other players in debt).
 import { CITY_BY_SPACE } from '../data/board.js';
-import { discardCard } from './cards.js';
+import { cardById, discardCard } from './cards.js';
 import {
   type Ctx,
   changeCash,
@@ -11,7 +11,9 @@ import {
   propertiesOwnedBy,
   transfer,
 } from './core.js';
-import { afterResolution, endGame, leaveJail, moveSteps, passTurn } from './phases.js';
+import { bankruptLoans, isPledged } from './loans.js';
+import { toPot } from './myanmar.js';
+import { afterResolution, endGame, leaveJail, moveSteps, passTurn, resolveLanding } from './phases.js';
 import { sellRefund } from './rent.js';
 import type { DebtItem, GameState, MoneyReason, Resume } from './types.js';
 
@@ -21,7 +23,8 @@ export function queueDebt(c: Ctx, debt: DebtItem): void {
 
 /** True while the player still has buildings to sell or an unmortgaged property. */
 export function canRaiseMoney(s: GameState, playerId: number): boolean {
-  return s.properties.some((p) => p !== null && p.owner === playerId && (p.level > 0 || !p.mortgaged));
+  // Myanmar map: a property pledged for a loan cannot be mortgaged (D104).
+  return s.properties.some((p, space) => p !== null && p.owner === playerId && (p.level > 0 || (!p.mortgaged && !isPledged(s, space))));
 }
 
 function moneyReason(debt: DebtItem): MoneyReason {
@@ -34,6 +37,8 @@ function moneyReason(debt: DebtItem): MoneyReason {
       return 'card';
     case 'jailFine':
       return 'jailFine';
+    case 'toll':
+      return 'toll';
   }
 }
 
@@ -55,6 +60,11 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
         amount: debt.amount,
         reason: reason.tax === 'income' ? 'incomeTax' : 'luxuryTax',
       });
+      // Myanmar map: taxes go into the community pot (D103).
+      toPot(c, debt.debtor, debt.amount);
+      break;
+    case 'toll':
+      emit(c, { type: 'tollPaid', from: debt.debtor, to: debt.creditor as number, space: reason.space, amount: debt.amount });
       break;
     case 'jailFine':
       emit(c, { type: 'feePaid', player: debt.debtor, amount: debt.amount, reason: 'jailFine' });
@@ -62,6 +72,7 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
     case 'card':
       if (debt.creditor === null) {
         emit(c, { type: 'cardCash', player: debt.debtor, amount: -debt.amount, cardId: reason.cardId });
+        if (cardById(reason.cardId).effect.type === 'potDonation') toPot(c, debt.debtor, debt.amount);
       } else {
         emit(c, { type: 'cardTransfer', from: debt.debtor, to: debt.creditor, amount: debt.amount, cardId: reason.cardId });
       }
@@ -121,6 +132,13 @@ function runResume(c: Ctx, resume: Resume | null): void {
     passTurn(c);
     return;
   }
+  if (resume.kind === 'landing') {
+    // Myanmar map: the tolls on the way are paid; now the landing (D103).
+    c.rentFactor = resume.rentFactor ?? undefined;
+    resolveLanding(c);
+    c.rentFactor = undefined;
+    return;
+  }
   // Forced Jail fine paid: leave and move the rolled total.
   leaveJail(c, 'forcedFine');
   moveSteps(c, c.s.turn.currentPlayerIndex, resume.total, 'dice');
@@ -158,6 +176,8 @@ export function goBankrupt(c: Ctx, playerId: number, creditor: number | null): v
   p.jailCards = [];
   p.houseVouchers = [];
 
+  // Myanmar map: lenders take their collateral before any other creditor or the bank (D104).
+  bankruptLoans(c, playerId);
   const owned = propertiesOwnedBy(s, playerId);
   const cash = p.cash;
   if (heir !== null) {
@@ -176,6 +196,9 @@ export function goBankrupt(c: Ctx, playerId: number, creditor: number | null): v
   p.inJail = false;
   p.jailAttempts = 0;
   p.skipNextTurn = false;
+  // Myanmar map: service and merit end with the player (D102).
+  p.draft = null;
+  p.merit = 0;
   p.recap = [];
 
   // Debts owed by or to this player are void now.

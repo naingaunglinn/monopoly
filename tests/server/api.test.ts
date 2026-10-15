@@ -6,7 +6,7 @@
 // serverless-redis-http emulator in front of a real Redis, see CLAUDE.md) it also runs on UpstashStore.
 import { Redis } from '@upstash/redis';
 import { beforeAll, describe, expect, test } from 'vitest';
-import { decisionMaker, legalActions, type Action, type GameState } from '../../src/engine';
+import { checkInvariants, decisionMaker, legalActions, reduce, type Action, type GameState } from '../../src/engine';
 import { PLAYER_COLORS } from '../../src/data/players';
 import { createApi } from '../../server/api';
 import { MemoryStore } from '../../server/memoryStore';
@@ -125,7 +125,7 @@ async function view(h: Harness, code: string): Promise<RoomView> {
 
 /** A legal action for the player who must decide now (no trades: they need an offer). */
 function nextAction(game: GameState, pick = 0): Action {
-  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade') as Action[];
+  const legal = legalActions(game).filter((a) => a.type !== 'proposeTrade' && a.type !== 'counterTrade' && a.type !== 'requestLoan' && a.type !== 'counterLoan') as Action[];
   return legal[pick % legal.length] as Action;
 }
 
@@ -176,6 +176,39 @@ describe.each(CASES)('$name', (storeCase) => {
       expect(v.game?.flow.phase).toBe('GameOver');
 
       await h.storeCase.ttl(h.store, code, h.clock);
+    });
+
+    test('a World room and a Myanmar room played in turns keep to their own maps (D101)', async () => {
+      const h = harness();
+      const world = await started(h, ['Mia', 'Leo']);
+      const myanmar = await started(h, ['Aung', 'Sofia'], { map: 'myanmar', freeStay: true });
+      expect(world.view.settings.map).toBe('world');
+      expect(myanmar.view.settings).toMatchObject({ map: 'myanmar', freeStay: false, vacation: false });
+      const first = async (code: string) => (await h.store.load(code))?.game as GameState;
+      const starts = { [world.code]: await first(world.code), [myanmar.code]: await first(myanmar.code) };
+      expect(starts[world.code]?.properties).toHaveLength(60);
+      expect(starts[myanmar.code]?.properties).toHaveLength(48);
+      const sent: Record<string, Action[]> = { [world.code]: [], [myanmar.code]: [] };
+      const views: Record<string, RoomView> = { [world.code]: world.view, [myanmar.code]: myanmar.view };
+      for (let i = 0; i < 150; i++) {
+        for (const room of [world, myanmar]) {
+          const v = views[room.code] as RoomView;
+          if (v.status !== 'playing') continue;
+          const action = nextAction(v.game as GameState, i);
+          const res = await act(h, room.code, room.tokens, v, action);
+          expect(res.status, JSON.stringify(res.body)).toBe(200);
+          sent[room.code]?.push(action);
+          views[room.code] = res.body.view;
+        }
+      }
+      // The same actions through the engine alone, one game at a time, give the same games.
+      for (const room of [world, myanmar]) {
+        let replay = starts[room.code] as GameState;
+        for (const a of sent[room.code] ?? []) replay = reduce(replay, a).state;
+        const kept = (await h.store.load(room.code))?.game as GameState;
+        expect(kept).toEqual(replay);
+        expect(checkInvariants(kept)).toEqual([]);
+      }
     });
 
     test('the view never carries tokens, the seed, the generator state or the deck order', async () => {

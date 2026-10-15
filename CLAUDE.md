@@ -2,7 +2,9 @@
 
 `docs/SPEC.md` is the single source of truth. Never change prices, the board or the rules. The board's
 size and shape are the owner's two constants, `BOARD_SIZE` and `BOARD_SHAPE` in `src/data/balance.ts`
-(now 60, square; D96); the full 80-space board in `src/data/` stays as it is.
+(now 60, square; D96); the full 80-space board in `src/data/` stays as it is. Those constants are the
+World map's: the Myanmar map (spec section 19, D101 onwards, built in four stages) is a second, fixed
+48-space board; its rules must never change the World map.
 When something is undefined, pick the simplest option that fits the spec and log it in `DECISIONS.md`.
 
 ## Commands
@@ -19,6 +21,7 @@ npm is used because pnpm is not installed (see DECISIONS.md).
 | `npm run test:e2e` | Playwright against `vite preview` (builds first) |
 | `npm run sim` | Headless simulation: 200 Quick + 200 Normal seeded games with 4 bots, writes `reports/sim-report.json` |
 | `npm run sim -- --quick 10 --normal 4` | A shorter simulation run |
+| `npm run sim -- --map myanmar` | The same on the Myanmar map, writes `reports/sim-report-myanmar.json` |
 | `npm run typecheck` | `tsc --noEmit` only |
 | `npm run dev:online` | Online play locally: API on MemoryStore (port 8787) + Vite dev server proxying `/api` |
 | `npm run serve:online` | The built game and the API on http://localhost:4175 (build first; used by online e2e) |
@@ -79,7 +82,7 @@ docs/       SPEC.md (source of truth)
   `renderCue` (the sound spec keeps every cue between -36 and -18 dBFS).
 - Animation durations live in `DURATIONS` (`ui/animation.ts`) and the matching CSS keyframes; change
   both together (D51). Owned-tile tints come from `ui/contrast.ts` and are contrast-tested (D54).
-- The save has a `schemaVersion` (now 3). A change to the state's shape bumps it and adds a migration
+- The save has a `schemaVersion` (now 4; D101 added the map, merit, military service and loans). A change to the state's shape bumps it and adds a migration
   in `engine/save.ts`, tested against a real save from the previous version in `tests/fixtures/`.
   Saves record their board (`settings.board`): a save or room from another board is refused (D96).
 - Tests never hard-code a space index: they find spaces by name (`spaceOf`, `spacesOf`, `firstOf` in
@@ -100,6 +103,14 @@ docs/       SPEC.md (source of truth)
 - Voice (`session/voice.ts`) is peer to peer; the server only lists peers and passes set-up messages,
   which only their receiver can read. Playwright runs Chromium with a fake microphone
   (`playwright.config.ts`); the local server hands out no ICE servers, so tests stay offline.
+- Two maps (D101): `board.ts` exports the map in play as live bindings (`MAP`, `RULES`, `BOARD`, `SPACES`,
+  `LAYOUT`...). Every engine entry point calls `useMap(state)` first; never compute a module-level
+  constant from them (read them inside functions). Numbers that differ by map are in `RULES`; Myanmar
+  data is in `data/myanmar.ts` and `data/myanmarCards.ts`, its numbers in `MYANMAR` (`balance.ts`). UI
+  texts that differ use `byMap(world, myanmar)` in `strings.ts` with the World text verbatim. Burmese
+  (names, cards, money) is a device preference (`prefs.language`, `pick()` in `data/lang.ts`).
+  `npm run sim -- --map myanmar` writes `reports/sim-report-myanmar.json`; the World report must not
+  change when only Myanmar rules change.
 - Trading (D99): any player may offer while the game is between decisions (`tradingOpen`); one offer
   is on the table at a time and the game waits; the partner accepts, rejects or counters
   (`counterTrade`), the offerer may withdraw (`withdrawTrade`). `legalActions` is still the decision

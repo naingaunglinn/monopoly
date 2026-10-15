@@ -1,12 +1,14 @@
 // Who decides now, what they may do, and why anything else is refused. legalActions() and
 // reduce() share validateAction(), so the UI, the bots and the reducer always agree.
-import { BALANCE } from '../data/balance.js';
-import { BOARD, COUNTRY_CITIES, propertyPrice } from '../data/board.js';
+import { BALANCE, MYANMAR } from '../data/balance.js';
+import { BOARD, COUNTRY_CITIES, propertyPrice, RULES, useMap } from '../data/board.js';
 import { COUNTRY_BY_ID } from '../data/countries.js';
 import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
 import { cardById, isKnownCard } from './cards.js';
 import { countryOf, currentPlayer, livingPlayers, makeError } from './core.js';
+import { loanOfferBlocker, loanOwed } from './loans.js';
+import { cancellableCard, draftChoiceBlocker, draftPayCost, tradeBlockedFor } from './myanmar.js';
 import { canOfferBuild } from './phases.js';
 import { tradeBlocker } from './trade.js';
 import type { Action, EngineError, GameState, LegalAction, Player } from './types.js';
@@ -16,6 +18,7 @@ export function decisionMaker(s: GameState): number | null {
   if (s.flow.notices.length > 0) return s.turn.currentPlayerIndex;
   if (s.flow.phase === 'GameOver') return null;
   if (s.flow.trade) return s.flow.trade.to;
+  if (s.flow.loan) return s.flow.loan.to;
   if (s.flow.pending?.kind === 'auction') return s.flow.pending.auction.current;
   if (s.flow.phase === 'Debt') return s.flow.debts[0]?.debtor ?? s.turn.currentPlayerIndex;
   return s.turn.currentPlayerIndex;
@@ -26,10 +29,11 @@ export function decisionMaker(s: GameState): number | null {
  * decision is pending (including Jail choices and the optional build offer), or the debtor.
  */
 export function freeActor(s: GameState): number | null {
-  if (s.flow.notices.length > 0 || s.flow.trade !== null) return null;
+  if (s.flow.notices.length > 0 || s.flow.trade !== null || s.flow.loan !== null) return null;
   switch (s.flow.phase) {
     case 'TurnStart':
-      return s.flow.pending?.kind === 'jailChoice' ? s.turn.currentPlayerIndex : null;
+      // The Jail choice and the call-up choice (Myanmar map) leave time to raise money.
+      return s.flow.pending?.kind === 'jailChoice' || s.flow.pending?.kind === 'draftChoice' ? s.turn.currentPlayerIndex : null;
     case 'AwaitRoll':
     case 'AwaitEndTurn':
     case 'BuildOffer':
@@ -66,6 +70,12 @@ export function actorFor(s: GameState, action: Action): number | null {
       return action.offer && Number.isInteger(action.offer.from) && s.players[action.offer.from] ? action.offer.from : null;
     case 'withdrawTrade':
       return s.flow.trade?.from ?? null;
+    case 'requestLoan':
+      return action.offer && Number.isInteger(action.offer.from) && s.players[action.offer.from] ? action.offer.from : null;
+    case 'withdrawLoan':
+      return s.flow.loan?.from ?? null;
+    case 'repayLoan':
+      return freeActor(s);
     case 'setPassDevice':
     case 'setAnimationSpeed':
     case 'debug':
@@ -113,6 +123,7 @@ function validateDebug(s: GameState, action: Extract<Action, { type: 'debug' }>)
 
 /** Null when the action is legal now; otherwise a typed error with a plain-language reason. */
 export function validateAction(s: GameState, action: Action): EngineError | null {
+  useMap(s);
   if (!action || typeof action !== 'object') return makeError('invalidAction');
   switch (action.type) {
     case 'setPassDevice':
@@ -140,12 +151,38 @@ export function validateAction(s: GameState, action: Action): EngineError | null
         // A counter-offer goes back the other way: from the partner to the player who offered.
         const offer = action.offer;
         if (!offer || typeof offer !== 'object' || offer.from !== trade.to || offer.to !== trade.from) return makeError('invalidAction');
+        if (tradeBlockedFor(s, offer.from)) return makeError('tradeBlocked');
         return tradeBlocker(s, offer);
       }
       case 'withdrawTrade':
         return null;
       default:
         return makeError('tradePending', { player: s.players[trade.to]?.name ?? '' });
+    }
+  }
+  // Myanmar map: a loan offer on the table waits for its answer, like a trade (D104).
+  const loan = s.flow.loan;
+  if (loan !== null) {
+    switch (action.type) {
+      case 'respondLoan': {
+        if (typeof action.accept !== 'boolean') return makeError('invalidAction');
+        if (!action.accept) return null;
+        const blocked = loanOfferBlocker(s, loan);
+        if (blocked) return blocked;
+        const lender = s.players[loan.lender] as Player;
+        return lender.cash >= loan.amount ? null : makeError('notEnoughCash', { needed: loan.amount, have: lender.cash });
+      }
+      case 'counterLoan': {
+        const offer = action.offer;
+        if (!offer || typeof offer !== 'object' || offer.from !== loan.to || offer.to !== loan.from) return makeError('invalidAction');
+        if (offer.lender !== loan.lender || offer.borrower !== loan.borrower) return makeError('invalidAction');
+        if (tradeBlockedFor(s, offer.from)) return makeError('tradeBlocked');
+        return loanOfferBlocker(s, offer);
+      }
+      case 'withdrawLoan':
+        return null;
+      default:
+        return makeError('loanPending', { player: s.players[loan.to]?.name ?? '' });
     }
   }
 
@@ -157,7 +194,52 @@ export function validateAction(s: GameState, action: Action): EngineError | null
     case 'ready':
       return phase === 'PassDevice' ? null : wrong();
     case 'acknowledge':
-      return phase === 'TurnStart' && pending?.kind === 'vacationSkip' ? null : wrong();
+      return phase === 'TurnStart' && (pending?.kind === 'vacationSkip' || pending?.kind === 'draftSkip') ? null : wrong();
+    case 'draftChoose': {
+      if (phase !== 'TurnStart' || pending?.kind !== 'draftChoice') return wrong();
+      if (!['pay', 'hide', 'flee', 'serve', 'merit', 'card'].includes(action.how)) return makeError('invalidAction');
+      const blocked = draftChoiceBlocker(me, action.how);
+      if (blocked === 'cash') {
+        const needed = action.how === 'pay' ? draftPayCost(me.cash) : MYANMAR.draftFleeCost;
+        return makeError('notEnoughCash', { needed, have: me.cash });
+      }
+      if (blocked === 'merit') return makeError('noMerit');
+      if (blocked === 'card') return makeError('noJailCard');
+      return null;
+    }
+    case 'leaveDraft':
+      if (phase !== 'TurnStart' || pending?.kind !== 'draftSkip') return wrong();
+      if (action.how === 'merit') return me.merit > 0 ? null : makeError('noMerit');
+      if (action.how === 'card') return me.jailCards.length > 0 ? null : makeError('noJailCard');
+      return makeError('invalidAction');
+    case 'donate':
+      if (phase !== 'BuyDecision' || pending?.kind !== 'donation' || typeof action.give !== 'boolean') return wrong();
+      if (!action.give) return null;
+      if (me.merit >= MYANMAR.meritMax) return makeError('meritFull');
+      return me.cash >= MYANMAR.meritDonation ? null : makeError('notEnoughCash', { needed: MYANMAR.meritDonation, have: me.cash });
+    case 'useMerit': {
+      if (!RULES.merit) return wrong();
+      // A rent owed to a player, or a bad Chance card (spec 7.2).
+      if (phase === 'RentDue' && pending?.kind === 'rent' && pending.rent.creditor !== null) {
+        return (s.players[pending.rent.payer] as Player).merit > 0 ? null : makeError('noMerit');
+      }
+      if (phase === 'CardReveal' && pending?.kind === 'card' && cancellableCard(pending.cardId)) {
+        return me.merit > 0 ? null : makeError('noMerit');
+      }
+      return wrong();
+    }
+    case 'buyTicket': {
+      if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type !== 'lottery') return wrong();
+      return me.cash >= effect.ticket ? null : makeError('notEnoughCash', { needed: effect.ticket, have: me.cash });
+    }
+    case 'brokerPay': {
+      if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
+      const effect = cardById(pending.cardId).effect;
+      if (effect.type !== 'broker') return wrong();
+      return me.cash >= effect.amount ? null : makeError('notEnoughCash', { needed: effect.amount, have: me.cash });
+    }
     case 'payJailFine':
       if (phase !== 'TurnStart' || pending?.kind !== 'jailChoice') return wrong();
       return me.cash >= BALANCE.jailFine ? null : makeError('notEnoughCash', { needed: BALANCE.jailFine, have: me.cash });
@@ -174,7 +256,7 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       return me.cash >= price ? null : makeError('notEnoughCash', { needed: price, have: me.cash });
     }
     case 'decline':
-      return phase === 'BuyDecision' ? null : wrong();
+      return phase === 'BuyDecision' && pending?.kind === 'buy' ? null : wrong();
     case 'bid': {
       if (phase !== 'Auction' || pending?.kind !== 'auction') return wrong();
       const a = pending.auction;
@@ -240,12 +322,38 @@ export function validateAction(s: GameState, action: Action): EngineError | null
         const waiting = decisionMaker(s);
         return makeError('tradeWait', { player: waiting === null ? '' : (s.players[waiting]?.name ?? '') });
       }
+      // Myanmar map: during an internet cut only the owner of MPT may offer (D102).
+      if (tradeBlockedFor(s, action.offer.from)) return makeError('tradeBlocked');
       return tradeBlocker(s, action.offer);
     }
     case 'respondTrade':
     case 'counterTrade':
     case 'withdrawTrade':
       return wrong();
+    case 'requestLoan': {
+      if (!RULES.loans) return wrong();
+      const offer = action.offer;
+      if (!offer || typeof offer !== 'object' || offer.from !== offer.borrower) return makeError('invalidAction');
+      // Asked for between decisions, like a trade offer (D99, D104).
+      if (!tradingOpen(s)) {
+        const waiting = decisionMaker(s);
+        return makeError('tradeWait', { player: waiting === null ? '' : (s.players[waiting]?.name ?? '') });
+      }
+      if (tradeBlockedFor(s, offer.from)) return makeError('tradeBlocked');
+      return loanOfferBlocker(s, offer);
+    }
+    case 'respondLoan':
+    case 'counterLoan':
+    case 'withdrawLoan':
+      return wrong();
+    case 'repayLoan': {
+      // The borrower, on their own turn between decisions; never while raising money (Debt).
+      if (!RULES.loans || phase === 'Debt') return wrong();
+      const l = s.economy.loans.find((x) => x.id === action.loanId);
+      if (!l || freeActor(s) !== l.borrower || s.turn.currentPlayerIndex !== l.borrower) return wrong();
+      const max = Math.min(loanOwed(s, l), (s.players[l.borrower] as Player).cash);
+      return Number.isInteger(action.amount) && action.amount >= 1 && action.amount <= max ? null : makeError('loanRepay', { max });
+    }
     case 'endTurn':
       return phase === 'AwaitEndTurn' ? null : wrong();
     default:
@@ -268,13 +376,22 @@ export function auctionBidOptions(s: GameState): number[] {
 
 /** Everything the current decision-maker can do now. */
 export function legalActions(s: GameState): LegalAction[] {
+  useMap(s);
   if (s.flow.notices.length > 0) return [{ type: 'acknowledge' }];
   if (s.flow.phase === 'GameOver') return [];
   if (s.flow.trade !== null) {
     return [
       { type: 'respondTrade', accept: true },
       { type: 'respondTrade', accept: false },
-      { type: 'counterTrade', offer: null },
+      // Myanmar map: during an internet cut only the owner of MPT may counter (D102).
+      ...(tradeBlockedFor(s, s.flow.trade.to) ? [] : [{ type: 'counterTrade', offer: null } as const]),
+    ];
+  }
+  if (s.flow.loan !== null) {
+    return [
+      ...(validateAction(s, { type: 'respondLoan', accept: true }) === null ? [{ type: 'respondLoan', accept: true } as const] : []),
+      { type: 'respondLoan', accept: false },
+      ...(tradeBlockedFor(s, s.flow.loan.to) ? [] : [{ type: 'counterLoan', offer: null } as const]),
     ];
   }
   const out: LegalAction[] = [];
@@ -288,7 +405,13 @@ export function legalActions(s: GameState): LegalAction[] {
       break;
     case 'TurnStart':
       if (pending?.kind === 'vacationSkip') consider({ type: 'acknowledge' });
-      else {
+      else if (pending?.kind === 'draftChoice') {
+        for (const how of ['pay', 'hide', 'flee', 'serve', 'merit', 'card'] as const) consider({ type: 'draftChoose', how });
+      } else if (pending?.kind === 'draftSkip') {
+        consider({ type: 'acknowledge' });
+        consider({ type: 'leaveDraft', how: 'merit' });
+        consider({ type: 'leaveDraft', how: 'card' });
+      } else {
         consider({ type: 'payJailFine' });
         consider({ type: 'useJailCard' });
         consider({ type: 'rollForDoubles' });
@@ -301,6 +424,8 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'BuyDecision':
       consider({ type: 'buy' });
       consider({ type: 'decline' });
+      consider({ type: 'donate', give: true });
+      consider({ type: 'donate', give: false });
       break;
     case 'Auction':
       for (const amount of auctionBidOptions(s)) consider({ type: 'bid', amount });
@@ -309,12 +434,16 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'RentDue':
       consider({ type: 'payRent' });
       consider({ type: 'useFreeStay' });
+      consider({ type: 'useMerit' });
       break;
     case 'CompanyRoll':
       consider({ type: 'rollCompanyDice' });
       break;
     case 'CardReveal':
       consider({ type: 'confirmCard' });
+      consider({ type: 'brokerPay' });
+      consider({ type: 'buyTicket' });
+      consider({ type: 'useMerit' });
       break;
     case 'BuildOffer':
       if (pending?.kind === 'build') {
@@ -340,7 +469,15 @@ export function legalActions(s: GameState): LegalAction[] {
       if (ps.mortgaged) consider({ type: 'unmortgage', space });
       else consider({ type: 'mortgage', space });
     });
-    if (livingPlayers(s).length > 1) out.push({ type: 'proposeTrade', offer: null });
+    if (livingPlayers(s).length > 1 && !tradeBlockedFor(s, actor)) out.push({ type: 'proposeTrade', offer: null });
+    // Myanmar map: ask for a loan; the borrower may pay back on their own turn (D104).
+    if (RULES.loans && livingPlayers(s).length > 1 && !tradeBlockedFor(s, actor)) out.push({ type: 'requestLoan', offer: null });
+    if (RULES.loans) {
+      const cash = (s.players[actor] as Player).cash;
+      for (const l of s.economy.loans) {
+        if (l.borrower === actor) consider({ type: 'repayLoan', loanId: l.id, amount: Math.min(loanOwed(s, l), cash) });
+      }
+    }
   }
   return out;
 }
@@ -350,11 +487,18 @@ export function legalActions(s: GameState): LegalAction[] {
  * else an offer while trading is open, and taking back their own offer on the table (D99).
  */
 export function legalActionsFor(s: GameState, player: number): LegalAction[] {
+  useMap(s);
   const out = decisionMaker(s) === player ? legalActions(s) : [];
   const p = s.players[player];
   if (!p || p.bankrupt || s.flow.notices.length > 0 || s.flow.phase === 'GameOver') return out;
   if (s.flow.trade?.from === player) out.push({ type: 'withdrawTrade' });
-  if (tradingOpen(s) && !out.some((a) => a.type === 'proposeTrade')) out.push({ type: 'proposeTrade', offer: null });
+  if (s.flow.loan?.from === player) out.push({ type: 'withdrawLoan' });
+  if (RULES.loans && tradingOpen(s) && !tradeBlockedFor(s, player) && !out.some((a) => a.type === 'requestLoan')) {
+    out.push({ type: 'requestLoan', offer: null });
+  }
+  if (tradingOpen(s) && !tradeBlockedFor(s, player) && !out.some((a) => a.type === 'proposeTrade')) {
+    out.push({ type: 'proposeTrade', offer: null });
+  }
   return out;
 }
 

@@ -1,0 +1,8535 @@
+{
+  "generatedAt": "2026-10-14T15:56:03.465Z",
+  "seconds": 20.548,
+  "map": "myanmar",
+  "players": 4,
+  "bots": "two sensible and two random bots per game (seats alternate by seed)",
+  "normalRoundCap": 2000,
+  "gamesCompleted": 400,
+  "invariantFailures": 0,
+  "crashes": 0,
+  "quick": {
+    "games": 200,
+    "medianRounds": 34,
+    "capShare": 0,
+    "housesPerGame": 14.845,
+    "hotelsPerGame": 2.74,
+    "bankruptciesPerGame": 0.845,
+    "actionsPerGame": 1210.77,
+    "sensibleWinShare": 1,
+    "endReasons": {
+      "bankruptcy": 169,
+      "roundLimit": 31
+    },
+    "actionTotals": {
+      "ready": 27969,
+      "roll": 31325,
+      "buy": 4487,
+      "endTurn": 26255,
+      "proposeTrade": 12800,
+      "respondTrade": 12800,
+      "payRent": 11122,
+      "mortgage": 7861,
+      "unmortgage": 7340,
+      "decline": 1806,
+      "bid": 56677,
+      "fold": 5404,
+      "requestLoan": 7150,
+      "respondLoan": 7150,
+      "repayLoan": 1735,
+      "counterTrade": 3083,
+      "draftChoose": 1066,
+      "donate": 2059,
+      "acknowledge": 1545,
+      "build": 3517,
+      "finishBuilding": 500,
+      "counterLoan": 2330,
+      "rollCompanyDice": 1278,
+      "payDebt": 133,
+      "confirmCard": 3609,
+      "useMerit": 737,
+      "brokerPay": 126,
+      "buyTicket": 136,
+      "openBuild": 23,
+      "sellBuilding": 39,
+      "declareBankruptcy": 34,
+      "leaveDraft": 58
+    },
+    "phasesSeen": [
+      "Auction",
+      "AwaitEndTurn",
+      "AwaitRoll",
+      "BuildOffer",
+      "BuyDecision",
+      "CardReveal",
+      "CompanyRoll",
+      "Debt",
+      "GameOver",
+      "PassDevice",
+      "RentDue",
+      "TurnStart"
+    ]
+  },
+  "normal": {
+    "games": 200,
+    "medianRounds": 118.5,
+    "capShare": 0.005,
+    "housesPerGame": 33.135,
+    "hotelsPerGame": 7.83,
+    "bankruptciesPerGame": 2.995,
+    "actionsPerGame": 3250.085,
+    "sensibleWinShare": 1,
+    "endReasons": {
+      "lastPlayer": 199,
+      "roundCap": 1
+    },
+    "actionTotals": {
+      "ready": 125652,
+      "roll": 145617,
+      "buy": 4737,
+      "endTurn": 121922,
+      "proposeTrade": 15784,
+      "respondTrade": 15784,
+      "payRent": 50244,
+      "mortgage": 11933,
+      "unmortgage": 9189,
+      "decline": 1862,
+      "bid": 58367,
+      "fold": 5500,
+      "requestLoan": 7765,
+      "respondLoan": 7765,
+      "repayLoan": 1800,
+      "counterTrade": 3167,
+      "draftChoose": 4763,
+      "donate": 8819,
+      "acknowledge": 3535,
+      "build": 8193,
+      "finishBuilding": 1143,
+      "counterLoan": 2355,
+      "rollCompanyDice": 6058,
+      "payDebt": 1133,
+      "confirmCard": 16056,
+      "useMerit": 6255,
+      "brokerPay": 778,
+      "sellBuilding": 2732,
+      "buyTicket": 956,
+      "declareBankruptcy": 50,
+      "openBuild": 24,
+      "leaveDraft": 79
+    },
+    "phasesSeen": [
+      "Auction",
+      "AwaitEndTurn",
+      "AwaitRoll",
+      "BuildOffer",
+      "BuyDecision",
+      "CardReveal",
+      "CompanyRoll",
+      "Debt",
+      "GameOver",
+      "PassDevice",
+      "RentDue",
+      "TurnStart"
+    ]
+  },
+  "games": [
+    {
+      "seed": 1,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 991,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 2,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 30,
+      "hotels": 6,
+      "bankruptcies": 0,
+      "actions": 1804,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 3,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1178,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 4,
+      "mode": "quick",
+      "rounds": 22,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 896,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 5,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 796,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 6,
+      "mode": "quick",
+      "rounds": 20,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 741,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 7,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1307,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 8,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 918,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 9,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 10,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 905,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 10,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1559,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 11,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 778,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 12,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 13,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1098,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 13,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 992,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 14,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1667,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 15,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1168,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 16,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 14,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1006,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 17,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 1484,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 18,
+      "mode": "quick",
+      "rounds": 21,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 761,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 19,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1581,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 20,
+      "mode": "quick",
+      "rounds": 39,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 1478,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 21,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 918,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 22,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1164,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 23,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1250,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 24,
+      "mode": "quick",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1194,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 25,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 22,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1836,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 26,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1240,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 27,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 979,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 28,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1087,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 29,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 972,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 30,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 987,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 31,
+      "mode": "quick",
+      "rounds": 45,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 1,
+      "actions": 1629,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 32,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1180,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 33,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1445,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 34,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1199,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 35,
+      "mode": "quick",
+      "rounds": 21,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 786,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 36,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1040,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 37,
+      "mode": "quick",
+      "rounds": 41,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1380,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 38,
+      "mode": "quick",
+      "rounds": 22,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 858,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 39,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1158,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 40,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1228,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 41,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1009,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 42,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1048,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 43,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1175,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 44,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 0,
+      "actions": 1782,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 45,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1314,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 46,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 1,
+      "actions": 1047,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 47,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 11,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1069,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 48,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 0,
+      "actions": 1462,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 49,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1192,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 50,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 10,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 951,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 51,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1278,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 52,
+      "mode": "quick",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1293,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 53,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 11,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 920,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 54,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1306,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 55,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 852,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 56,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1157,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 57,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 921,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 58,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 2,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1378,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 59,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 1507,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 60,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 15,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 954,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 61,
+      "mode": "quick",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1352,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 62,
+      "mode": "quick",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1137,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 63,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1097,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 64,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 975,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 65,
+      "mode": "quick",
+      "rounds": 47,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 1463,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 66,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 3,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 866,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 67,
+      "mode": "quick",
+      "rounds": 41,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1294,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 68,
+      "mode": "quick",
+      "rounds": 48,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 1,
+      "actions": 1490,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 69,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 31,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 1075,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 70,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1130,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 71,
+      "mode": "quick",
+      "rounds": 17,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 674,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 72,
+      "mode": "quick",
+      "rounds": 40,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1405,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 73,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1057,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 74,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 0,
+      "actions": 1647,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 75,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 29,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 931,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 76,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 0,
+      "actions": 1489,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 77,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 0,
+      "actions": 1580,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 78,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 30,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1267,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 79,
+      "mode": "quick",
+      "rounds": 36,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1427,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 80,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1167,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 81,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1805,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 82,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 23,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1234,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 83,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 849,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 84,
+      "mode": "quick",
+      "rounds": 44,
+      "finished": true,
+      "hitCap": false,
+      "houses": 18,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1243,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 85,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 39,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 963,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 86,
+      "mode": "quick",
+      "rounds": 21,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 833,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 87,
+      "mode": "quick",
+      "rounds": 47,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1493,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 88,
+      "mode": "quick",
+      "rounds": 22,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 918,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 89,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1340,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 90,
+      "mode": "quick",
+      "rounds": 39,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1319,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 91,
+      "mode": "quick",
+      "rounds": 38,
+      "finished": true,
+      "hitCap": false,
+      "houses": 34,
+      "hotels": 8,
+      "bankruptcies": 1,
+      "actions": 1321,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 92,
+      "mode": "quick",
+      "rounds": 46,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1416,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 93,
+      "mode": "quick",
+      "rounds": 20,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 777,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 94,
+      "mode": "quick",
+      "rounds": 39,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1227,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 95,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1032,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 96,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1532,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 97,
+      "mode": "quick",
+      "rounds": 40,
+      "finished": true,
+      "hitCap": false,
+      "houses": 19,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1347,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 98,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 826,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 99,
+      "mode": "quick",
+      "rounds": 47,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1562,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 100,
+      "mode": "quick",
+      "rounds": 22,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 808,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 101,
+      "mode": "quick",
+      "rounds": 41,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1316,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 102,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1428,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 103,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 988,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 104,
+      "mode": "quick",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 7,
+      "bankruptcies": 1,
+      "actions": 1692,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 105,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 0,
+      "actions": 1387,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 106,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 6,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 805,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 107,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 6,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1245,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 108,
+      "mode": "quick",
+      "rounds": 36,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1177,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 109,
+      "mode": "quick",
+      "rounds": 36,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1308,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 110,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1676,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 111,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 1,
+      "actions": 1331,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 112,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1429,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 113,
+      "mode": "quick",
+      "rounds": 39,
+      "finished": true,
+      "hitCap": false,
+      "houses": 33,
+      "hotels": 7,
+      "bankruptcies": 1,
+      "actions": 1324,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 114,
+      "mode": "quick",
+      "rounds": 47,
+      "finished": true,
+      "hitCap": false,
+      "houses": 18,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 1726,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 115,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 988,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 116,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 0,
+      "actions": 1610,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 117,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 1393,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 118,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 763,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 119,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 0,
+      "actions": 1578,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 120,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 26,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1258,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 121,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1208,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 122,
+      "mode": "quick",
+      "rounds": 48,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1402,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 123,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 22,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1105,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 124,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 0,
+      "actions": 1505,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 125,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1224,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 126,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 15,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1120,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 127,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 38,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 953,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 128,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1110,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 129,
+      "mode": "quick",
+      "rounds": 38,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1407,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 130,
+      "mode": "quick",
+      "rounds": 45,
+      "finished": true,
+      "hitCap": false,
+      "houses": 41,
+      "hotels": 8,
+      "bankruptcies": 1,
+      "actions": 1732,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 131,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 0,
+      "actions": 1691,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 132,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 22,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 813,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 133,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1155,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 134,
+      "mode": "quick",
+      "rounds": 46,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1563,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 135,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1170,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 136,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 789,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 137,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1387,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 138,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1513,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 139,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 0,
+      "actions": 1494,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 140,
+      "mode": "quick",
+      "rounds": 23,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 966,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 141,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 858,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 142,
+      "mode": "quick",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1594,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 143,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1523,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 144,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 0,
+      "actions": 1387,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 145,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 15,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1300,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 146,
+      "mode": "quick",
+      "rounds": 36,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1250,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 147,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 7,
+      "bankruptcies": 1,
+      "actions": 876,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 148,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 897,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 149,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 7,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1120,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 150,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1093,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 151,
+      "mode": "quick",
+      "rounds": 46,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1487,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 152,
+      "mode": "quick",
+      "rounds": 29,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1054,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 153,
+      "mode": "quick",
+      "rounds": 41,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1573,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 154,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1670,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 155,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 34,
+      "hotels": 7,
+      "bankruptcies": 0,
+      "actions": 1655,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 156,
+      "mode": "quick",
+      "rounds": 17,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 847,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 157,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1832,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 158,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 985,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 159,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1205,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 160,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1055,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 161,
+      "mode": "quick",
+      "rounds": 32,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 1,
+      "actions": 1172,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 162,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1076,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 163,
+      "mode": "quick",
+      "rounds": 48,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 1,
+      "actions": 1485,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 164,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 7,
+      "bankruptcies": 1,
+      "actions": 1331,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 165,
+      "mode": "quick",
+      "rounds": 37,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 1,
+      "bankruptcies": 1,
+      "actions": 1175,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 166,
+      "mode": "quick",
+      "rounds": 20,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 676,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 167,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 3,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1700,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 168,
+      "mode": "quick",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1329,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 169,
+      "mode": "quick",
+      "rounds": 22,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 883,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 170,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1036,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 171,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 18,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 816,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 172,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1086,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 173,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 950,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 174,
+      "mode": "quick",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1001,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 175,
+      "mode": "quick",
+      "rounds": 35,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1178,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 176,
+      "mode": "quick",
+      "rounds": 20,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 925,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 177,
+      "mode": "quick",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1262,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 178,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1033,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 179,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 694,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 180,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1576,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 181,
+      "mode": "quick",
+      "rounds": 30,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 1147,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 182,
+      "mode": "quick",
+      "rounds": 25,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 880,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 183,
+      "mode": "quick",
+      "rounds": 24,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 1,
+      "actions": 917,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 184,
+      "mode": "quick",
+      "rounds": 19,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 706,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 185,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1602,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 186,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 771,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 187,
+      "mode": "quick",
+      "rounds": 27,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1089,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 188,
+      "mode": "quick",
+      "rounds": 38,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1066,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 189,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 27,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1209,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 190,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1414,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 191,
+      "mode": "quick",
+      "rounds": 33,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1293,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 192,
+      "mode": "quick",
+      "rounds": 38,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1214,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 193,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 14,
+      "hotels": 3,
+      "bankruptcies": 0,
+      "actions": 1583,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 194,
+      "mode": "quick",
+      "rounds": 44,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 1,
+      "actions": 1438,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 195,
+      "mode": "quick",
+      "rounds": 40,
+      "finished": true,
+      "hitCap": false,
+      "houses": 19,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1385,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 196,
+      "mode": "quick",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 0,
+      "actions": 1488,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundLimit"
+    },
+    {
+      "seed": 197,
+      "mode": "quick",
+      "rounds": 34,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1205,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 198,
+      "mode": "quick",
+      "rounds": 28,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1071,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 199,
+      "mode": "quick",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 1,
+      "actions": 1576,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 200,
+      "mode": "quick",
+      "rounds": 31,
+      "finished": true,
+      "hitCap": false,
+      "houses": 39,
+      "hotels": 2,
+      "bankruptcies": 1,
+      "actions": 1105,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "bankruptcy"
+    },
+    {
+      "seed": 1,
+      "mode": "normal",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1326,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 2,
+      "mode": "normal",
+      "rounds": 82,
+      "finished": true,
+      "hitCap": false,
+      "houses": 46,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 2199,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 3,
+      "mode": "normal",
+      "rounds": 96,
+      "finished": true,
+      "hitCap": false,
+      "houses": 37,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1857,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 4,
+      "mode": "normal",
+      "rounds": 68,
+      "finished": true,
+      "hitCap": false,
+      "houses": 38,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1449,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 5,
+      "mode": "normal",
+      "rounds": 129,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 2019,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 6,
+      "mode": "normal",
+      "rounds": 78,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 1424,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 7,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 1450,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 8,
+      "mode": "normal",
+      "rounds": 667,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 6190,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 9,
+      "mode": "normal",
+      "rounds": 60,
+      "finished": true,
+      "hitCap": false,
+      "houses": 25,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 1265,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 10,
+      "mode": "normal",
+      "rounds": 792,
+      "finished": true,
+      "hitCap": false,
+      "houses": 92,
+      "hotels": 23,
+      "bankruptcies": 3,
+      "actions": 7926,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 11,
+      "mode": "normal",
+      "rounds": 109,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 2320,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 12,
+      "mode": "normal",
+      "rounds": 120,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1874,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 13,
+      "mode": "normal",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1239,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 14,
+      "mode": "normal",
+      "rounds": 768,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 7961,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 15,
+      "mode": "normal",
+      "rounds": 175,
+      "finished": true,
+      "hitCap": false,
+      "houses": 68,
+      "hotels": 17,
+      "bankruptcies": 3,
+      "actions": 2574,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 16,
+      "mode": "normal",
+      "rounds": 101,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 12,
+      "bankruptcies": 3,
+      "actions": 1832,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 17,
+      "mode": "normal",
+      "rounds": 97,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1910,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 18,
+      "mode": "normal",
+      "rounds": 294,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 3147,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 19,
+      "mode": "normal",
+      "rounds": 129,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2408,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 20,
+      "mode": "normal",
+      "rounds": 105,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2092,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 21,
+      "mode": "normal",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 1227,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 22,
+      "mode": "normal",
+      "rounds": 68,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1550,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 23,
+      "mode": "normal",
+      "rounds": 47,
+      "finished": true,
+      "hitCap": false,
+      "houses": 48,
+      "hotels": 12,
+      "bankruptcies": 3,
+      "actions": 1492,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 24,
+      "mode": "normal",
+      "rounds": 48,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1319,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 25,
+      "mode": "normal",
+      "rounds": 72,
+      "finished": true,
+      "hitCap": false,
+      "houses": 30,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2096,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 26,
+      "mode": "normal",
+      "rounds": 171,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2476,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 27,
+      "mode": "normal",
+      "rounds": 637,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 6222,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 28,
+      "mode": "normal",
+      "rounds": 132,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 1942,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 29,
+      "mode": "normal",
+      "rounds": 95,
+      "finished": true,
+      "hitCap": false,
+      "houses": 19,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 1569,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 30,
+      "mode": "normal",
+      "rounds": 2000,
+      "finished": false,
+      "hitCap": true,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 2,
+      "actions": 16661,
+      "winners": [],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "roundCap"
+    },
+    {
+      "seed": 31,
+      "mode": "normal",
+      "rounds": 67,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1862,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 32,
+      "mode": "normal",
+      "rounds": 1405,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 12201,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 33,
+      "mode": "normal",
+      "rounds": 62,
+      "finished": true,
+      "hitCap": false,
+      "houses": 42,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 1813,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 34,
+      "mode": "normal",
+      "rounds": 408,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 4375,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 35,
+      "mode": "normal",
+      "rounds": 198,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2298,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 36,
+      "mode": "normal",
+      "rounds": 68,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 1817,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 37,
+      "mode": "normal",
+      "rounds": 241,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 3100,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 38,
+      "mode": "normal",
+      "rounds": 256,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 3046,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 39,
+      "mode": "normal",
+      "rounds": 110,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2065,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 40,
+      "mode": "normal",
+      "rounds": 125,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 2197,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 41,
+      "mode": "normal",
+      "rounds": 85,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1717,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 42,
+      "mode": "normal",
+      "rounds": 87,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1644,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 43,
+      "mode": "normal",
+      "rounds": 161,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 2650,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 44,
+      "mode": "normal",
+      "rounds": 118,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2483,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 45,
+      "mode": "normal",
+      "rounds": 183,
+      "finished": true,
+      "hitCap": false,
+      "houses": 64,
+      "hotels": 16,
+      "bankruptcies": 3,
+      "actions": 2803,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 46,
+      "mode": "normal",
+      "rounds": 118,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1897,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 47,
+      "mode": "normal",
+      "rounds": 269,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 3255,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 48,
+      "mode": "normal",
+      "rounds": 119,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 2154,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 49,
+      "mode": "normal",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 1316,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 50,
+      "mode": "normal",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 31,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1184,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 51,
+      "mode": "normal",
+      "rounds": 186,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2592,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 52,
+      "mode": "normal",
+      "rounds": 151,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 2215,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 53,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 43,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1253,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 54,
+      "mode": "normal",
+      "rounds": 104,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1986,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 55,
+      "mode": "normal",
+      "rounds": 41,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 1115,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 56,
+      "mode": "normal",
+      "rounds": 57,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1431,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 57,
+      "mode": "normal",
+      "rounds": 40,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1260,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 58,
+      "mode": "normal",
+      "rounds": 449,
+      "finished": true,
+      "hitCap": false,
+      "houses": 46,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 4747,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 59,
+      "mode": "normal",
+      "rounds": 93,
+      "finished": true,
+      "hitCap": false,
+      "houses": 47,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 2030,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 60,
+      "mode": "normal",
+      "rounds": 75,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1376,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 61,
+      "mode": "normal",
+      "rounds": 847,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 7825,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 62,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1309,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 63,
+      "mode": "normal",
+      "rounds": 382,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3955,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 64,
+      "mode": "normal",
+      "rounds": 563,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 5449,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 65,
+      "mode": "normal",
+      "rounds": 87,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1834,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 66,
+      "mode": "normal",
+      "rounds": 84,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1397,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 67,
+      "mode": "normal",
+      "rounds": 73,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 1685,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 68,
+      "mode": "normal",
+      "rounds": 90,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1864,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 69,
+      "mode": "normal",
+      "rounds": 149,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 2154,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 70,
+      "mode": "normal",
+      "rounds": 60,
+      "finished": true,
+      "hitCap": false,
+      "houses": 27,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1493,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 71,
+      "mode": "normal",
+      "rounds": 26,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 820,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 72,
+      "mode": "normal",
+      "rounds": 198,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2833,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 73,
+      "mode": "normal",
+      "rounds": 266,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3035,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 74,
+      "mode": "normal",
+      "rounds": 181,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 2999,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 75,
+      "mode": "normal",
+      "rounds": 110,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1657,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 76,
+      "mode": "normal",
+      "rounds": 584,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 5768,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 77,
+      "mode": "normal",
+      "rounds": 276,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3461,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 78,
+      "mode": "normal",
+      "rounds": 87,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1815,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 79,
+      "mode": "normal",
+      "rounds": 826,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 7704,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 80,
+      "mode": "normal",
+      "rounds": 72,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1585,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 81,
+      "mode": "normal",
+      "rounds": 834,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 8590,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 82,
+      "mode": "normal",
+      "rounds": 74,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1614,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 83,
+      "mode": "normal",
+      "rounds": 88,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 1577,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 84,
+      "mode": "normal",
+      "rounds": 80,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 1563,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 85,
+      "mode": "normal",
+      "rounds": 42,
+      "finished": true,
+      "hitCap": false,
+      "houses": 39,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1073,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 86,
+      "mode": "normal",
+      "rounds": 61,
+      "finished": true,
+      "hitCap": false,
+      "houses": 34,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1356,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 87,
+      "mode": "normal",
+      "rounds": 246,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 3241,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 88,
+      "mode": "normal",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1168,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 89,
+      "mode": "normal",
+      "rounds": 107,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2112,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 90,
+      "mode": "normal",
+      "rounds": 208,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 2887,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 91,
+      "mode": "normal",
+      "rounds": 74,
+      "finished": true,
+      "hitCap": false,
+      "houses": 42,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1694,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 92,
+      "mode": "normal",
+      "rounds": 51,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 1505,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 93,
+      "mode": "normal",
+      "rounds": 54,
+      "finished": true,
+      "hitCap": false,
+      "houses": 68,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 1396,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 94,
+      "mode": "normal",
+      "rounds": 207,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 2901,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 95,
+      "mode": "normal",
+      "rounds": 86,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1518,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 96,
+      "mode": "normal",
+      "rounds": 552,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 5912,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 97,
+      "mode": "normal",
+      "rounds": 206,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 2713,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 98,
+      "mode": "normal",
+      "rounds": 172,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2190,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 99,
+      "mode": "normal",
+      "rounds": 328,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3903,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 100,
+      "mode": "normal",
+      "rounds": 99,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 1691,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 101,
+      "mode": "normal",
+      "rounds": 752,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 6967,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 102,
+      "mode": "normal",
+      "rounds": 1412,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 12271,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 103,
+      "mode": "normal",
+      "rounds": 57,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1163,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 104,
+      "mode": "normal",
+      "rounds": 59,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1815,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 105,
+      "mode": "normal",
+      "rounds": 129,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2068,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 106,
+      "mode": "normal",
+      "rounds": 167,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2057,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 107,
+      "mode": "normal",
+      "rounds": 458,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 12,
+      "bankruptcies": 3,
+      "actions": 4922,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 108,
+      "mode": "normal",
+      "rounds": 1423,
+      "finished": true,
+      "hitCap": false,
+      "houses": 164,
+      "hotels": 41,
+      "bankruptcies": 3,
+      "actions": 12443,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 109,
+      "mode": "normal",
+      "rounds": 86,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 1854,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 110,
+      "mode": "normal",
+      "rounds": 406,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 4669,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 111,
+      "mode": "normal",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1591,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 112,
+      "mode": "normal",
+      "rounds": 298,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 3587,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 113,
+      "mode": "normal",
+      "rounds": 145,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 2391,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 114,
+      "mode": "normal",
+      "rounds": 127,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 2580,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 115,
+      "mode": "normal",
+      "rounds": 54,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1462,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 116,
+      "mode": "normal",
+      "rounds": 65,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1850,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 117,
+      "mode": "normal",
+      "rounds": 87,
+      "finished": true,
+      "hitCap": false,
+      "houses": 48,
+      "hotels": 12,
+      "bankruptcies": 3,
+      "actions": 2164,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 118,
+      "mode": "normal",
+      "rounds": 153,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1970,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 119,
+      "mode": "normal",
+      "rounds": 189,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 2898,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 120,
+      "mode": "normal",
+      "rounds": 51,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 1494,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 121,
+      "mode": "normal",
+      "rounds": 55,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1432,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 122,
+      "mode": "normal",
+      "rounds": 202,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 2701,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 123,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 65,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1443,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 124,
+      "mode": "normal",
+      "rounds": 77,
+      "finished": true,
+      "hitCap": false,
+      "houses": 80,
+      "hotels": 20,
+      "bankruptcies": 3,
+      "actions": 2019,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 125,
+      "mode": "normal",
+      "rounds": 109,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2018,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 126,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 43,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 1319,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 127,
+      "mode": "normal",
+      "rounds": 45,
+      "finished": true,
+      "hitCap": false,
+      "houses": 50,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1247,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 128,
+      "mode": "normal",
+      "rounds": 74,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1585,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 129,
+      "mode": "normal",
+      "rounds": 694,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 6858,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 130,
+      "mode": "normal",
+      "rounds": 83,
+      "finished": true,
+      "hitCap": false,
+      "houses": 73,
+      "hotels": 16,
+      "bankruptcies": 3,
+      "actions": 2167,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 131,
+      "mode": "normal",
+      "rounds": 1176,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 10780,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 132,
+      "mode": "normal",
+      "rounds": 205,
+      "finished": true,
+      "hitCap": false,
+      "houses": 46,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 2490,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 133,
+      "mode": "normal",
+      "rounds": 79,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1704,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 134,
+      "mode": "normal",
+      "rounds": 94,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 1967,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 135,
+      "mode": "normal",
+      "rounds": 843,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 7728,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 136,
+      "mode": "normal",
+      "rounds": 1363,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 11562,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 137,
+      "mode": "normal",
+      "rounds": 81,
+      "finished": true,
+      "hitCap": false,
+      "houses": 52,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1919,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 138,
+      "mode": "normal",
+      "rounds": 760,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 7368,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 139,
+      "mode": "normal",
+      "rounds": 207,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 2833,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 140,
+      "mode": "normal",
+      "rounds": 273,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3087,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 141,
+      "mode": "normal",
+      "rounds": 43,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1018,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 142,
+      "mode": "normal",
+      "rounds": 424,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 4647,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 143,
+      "mode": "normal",
+      "rounds": 1148,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 10831,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 144,
+      "mode": "normal",
+      "rounds": 388,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 4151,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 145,
+      "mode": "normal",
+      "rounds": 168,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2436,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 146,
+      "mode": "normal",
+      "rounds": 483,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 4860,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 147,
+      "mode": "normal",
+      "rounds": 154,
+      "finished": true,
+      "hitCap": false,
+      "houses": 46,
+      "hotels": 12,
+      "bankruptcies": 3,
+      "actions": 2061,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 148,
+      "mode": "normal",
+      "rounds": 65,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 1330,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 149,
+      "mode": "normal",
+      "rounds": 90,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1869,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 150,
+      "mode": "normal",
+      "rounds": 1660,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 14167,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 151,
+      "mode": "normal",
+      "rounds": 938,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 8561,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 152,
+      "mode": "normal",
+      "rounds": 50,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 1455,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 153,
+      "mode": "normal",
+      "rounds": 879,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 8202,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 154,
+      "mode": "normal",
+      "rounds": 231,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 3248,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 155,
+      "mode": "normal",
+      "rounds": 86,
+      "finished": true,
+      "hitCap": false,
+      "houses": 42,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 2029,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 156,
+      "mode": "normal",
+      "rounds": 69,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1561,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 157,
+      "mode": "normal",
+      "rounds": 81,
+      "finished": true,
+      "hitCap": false,
+      "houses": 78,
+      "hotels": 17,
+      "bankruptcies": 3,
+      "actions": 2350,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 158,
+      "mode": "normal",
+      "rounds": 1065,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 9489,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 159,
+      "mode": "normal",
+      "rounds": 130,
+      "finished": true,
+      "hitCap": false,
+      "houses": 48,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 2269,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 160,
+      "mode": "normal",
+      "rounds": 309,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 3552,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 161,
+      "mode": "normal",
+      "rounds": 79,
+      "finished": true,
+      "hitCap": false,
+      "houses": 30,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1663,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 162,
+      "mode": "normal",
+      "rounds": 1194,
+      "finished": true,
+      "hitCap": false,
+      "houses": 100,
+      "hotels": 24,
+      "bankruptcies": 3,
+      "actions": 10546,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 163,
+      "mode": "normal",
+      "rounds": 343,
+      "finished": true,
+      "hitCap": false,
+      "houses": 33,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 4107,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 164,
+      "mode": "normal",
+      "rounds": 362,
+      "finished": true,
+      "hitCap": false,
+      "houses": 80,
+      "hotels": 20,
+      "bankruptcies": 3,
+      "actions": 4224,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 165,
+      "mode": "normal",
+      "rounds": 829,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 7660,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 166,
+      "mode": "normal",
+      "rounds": 91,
+      "finished": true,
+      "hitCap": false,
+      "houses": 53,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 1406,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 167,
+      "mode": "normal",
+      "rounds": 86,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 2216,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 168,
+      "mode": "normal",
+      "rounds": 133,
+      "finished": true,
+      "hitCap": false,
+      "houses": 26,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 2189,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 169,
+      "mode": "normal",
+      "rounds": 91,
+      "finished": true,
+      "hitCap": false,
+      "houses": 37,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1715,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 170,
+      "mode": "normal",
+      "rounds": 723,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 6721,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 171,
+      "mode": "normal",
+      "rounds": 58,
+      "finished": true,
+      "hitCap": false,
+      "houses": 18,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 1210,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 172,
+      "mode": "normal",
+      "rounds": 58,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1458,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 173,
+      "mode": "normal",
+      "rounds": 44,
+      "finished": true,
+      "hitCap": false,
+      "houses": 12,
+      "hotels": 3,
+      "bankruptcies": 3,
+      "actions": 1186,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 174,
+      "mode": "normal",
+      "rounds": 76,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1627,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 175,
+      "mode": "normal",
+      "rounds": 704,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 6673,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 176,
+      "mode": "normal",
+      "rounds": 252,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 2,
+      "bankruptcies": 3,
+      "actions": 3074,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 177,
+      "mode": "normal",
+      "rounds": 49,
+      "finished": true,
+      "hitCap": false,
+      "houses": 44,
+      "hotels": 11,
+      "bankruptcies": 3,
+      "actions": 1391,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 178,
+      "mode": "normal",
+      "rounds": 69,
+      "finished": true,
+      "hitCap": false,
+      "houses": 20,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 1375,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 179,
+      "mode": "normal",
+      "rounds": 97,
+      "finished": true,
+      "hitCap": false,
+      "houses": 16,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 1753,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 180,
+      "mode": "normal",
+      "rounds": 354,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 4318,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 181,
+      "mode": "normal",
+      "rounds": 272,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 5,
+      "bankruptcies": 3,
+      "actions": 3126,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 182,
+      "mode": "normal",
+      "rounds": 192,
+      "finished": true,
+      "hitCap": false,
+      "houses": 31,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 2325,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 183,
+      "mode": "normal",
+      "rounds": 60,
+      "finished": true,
+      "hitCap": false,
+      "houses": 24,
+      "hotels": 6,
+      "bankruptcies": 3,
+      "actions": 1316,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 184,
+      "mode": "normal",
+      "rounds": 53,
+      "finished": true,
+      "hitCap": false,
+      "houses": 48,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 1212,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 185,
+      "mode": "normal",
+      "rounds": 798,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 7698,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 186,
+      "mode": "normal",
+      "rounds": 213,
+      "finished": true,
+      "hitCap": false,
+      "houses": 65,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 2455,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 187,
+      "mode": "normal",
+      "rounds": 179,
+      "finished": true,
+      "hitCap": false,
+      "houses": 28,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 2664,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 188,
+      "mode": "normal",
+      "rounds": 99,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 1762,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 189,
+      "mode": "normal",
+      "rounds": 73,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1647,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 190,
+      "mode": "normal",
+      "rounds": 68,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 9,
+      "bankruptcies": 3,
+      "actions": 1714,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 191,
+      "mode": "normal",
+      "rounds": 613,
+      "finished": true,
+      "hitCap": false,
+      "houses": 100,
+      "hotels": 25,
+      "bankruptcies": 3,
+      "actions": 6161,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 192,
+      "mode": "normal",
+      "rounds": 141,
+      "finished": true,
+      "hitCap": false,
+      "houses": 40,
+      "hotels": 10,
+      "bankruptcies": 3,
+      "actions": 2255,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 193,
+      "mode": "normal",
+      "rounds": 1507,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 13,
+      "bankruptcies": 3,
+      "actions": 13303,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 194,
+      "mode": "normal",
+      "rounds": 149,
+      "finished": true,
+      "hitCap": false,
+      "houses": 21,
+      "hotels": 7,
+      "bankruptcies": 3,
+      "actions": 2365,
+      "winners": [
+        0
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 195,
+      "mode": "normal",
+      "rounds": 195,
+      "finished": true,
+      "hitCap": false,
+      "houses": 32,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 2761,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 196,
+      "mode": "normal",
+      "rounds": 651,
+      "finished": true,
+      "hitCap": false,
+      "houses": 0,
+      "hotels": 0,
+      "bankruptcies": 3,
+      "actions": 6774,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 197,
+      "mode": "normal",
+      "rounds": 44,
+      "finished": true,
+      "hitCap": false,
+      "houses": 36,
+      "hotels": 8,
+      "bankruptcies": 3,
+      "actions": 1411,
+      "winners": [
+        1
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 198,
+      "mode": "normal",
+      "rounds": 228,
+      "finished": true,
+      "hitCap": false,
+      "houses": 8,
+      "hotels": 4,
+      "bankruptcies": 3,
+      "actions": 2715,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 199,
+      "mode": "normal",
+      "rounds": 212,
+      "finished": true,
+      "hitCap": false,
+      "houses": 56,
+      "hotels": 14,
+      "bankruptcies": 3,
+      "actions": 3051,
+      "winners": [
+        3
+      ],
+      "bots": [
+        "random",
+        "sensible",
+        "random",
+        "sensible"
+      ],
+      "endReason": "lastPlayer"
+    },
+    {
+      "seed": 200,
+      "mode": "normal",
+      "rounds": 139,
+      "finished": true,
+      "hitCap": false,
+      "houses": 76,
+      "hotels": 20,
+      "bankruptcies": 3,
+      "actions": 2117,
+      "winners": [
+        2
+      ],
+      "bots": [
+        "sensible",
+        "random",
+        "sensible",
+        "random"
+      ],
+      "endReason": "lastPlayer"
+    }
+  ]
+}

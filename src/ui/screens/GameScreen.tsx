@@ -3,6 +3,8 @@
 import {
   ArrowLeftRight,
   BookOpen,
+  Coins,
+  HandCoins,
   Copy,
   FastForward,
   Hammer,
@@ -17,12 +19,12 @@ import {
   Save,
   Volume2,
   VolumeX,
+  TrendingUp,
   Wifi,
   WifiOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
-import { BOARD_SIZE } from '../../data/balance';
-import { BOARD, LAYOUT } from '../../data/board';
+import { BOARD, LAYOUT, MAP, RULES } from '../../data/board';
 import { decisionMaker, freeActor, validateAction, type GameState, type Player } from '../../engine';
 import { afterAnimation, skipAnimation } from '../animation';
 import { Button, useShake } from '../components/Button';
@@ -34,6 +36,7 @@ import { FloatingFocusCard, FocusCard } from '../components/FocusCard';
 import { TokenChip } from '../components/glyphs';
 import { Log, LogLines, LogMoreButton } from '../components/Log';
 import { OceanArt } from '../components/OceanArt';
+import { RiverArt } from '../components/RiverArt';
 import { PlayersColumn } from '../components/PlayersColumn';
 import { RoomPlayers } from '../components/RoomBar';
 import { Tile } from '../components/Tile';
@@ -56,6 +59,7 @@ import { Box, chatRequest, inviteLink, leaveToStart, useOnline, usePending, type
 import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
+import { LoanBuilder, openLoanSheet } from '../panels/LoanPanel';
 import {
   app,
   askConfirm,
@@ -78,7 +82,7 @@ import {
 } from '../store';
 import { GAME_TITLE, modifierLabel, money, recapLine, T } from '../strings';
 import { canOfferHere } from '../trading';
-import { legalTypes, names, playerName, primarySpec } from '../view';
+import { hasBoardNews, legalTypes, names, playerName, primarySpec } from '../view';
 
 /** The Menu button and its popover: settings, then Save and New game (local) or invite and leave (online). */
 export function GameMenu({ s, compact = false }: { s: GameState; compact?: boolean }) {
@@ -221,14 +225,33 @@ function ChatButton() {
   );
 }
 
+/** Myanmar map: the community pot, always shown in the middle of the board (spec 7.9, D103). */
+export function PotLine({ s }: { s: GameState }) {
+  if (!RULES.pot) return null;
+  return (
+    <p className="pot-line" title={T.top.potTitle}>
+      <Coins size={15} aria-hidden="true" />
+      <span>{T.top.potLabel}</span>
+      <span className="pot-line-amount money">{money(s.economy.pot)}</span>
+    </p>
+  );
+}
+
 /** Active events (rent and building cost modifiers) as chips. */
-function Modifiers({ s, className }: { s: GameState; className: string }) {
+export function Modifiers({ s, className }: { s: GameState; className: string }) {
   return (
     <ul className={className} aria-label={T.top.modifiersLabel}>
+      {/* Myanmar map: the inflation rate is always shown once there is any (spec 7.4, D102). */}
+      {s.economy.inflation > 0 && (
+        <li key="inflation" className="chip chip-up" title={T.top.inflationTitle}>
+          <TrendingUp size={13} aria-hidden="true" />
+          {T.top.inflation(s.economy.inflation)}
+        </li>
+      )}
       {s.flow.modifiers.map((m) => (
-        <li key={m.type} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
+        <li key={`${m.type}-${m.cardId}`} className={`chip ${m.factor > 1 ? 'chip-up' : 'chip-down'}`} title={T.top.until(playerName(s, m.drawnBy))}>
           <Layers size={13} aria-hidden="true" />
-          {modifierLabel(m.type, m.factor)}
+          {modifierLabel(m.type, m.factor, m.cardId)}
         </li>
       ))}
     </ul>
@@ -383,8 +406,13 @@ function RefusalLine() {
  * The Trade button: for any player this device acts for, on anyone's turn (D99). Not while an offer
  * is on the table (its panel has the answers), nor for a debtor, whose debt panel has its own.
  */
+/** Myanmar map: the Loan button, where the Trade button would be (D104). */
+export function showLoanButton(s: GameState): boolean {
+  return RULES.loans && showTradeButton(s);
+}
+
 export function showTradeButton(s: GameState): boolean {
-  if (s.flow.trade || !canOfferHere(s)) return false;
+  if (s.flow.trade || s.flow.loan || !canOfferHere(s)) return false;
   const debtor = s.flow.phase === 'Debt' ? (s.flow.debts[0]?.debtor ?? null) : null;
   return debtor === null || !canAct(debtor);
 }
@@ -411,6 +439,9 @@ function ActionBar({ s }: { s: GameState }) {
             icon={<ArrowLeftRight size={16} aria-hidden="true" />}
             onClick={() => openSheet({ kind: 'trade' })}
           />
+        )}
+        {showLoanButton(s) && (
+          <Button id="act-loan" label={T.loan.button} icon={<HandCoins size={16} aria-hidden="true" />} onClick={() => openLoanSheet()} />
         )}
         {s.flow.phase !== 'GameOver' && (
           <Button id="act-props" label={T.play.myProperties} onClick={() => openSheet({ kind: 'properties', player: owner })} />
@@ -468,7 +499,8 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   // The next game starts on the chat again.
   useEffect(() => () => feedTab.set('chat'), []);
   const chatOpen = online !== null && feed === 'chat';
-  const pending = s.flow.notices.length > 0 || s.flow.trade !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
+  const pending =
+    s.flow.notices.length > 0 || s.flow.trade !== null || s.flow.loan !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   const showPanel = pending && !display.busy;
   const position = shownPosition(s, display, s.turn.currentPlayerIndex);
   const dice = shownDice(s, display);
@@ -490,8 +522,9 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
         {!online && <FocusCard s={s} fallback={position} />}
         <div className="stage-side">
           {online && s.players.length >= 5 && <RoundCounter s={s} className="tb-round stage-round" />}
-          {online && s.flow.modifiers.length > 0 && <Modifiers s={s} className="stage-modifiers" />}
+          {online && hasBoardNews(s) && <Modifiers s={s} className="stage-modifiers" />}
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
+          <PotLine s={s} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
         </div>
@@ -526,26 +559,27 @@ function Hud({ s, compactLog }: { s: GameState; compactLog: boolean }) {
   );
 }
 
-/** The board's grid: the spaces along each side, between the corners (theme.css `.board`). */
-const BOARD_GRID = { '--across': LAYOUT.across, '--down': LAYOUT.down } as CSSProperties;
-/** With 18 or fewer spaces down a side, its tiles are tall enough for a name on two lines. */
-const ROOMY_ROWS = LAYOUT.down <= 18;
-
 /** The ring of tiles with the ocean, tokens and (on large screens) the HUD inside it. */
 export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; compactLog: boolean }) {
   const display = useDisplay();
+  // Names and cards follow this device's language (Myanmar map, D101): tiles re-render when it changes.
+  const { language } = usePrefs();
+  // The board's grid: the spaces along each side, between the corners (theme.css `.board`), for the
+  // map in play. With 18 or fewer spaces down a side, its tiles are tall enough for two-line names.
+  const grid = { '--across': LAYOUT.across, '--down': LAYOUT.down } as CSSProperties;
+  const roomy = LAYOUT.down <= 18;
   const online = useOnline();
   const current = s.players[s.turn.currentPlayerIndex];
   const currentPos = shownPosition(s, display, s.turn.currentPlayerIndex);
   const over = s.flow.phase === 'GameOver';
   const [focusIndex, setFocusIndex] = useState(0);
   const navigate = useCallback((from: number, delta: number) => {
-    const next = (from + delta + BOARD_SIZE) % BOARD_SIZE;
+    const next = (from + delta + LAYOUT.size) % LAYOUT.size;
     setFocusIndex(next);
     document.querySelector<HTMLElement>(`.board [data-space="${next}"]`)?.focus();
   }, []);
   return (
-    <main className={`board ${ROOMY_ROWS ? 'is-roomy' : ''}`} aria-label={GAME_TITLE} style={BOARD_GRID}>
+    <main className={`board ${roomy ? 'is-roomy' : ''}`} data-map={MAP.id} aria-label={GAME_TITLE} style={grid}>
       {BOARD.map((space) => (
         <Tile
           key={space.index}
@@ -554,10 +588,18 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
           ring={space.index === currentPos && !over && current ? current.color : null}
           focusable={space.index === focusIndex}
           onNavigate={navigate}
+          language={language}
         />
       ))}
       <div className="ocean">
-        <OceanArt />
+        {MAP.id === 'myanmar' ? <RiverArt /> : <OceanArt />}
+        {/* Myanmar map, phones: the open middle of the board shows the community pot (D103). */}
+        {!hud && RULES.pot && (
+          <div className="pot-plaque" aria-hidden="true">
+            <span className="pot-plaque-label">{T.top.potLabel}</span>
+            <span className="pot-plaque-amount money">{money(s.economy.pot)}</span>
+          </div>
+        )}
         <TokenLayer s={s} />
         {hud && <Hud s={s} compactLog={compactLog} />}
         {hud && online && <FloatingFocusCard s={s} />}
@@ -602,13 +644,18 @@ function useKeyboard(): void {
         dispatch({ type: 'buy' });
       } else if (key === 'p' && validateAction(s, { type: 'decline' }) === null) {
         dispatch({ type: 'decline' });
+      } else if (key === 'b' && validateAction(s, { type: 'donate', give: true }) === null) {
+        // Myanmar map: the pagoda donation answers to the same keys (D102).
+        dispatch({ type: 'donate', give: true });
+      } else if (key === 'p' && validateAction(s, { type: 'donate', give: false }) === null) {
+        dispatch({ type: 'donate', give: false });
       } else if (key === 't' && showTradeButton(s)) {
         e.preventDefault();
         openSheet({ kind: 'trade' });
       } else if (key === ' ' || key === 'enter') {
         // A focused control keeps its own Space/Enter; board tiles pass it to the primary button.
         if (target?.closest('button:not(.tile), a, [role="switch"], summary')) return;
-        if (s.flow.trade || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
+        if (s.flow.trade || s.flow.loan || (s.flow.phase === 'PassDevice' && s.flow.notices.length === 0)) return;
         // Online, Space does nothing while another device decides.
         if (!canAct(decisionMaker(s))) return;
         const spec = primarySpec(s);
@@ -664,7 +711,7 @@ function useYourTurn(s: GameState, online: OnlineState | null): string | null {
     // The airport chime, once the move that led here has played.
     afterAnimation(() => playCue('yourTurn'));
     setBanner(
-      s.flow.trade ? T.online.yourTrade(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
+      s.flow.trade ? T.online.yourTrade(name) : s.flow.loan ? T.online.yourLoan(name) : s.flow.phase === 'Auction' ? T.online.yourBid(name) : s.turn.currentPlayerIndex === decider ? T.online.yourTurn(name) : T.online.yourDecision(name),
     );
     try {
       const activated = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive;
@@ -764,7 +811,7 @@ export function GameScreen() {
         </>
       )}
       {showPass && <PassDevice key={s.turn.turnNumber} s={s} />}
-      {handover && !s.flow.trade && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
+      {handover && !s.flow.trade && !s.flow.loan && <PassDevice s={s} player={handover.player} onReady={handover.dismiss} />}
       {banner && !handover && (
         <div className="turn-banner" role="status" key={banner}>
           {banner}
@@ -772,6 +819,7 @@ export function GameScreen() {
       )}
       {s.flow.trade && <TradeHandover key={`trade-${s.meta.logSeq}`} s={s} />}
       {u.sheet?.kind === 'trade' && <TradeBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
+      {u.sheet?.kind === 'loan' && <LoanBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
       <QuickHelpPopover />

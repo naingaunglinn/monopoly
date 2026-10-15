@@ -9,7 +9,7 @@
 //   a player out of the chat, nor does their own while they are writing.
 // The board keeps its desktop layout at a fixed size and is scaled as a whole (camera in a ref,
 // written straight to the transform, so gestures never re-render the tiles).
-import { ArrowLeftRight, BookOpen, Hammer, IdCard, LayoutList, MessageCircle, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
+import { ArrowLeftRight, BookOpen, Hammer, HandCoins, IdCard, LayoutList, MessageCircle, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { decisionMaker, freeActor, legalActions, type GameState, type Player } from '../../engine';
 import { prefersReducedMotion } from '../animation';
@@ -27,8 +27,9 @@ import { ActivePanel } from '../panels/DecisionPanels';
 import { chatRequest, useOnline } from '../session/online';
 import { canAct, openRules, openSheet, useAnimationSpeed, useApp, useUi } from '../store';
 import { money, recapLine, T } from '../strings';
-import { names } from '../view';
-import { Board, GameMenu, PrimaryButton, showTradeButton } from './GameScreen';
+import { hasBoardNews, names } from '../view';
+import { Board, GameMenu, Modifiers, PotLine, PrimaryButton, showLoanButton, showTradeButton } from './GameScreen';
+import { LoansList, openLoanSheet } from '../panels/LoanPanel';
 
 /** The board's layout size on phones: the 1280 x 720 desktop board (below its top bar), scaled as a whole. */
 export const CANVAS_W = 1280;
@@ -375,7 +376,8 @@ function Sheet({ s }: { s: GameState }) {
   const { pinned } = useUi();
   const { refusal } = useApp();
   const online = useOnline();
-  const pending = s.flow.notices.length > 0 || s.flow.trade !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
+  const pending =
+    s.flow.notices.length > 0 || s.flow.trade !== null || s.flow.loan !== null || !['PassDevice', 'AwaitRoll', 'AwaitEndTurn'].includes(s.flow.phase);
   // Panels wait for the animation to finish, as on large screens.
   const showPanel = pending && !display.busy;
   // The tab the player chose, and the decision they stepped away from (to look at another tab).
@@ -383,7 +385,7 @@ function Sheet({ s }: { s: GameState }) {
   const [chosen, setChosen] = useState<Tab>('card');
   const [awayFrom, setAwayFrom] = useState<string | null>(null);
   // An offer, a counter-offer or its answer is a new decision too (D99).
-  const decisionKey = `${s.flow.phase}-${s.flow.notices.length}-${s.turn.turnNumber}-${s.flow.trade ? s.meta.logSeq : 'no-trade'}`;
+  const decisionKey = `${s.flow.phase}-${s.flow.notices.length}-${s.turn.turnNumber}-${s.flow.trade || s.flow.loan ? s.meta.logSeq : 'no-trade'}`;
   // Online, the chat stays open through other players' decisions, and through one's own while writing.
   const mineToDecide = !online || canAct(decisionMaker(s));
   const holdChat = chosen === 'chat' && (!mineToDecide || isComposing());
@@ -426,6 +428,10 @@ function Sheet({ s }: { s: GameState }) {
             <FocusCard s={s} fallback={position} />
           </div>
         )}
+        {tab === 'players' && <PotLine s={s} />}
+        {tab === 'players' && hasBoardNews(s) && (
+          <Modifiers s={s} className="stage-modifiers phone-modifiers" />
+        )}
         {tab === 'players' && <PlayersColumn s={s} />}
         {tab === 'log' && <Log s={s} compact={false} />}
         {tab === 'chat' && online && <ChatPanel className="phone-chat" />}
@@ -434,7 +440,11 @@ function Sheet({ s }: { s: GameState }) {
             {showTradeButton(s) && (
               <Button id="mine-trade" label={T.play.trade} icon={<ArrowLeftRight size={16} aria-hidden="true" />} onClick={() => openSheet({ kind: 'trade' })} />
             )}
+            {showLoanButton(s) && (
+              <Button id="mine-loan" label={T.loan.button} icon={<HandCoins size={16} aria-hidden="true" />} onClick={() => openLoanSheet()} />
+            )}
             <PropertyGroups s={s} player={me} />
+            <LoansList s={s} player={me} />
           </div>
         )}
       </div>

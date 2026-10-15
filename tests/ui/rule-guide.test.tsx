@@ -7,7 +7,7 @@ import { createGame, PHASES, type GameState, type TradeOffer } from '../../src/e
 import { App } from '../../src/ui/App';
 import { app, resetUi } from '../../src/ui/store';
 import { BALANCE } from '../../src/data/balance';
-import { AIRPORTS, SPACES } from '../../src/data/board';
+import { AIRPORTS, setActiveMap, SPACES } from '../../src/data/board';
 import { money } from '../../src/ui/strings';
 import { act, endTurn, game, own, rollTo, setCash, spaceOf, spacesOf } from '../engine/helpers';
 
@@ -141,5 +141,29 @@ describe('rule guide', () => {
     expect(dialog.queryByText(`${AIRPORTS.length + 1} airports`)).toBeNull();
     fireEvent.click(dialog.getByRole('button', { name: 'Companies' }));
     expect(dialog.getByText('Global Finance Company')).toBeTruthy();
+  });
+});
+
+describe('rule guide on the Myanmar map (D101)', () => {
+  test('its own words and numbers, in lakh; no Free Stay or Vacation topic', () => {
+    try {
+      show(game({ map: 'myanmar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
+      const dialog = within(guide() as HTMLElement);
+      const topics = within(dialog.getByRole('navigation')).getAllByRole('button').map((b) => b.textContent);
+      expect(topics).toEqual(expect.arrayContaining(['Start', 'Regions', 'Transport', 'Military service', 'Merit', 'Myanmar news and inflation', 'Chance and News cards']));
+      for (const world of ['World Start', 'Countries', 'Airports', 'Jail', 'Free Stay', 'Vacation']) expect(topics).not.toContain(world);
+      fireEvent.click(dialog.getByRole('button', { name: 'Transport' }));
+      expect(dialog.getByText('4 transports')).toBeTruthy();
+      expect(dialog.getByText('400 lakh')).toBeTruthy();
+      fireEvent.click(dialog.getByRole('button', { name: 'Companies' }));
+      expect(dialog.getByText('4 companies')).toBeTruthy();
+      expect(dialog.getByText('Dice total × 200 lakh')).toBeTruthy();
+      fireEvent.click(dialog.getByRole('button', { name: 'Quick start' }));
+      expect(dialog.getByText('Pass Start and collect 500 lakh.')).toBeTruthy();
+      expect(guide()?.textContent).not.toContain('$');
+    } finally {
+      setActiveMap('world');
+    }
   });
 });

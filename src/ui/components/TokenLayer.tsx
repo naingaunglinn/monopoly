@@ -7,8 +7,10 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { CORNERS, gridPosition, LAYOUT } from '../../data/board';
 import type { GameState } from '../../engine';
 import { shownPosition, useDisplay } from '../display';
-import { T, TOKEN_NAMES } from '../strings';
+import { TOKEN_NAMES } from '../strings';
+import { heldLabel } from '../view';
 import { TokenChip } from './glyphs';
+import { jailIcon } from './icons';
 
 /** Centre of a space's slot in the lane, in px inside the ocean box. */
 export function laneSlot(index: number, w: number, h: number, laneW: number, laneH: number): { x: number; y: number } {
@@ -46,6 +48,7 @@ function cssNumber(el: Element, name: string, fallback: number): number {
 }
 
 export function TokenLayer({ s }: { s: GameState }) {
+  const JailSign = jailIcon(Lock);
   const ref = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<Box>({ w: 0, h: 0, laneW: 64, laneH: 28, token: 18, current: 24 });
   const display = useDisplay();
@@ -92,7 +95,8 @@ export function TokenLayer({ s }: { s: GameState }) {
           const x = slot.x - span / 2 + i * step - size / 2;
           const y = slot.y - size / 2;
           const ms = display.moveMs?.[p.id] ?? 0;
-          const status = p.inJail ? 'in-jail' : p.skipNextTurn ? 'on-vacation' : '';
+          const held = heldLabel(p);
+          const status = held ? 'in-jail' : p.skipNextTurn ? 'on-vacation' : '';
           const pulsing = display.pulse?.player === p.id;
           const hop = display.hop?.player === p.id ? display.hop : null;
           // The mover glides with its hop; tokens that only shift within a fan slide briefly.
@@ -107,7 +111,7 @@ export function TokenLayer({ s }: { s: GameState }) {
                 transition: display.busy ? `transform ${glide}ms cubic-bezier(.45,.05,.55,.95)` : undefined,
                 zIndex: isCurrent ? 20 : 10 + i,
               }}
-              title={`${p.name} (${TOKEN_NAMES[p.token]})${p.inJail ? `, ${T.players.inJail}` : ''}`}
+              title={`${p.name} (${TOKEN_NAMES[p.token]})${held ? `, ${held}` : ''}`}
             >
               <span
                 key={hop ? hop.id : 'still'}
@@ -120,7 +124,7 @@ export function TokenLayer({ s }: { s: GameState }) {
               </span>
               {status && (
                 <span className={`token-badge badge-${status}`}>
-                  {p.inJail ? <Lock size={8} strokeWidth={3} /> : <TreePalm size={8} strokeWidth={3} />}
+                  {held ? <JailSign size={8} strokeWidth={3} /> : <TreePalm size={8} strokeWidth={3} />}
                 </span>
               )}
             </div>

@@ -15,7 +15,7 @@ export function App() {
   const { screen, game } = useApp();
   const animationSpeed = useAnimationSpeed();
   const { rules } = useUi();
-  const { motionAnyway } = usePrefs();
+  const { motionAnyway, language } = usePrefs();
   // An invite link (?room=ABCD) opens that room once, at load.
   useEffect(() => {
     if (!ROOM_PARAM || openedRoomParam) return;
@@ -24,8 +24,17 @@ export function App() {
   }, []);
   // The speed setting applies to everything on screen, including overlays outside the board.
   const speed = screen === 'game' && game ? animationSpeed : 'normal';
+  // Burmese names and cards on the Myanmar map need taller lines (theme.css, D101).
+  const map = screen === 'game' && game ? game.meta.settings.map : undefined;
+  const burmese = map === 'myanmar' && language === 'my';
   return (
-    <div className="app" data-speed={speed} data-motion={motionAnyway ? 'full' : undefined}>
+    <div
+      className="app"
+      data-speed={speed}
+      data-motion={motionAnyway ? 'full' : undefined}
+      data-map={map === 'myanmar' ? map : undefined}
+      data-names={burmese ? 'my' : undefined}
+    >
       {screen === 'start' && <StartScreen />}
       {screen === 'setup' && <SetupScreen />}
       {screen === 'online' && <OnlineEntryScreen />}
