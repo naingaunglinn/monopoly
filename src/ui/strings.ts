@@ -1045,6 +1045,7 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   powerTarget: () => 'Pick another player, and for land a property without buildings, not pledged, in a region without buildings.',
   unrestNone: () => 'No unrest cup left to show, or paid not to show one this time.',
   meritShort: () => `Only the player the power hits can block it, with ${MYANMAR.powerBlockMerit} merit points.`,
+  rankNoBuy: (x) => `${p(x, 'player') || 'A player'} holds an army rank and may not buy land.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {

@@ -160,7 +160,7 @@ describe('rule guide on the Myanmar map (D101)', () => {
       expect(dialog.getByText('4 companies')).toBeTruthy();
       expect(dialog.getByText('Dice total × 200 lakh')).toBeTruthy();
       fireEvent.click(dialog.getByRole('button', { name: 'Quick start' }));
-      expect(dialog.getByText('Pass Start and collect 500 lakh.')).toBeTruthy();
+      expect(dialog.getByText('Pass Start and collect 750 lakh.')).toBeTruthy();
       expect(guide()?.textContent).not.toContain('$');
     } finally {
       setActiveMap('world');

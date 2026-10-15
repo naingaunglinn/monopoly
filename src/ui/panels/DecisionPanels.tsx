@@ -89,6 +89,7 @@ function BuyPanel({ s, space }: { s: GameState; space: number }) {
             <dd className={`money ${me.cash - price < 0 ? 'is-loss' : ''}`}>{money(me.cash - price)}</dd>
           </div>
           {refused && needed > 0 && <p className="fact-strong">{T.panels.buy.short(money(needed))}</p>}
+          {refused?.code === 'rankNoBuy' && <p className="fact-strong">{refused.reason}</p>}
           <p className="fact-hint">{s.meta.settings.auction ? T.panels.buy.passHint : T.panels.buy.passHintNoAuction}</p>
         </dl>
       </div>

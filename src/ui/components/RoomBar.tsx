@@ -158,7 +158,11 @@ function statusSign(s: GameState, p: Player, net: SeatNet | null): { kind: strin
 
 /** Another player: their name and money (name above the money when the bar is crowded). */
 function OtherChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
-  const words = [...statusWords(p, net), ...(RULES.general && s.economy.general === p.id ? [T.general.badge] : [])];
+  const words = [
+    ...statusWords(p, net),
+    ...(RULES.general && p.rank > 0 ? [T.general.rank(p.rank)] : []),
+    ...(RULES.general && s.economy.general === p.id ? [T.general.badge] : []),
+  ];
   const sign = statusSign(s, p, net);
   return (
     <li className="tb-slot">
@@ -182,6 +186,12 @@ function OtherChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
           {sign && (
             <span className={`tb-sign sign-${sign.kind}`} aria-hidden="true">
               <sign.Icon />
+            </span>
+          )}
+          {/* Myanmar map: everyone's army rank, seen by all (D111). */}
+          {RULES.general && p.rank > 0 && !p.bankrupt && (
+            <span className="tb-rank" aria-hidden="true">
+              {p.rank}
             </span>
           )}
         </span>

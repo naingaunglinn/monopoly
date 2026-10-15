@@ -1,7 +1,7 @@
 // Board-covering screens (pass-device, property list, trade, results) and small dialogs.
 import { ArrowLeftRight, Check, CircleHelp, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, groupName, propertyPrice } from '../../data/board';
+import { AIRPORT_BY_SPACE, COMPANY_BY_SPACE, COUNTRIES, COUNTRY_CITIES, groupName, propertyPrice, RULES } from '../../data/board';
 import { mortgageValue, unmortgageCost } from '../../data/balance';
 import {
   countryOf,
@@ -297,6 +297,12 @@ export function PropertyList({ s, player }: { s: GameState; player: number }) {
           </p>
           <HostControls p={p} net={net} idPrefix="sheet-" />
         </div>
+      )}
+      {/* Myanmar map: the player's army rank (D111). */}
+      {RULES.general && (p.rank > 0 || s.economy.general === p.id) && (
+        <p className="fact-strong">
+          {[p.rank > 0 ? T.general.rank(p.rank) : null, s.economy.general === p.id ? T.general.badge : null].filter(Boolean).join(' · ')}
+        </p>
       )}
       <PropertyGroups s={s} player={player} />
       <LoansList s={s} player={player} />
