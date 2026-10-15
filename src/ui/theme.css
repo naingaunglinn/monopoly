@@ -3122,6 +3122,50 @@ label.trade-item:hover {
   background: var(--tile);
 }
 
+/* Myanmar map: the guide switches between English and Burmese (D114). */
+.rules-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid #b9c4ce;
+  background: var(--tile);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  flex: none;
+}
+
+.rules-lang:hover {
+  background: #f1f4f7;
+}
+
+/* Narrow screens: the search takes its own row under the title and the switches. */
+@media (max-width: 599px) {
+  .rule-guide .sheet-head {
+    flex-wrap: wrap;
+  }
+
+  .rule-guide .rules-search {
+    order: 1;
+    flex: 1 1 100%;
+  }
+}
+
+/* Burmese stacks marks above and below the line: more room between lines. */
+.rule-guide.is-burmese .rules-lines,
+.rule-guide.is-burmese .rules-topic,
+.rule-guide.is-burmese .rules-table {
+  line-height: 1.7;
+}
+
+.rule-guide.is-burmese .rules-topic-title {
+  font-size: 26px;
+  line-height: 1.5;
+}
+
 .rules-search input {
   border: none;
   outline: none;
