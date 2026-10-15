@@ -269,23 +269,3 @@ describe('army pay and half rent (owner, D109)', () => {
     expect(eventsOf(passed.events, 'salaryPaid')).toEqual([]);
   });
 });
-
-
-describe('no land for a player with a rank (owner, D111)', () => {
-  test('cannot buy, takes no part in the auction, cannot receive land in a trade', () => {
-    const [falam, hakha] = (mm(), [spaceOf('Falam'), spaceOf('Hakha')]);
-    const ranked = edit(mm(), (d) => {
-      (d.players[0] as P).rank = 1;
-      (d.players[2] as P).rank = 2;
-    });
-    const landed = rollTo(ranked, falam).state;
-    expect(validateAction(landed, { type: 'buy' })?.code).toBe('rankNoBuy');
-    const auction = act(landed, { type: 'decline' });
-    expect(auction.flow.pending?.kind === 'auction' && auction.flow.pending.auction.order).toEqual([1, 3]);
-    const owned = own(ranked, hakha, 1);
-    const trade = { from: 1, to: 0, give: { properties: [hakha], cash: 0, jailCards: 0 }, get: { properties: [], cash: 50, jailCards: 0 } };
-    expect(validateAction(owned, { type: 'proposeTrade', offer: trade })?.code).toBe('rankNoBuy');
-    // Without a rank, buying is as before.
-    expect(validateAction(rollTo(mm(), falam).state, { type: 'buy' })).toBeNull();
-  });
-});

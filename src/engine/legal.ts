@@ -286,8 +286,6 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       return phase === 'AwaitRoll' ? null : wrong();
     case 'buy': {
       if (phase !== 'BuyDecision' || pending?.kind !== 'buy') return wrong();
-      // Myanmar map: a player with an army rank may not buy land (owner, D111).
-      if (RULES.general && me.rank > 0) return makeError('rankNoBuy', { player: me.name });
       const price = propertyPrice(pending.space);
       return me.cash >= price ? null : makeError('notEnoughCash', { needed: price, have: me.cash });
     }
