@@ -572,12 +572,16 @@ export type GameEvent =
   | { type: 'loanCancelled'; from: number; to: number }
   | { type: 'loanAccepted'; loan: Loan }
   | { type: 'loanRepaid'; loanId: number; borrower: number; lender: number; amount: number; left: number; auto: boolean }
+  /** The end of a loan's term: `paid` of the `owed` debt came from the borrower's cash (D108). */
+  | { type: 'loanDue'; loanId: number; borrower: number; lender: number; owed: number; paid: number; left: number }
   /** Unpaid at the end of its term, or the borrower went bankrupt: the collateral goes to the lender. */
   | { type: 'loanDefaulted'; loanId: number; borrower: number; lender: number; collateral: number[]; why: 'term' | 'bankruptcy' }
   /** The lender went bankrupt: the loan is cancelled and its collateral freed. */
   | { type: 'loanForgiven'; loanId: number; borrower: number; lender: number }
   // Myanmar map: rank, the general and unrest (spec v2, D107)
   | { type: 'promoted'; player: number; die: number; rank: number; salary: number }
+  /** A player with a rank draws their salary on passing Start (D109). */
+  | { type: 'salaryPaid'; player: number; amount: number }
   | { type: 'generalChanged'; player: number | null; previous: number | null }
   | { type: 'powerRolled'; player: number; dice: Dice; outcome: PowerOutcome }
   | { type: 'powerFizzled'; player: number }

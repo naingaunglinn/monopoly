@@ -237,3 +237,36 @@ describe('saves and the World map', () => {
     expect(reduce(bad, { type: 'usePower' } as Action).error?.code).toBe('powerNotReady');
   });
 });
+
+describe('army pay and half rent (owner, D109)', () => {
+  test('a player with a rank collects half rent, on cities, transport and companies', () => {
+    const [mandalay, airport, yesc] = (mm(), [spaceOf('Mandalay'), spaceOf('Yangon International Airport'), spaceOf('YESC (Yangon Electricity)')]);
+    const plain = own(mm(), [mandalay, airport, yesc], 1);
+    const ranked = edit(plain, (d) => void ((d.players[1] as P).rank = 2));
+    const due = (s: GameState, space: number) => {
+      const landed = rollTo(s, space).state;
+      if (landed.flow.phase === 'CompanyRoll') return act(nextDice(landed, 3, 4), { type: 'rollCompanyDice' }).flow.pending;
+      return landed.flow.pending;
+    };
+    const amount = (p: ReturnType<typeof due>) => (p?.kind === 'rent' ? p.rent.amount : NaN);
+    expect(amount(due(ranked, mandalay))).toBe(37);
+    expect(amount(due(plain, mandalay))).toBe(74);
+    expect(amount(due(ranked, airport))).toBe(25);
+    expect(amount(due(ranked, yesc))).toBe(Math.round((7 * 25) / 2));
+  });
+
+  test('a player with a rank draws rank × 200 each time they pass Start', () => {
+    const ranked = edit(mm(), (d) => void ((d.players[0] as P).rank = 3));
+    const passed = run(nextDice(edit(ranked, (d) => void ((d.players[0] as P).position = 45)), 3, 4), { type: 'roll' });
+    expect(eventsOf(passed.events, 'salaryPaid')).toEqual([{ type: 'salaryPaid', player: 0, amount: 600 }]);
+    expect(eventsOf(passed.events, 'passedStart')[0]?.amount).toBe(500);
+    const plain = run(nextDice(edit(mm(), (d) => void ((d.players[0] as P).position = 45)), 3, 4), { type: 'roll' });
+    expect(eventsOf(plain.events, 'salaryPaid')).toEqual([]);
+  });
+
+  test('none of this on the World map', () => {
+    const passed = run(nextDice(edit(game(), (d) => void ((d.players[0] as P).position = 58)), 3, 4), { type: 'roll' });
+    expect(eventsOf(passed.events, 'salaryPaid')).toEqual([]);
+  });
+});
+

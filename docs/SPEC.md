@@ -1263,7 +1263,7 @@ Added at the owner's request (Oct 14, 2026): a second map, **Myanmar**, chosen b
 8. **Lottery** (Chance card "Buy a lottery ticket?"): the player may pay 10 lakh and roll two dice: 12 wins 3,000 lakh, 10 or 11 wins 500, 7 to 9 wins 100, 2 to 6 nothing. *(Stage 3.)*
 9. **Community pot**. Every tax and fine goes into a pot in the middle of the board, shown at all times; whoever lands on the Refuge takes it all. *(Stage 3.)*
 10. **Remittance**. A player who fled to the border receives 200 lakh each round while they are there. *(Stage 3.)*
-11. **Loans** *(stage 4)*. A player may ask another for a loan at any time, even on someone else's turn, in a panel like the trade offer: the amount, the interest rate per round (set by the borrower, adjustable before sending), the term in rounds and **collateral (required)**. The lender accepts, rejects or counters. Interest is simple: debt = principal + principal × rate × rounds passed. Limits: at most 20% a round; the debt stops growing at 3 times the principal; no building on collateral. The borrower may repay on their own turn at any time; passing Start takes 25% of the debt automatically when the cash is there. Unpaid at the end of the term, the collateral goes to the lender; if the borrower goes bankrupt, the lender takes the collateral before the bank. The screen lists every loan (who owes whom, how much, the rate, the rounds left), updates the interest every round and marks collateral on the board.
+11. **Loans** *(stage 4)*. A player may ask another for a loan at any time, even on someone else's turn, in a panel like the trade offer: the amount, the interest rate per round (set by the borrower, adjustable before sending), the term in rounds and **collateral (required)**. The lender accepts, rejects or counters. Interest is simple: debt = principal + principal × rate × rounds passed. Limits: at most 20% a round; the debt stops growing at 3 times the principal; no building on collateral. The borrower may repay on their own turn at any time; passing Start takes 25% of the debt automatically when the cash is there. At the end of the term the debt with its interest is paid from the borrower's cash; if they cannot pay it all, they pay what they have and the collateral goes to the lender (D108). If the borrower goes bankrupt, the lender takes the collateral before the bank. The screen lists every loan (who owes whom, how much, the rate, the rounds left), updates the interest every round and marks collateral on the board.
 
 ### Cards
 
@@ -1292,4 +1292,8 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar ma
 - **Unrest:** every player other than the general holds 2 unrest cups. After each use of power there is a 20-second window in which the others may show a cup; who did is shown to all. At 3 cups in all, the general falls at once, loses all rank, and everyone gets their cups back.
 - **Bribes:** before a use, the general may offer a player money not to show unrest at that use.
 - **On screen:** each player's rank (0 to 6), the general's medal, the cups each player has left, the x/3 count, when the power is next ready, and the 20-second window.
+- **Owner's changes, Oct 15 (D109):**
+  - A player in military service still collects rent.
+  - A player with an army rank collects half rent, since the army pays them.
+  - Their salary, rank × 200 lakh, is paid every time they pass Start as well as on return from serving.
 

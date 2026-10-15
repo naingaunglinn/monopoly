@@ -65,18 +65,16 @@ describe('military service (spec 7.1)', () => {
     expect(eventsOf(events, 'draftChosen')).toEqual([{ type: 'draftChosen', player: 0, how: 'pay', cost: 800 }]);
   });
 
-  test('hide: two turns skipped, and no rent comes in meanwhile', () => {
+  test('hide: two turns skipped; rent still comes in meanwhile (D109)', () => {
     const mandalay = (mm(), spaceOf('Mandalay'));
     let s = act(calledUp(own(mm(), mandalay, 0)), { type: 'draftChoose', how: 'hide' });
     expect(s.players[0]?.draft).toEqual({ status: 'hiding', turns: 2 });
     s = endTurn(s);
-    // Player 1 lands on the hiding player's city: nothing to pay.
+    // Player 1 lands on the hiding player's city: rent is due as usual.
     const landed = rollTo(s, mandalay);
-    expect(eventsOf(landed.events, 'rentWaived')).toEqual([
-      { type: 'rentWaived', player: 1, space: mandalay, owner: 0, amount: 74, why: 'draft' },
-    ]);
-    expect(landed.state.flow.pending).toBeNull();
-    s = endTurn(landed.state);
+    expect(eventsOf(landed.events, 'rentWaived')).toEqual([]);
+    expect(landed.state.flow.pending).toMatchObject({ kind: 'rent', rent: { creditor: 0, amount: 74 } });
+    s = endTurn(act(landed.state, { type: 'payRent' }));
     s = endTurn(rollTo(s, SPACES.jail).state);
     // Player 0's first skipped turn, then the second; then free.
     expect(s.flow.pending).toEqual({ kind: 'draftSkip' });

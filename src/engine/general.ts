@@ -28,6 +28,16 @@ export function promote(c: Ctx, p: Player): void {
   updateGeneral(c);
 }
 
+/** A player with a rank draws rank × 200 lakh each time they pass Start (D109). */
+export function startSalary(c: Ctx, playerId: number): void {
+  if (!RULES.general) return;
+  const p = playerById(c.s, playerId);
+  if (p.rank <= 0) return;
+  const amount = p.rank * MYANMAR.salaryPerRank;
+  changeCash(c, p.id, amount, 'salary');
+  emit(c, { type: 'salaryPaid', player: p.id, amount });
+}
+
 /** Everyone gets their cups back, and the new general starts afresh. */
 function freshTerm(s: GameState): void {
   for (const p of s.players) p.unrest = MYANMAR.unrestCups;

@@ -1,6 +1,6 @@
 // Rent (spec 5.6). Event modifiers apply last; results are rounded to whole dollars. The map in
 // play sets the airport (transport) ladder and the company multipliers (RULES, D101).
-import { BALANCE, roundMoney } from '../data/balance.js';
+import { BALANCE, MYANMAR, roundMoney } from '../data/balance.js';
 import { AIRPORT_BY_SPACE, CITY_BY_SPACE, COMPANY_BY_SPACE, RULES } from '../data/board.js';
 import type { ModifierType } from '../data/cardTypes.js';
 import type { CountryId } from '../data/countries.js';
@@ -52,6 +52,12 @@ function companyBoost(s: GameState, company: string): number | null {
   return factor;
 }
 
+/** Myanmar map: an owner with an army rank collects half rent, since the army pays them (D109). */
+function rankFactor(s: GameState, owner: number | null): number | null {
+  if (!RULES.general || owner === null) return null;
+  return (s.players[owner]?.rank ?? 0) > 0 ? MYANMAR.rankRentFactor : null;
+}
+
 function applyFactor(amount: number, factor: number | null): number {
   return factor === null ? amount : roundMoney(amount * factor);
 }
@@ -69,7 +75,10 @@ export function cityRent(s: GameState, space: number, payer: number | null = nul
   const city = CITY_BY_SPACE.get(space);
   const p = s.properties[space];
   if (!city || !p || p.owner === null) throw new Error(`No owned city at ${space}`);
-  const factor = combine(combine(modifierFactor(s, 'cityRent'), groupFactor(s, city.country)), inflationFactor(s, payer));
+  const factor = combine(
+    combine(combine(modifierFactor(s, 'cityRent'), groupFactor(s, city.country)), inflationFactor(s, payer)),
+    rankFactor(s, p.owner),
+  );
   if (!ownsCountry(s, p.owner, city.country)) {
     return { amount: applyFactor(city.baseRent, factor), calc: { kind: 'cityBase', baseRent: city.baseRent, factor } };
   }
@@ -86,7 +95,7 @@ export function airportRent(s: GameState, space: number): RentQuote {
   if (!AIRPORT_BY_SPACE.has(space) || !p || p.owner === null) throw new Error(`No owned airport at ${space}`);
   const owned = airportsOwnedBy(s, p.owner);
   const ladderRent = RULES.airportRent[owned - 1] as number;
-  const factor = combine(modifierFactor(s, 'airportRent'), transportFactor(s, space));
+  const factor = combine(combine(modifierFactor(s, 'airportRent'), transportFactor(s, space)), rankFactor(s, p.owner));
   return { amount: applyFactor(ladderRent, factor), calc: { kind: 'airport', owned, ladderRent, factor } };
 }
 
@@ -103,7 +112,7 @@ export function companyRent(s: GameState, space: number, dice: Dice): RentQuote 
     RULES.companyMultipliers && owner !== null
       ? (RULES.companyMultipliers[companiesOwnedBy(s, owner) - 1] ?? company.multiplier)
       : company.multiplier;
-  const factor = combine(modifierFactor(s, 'companyRent'), companyBoost(s, company.id));
+  const factor = combine(combine(modifierFactor(s, 'companyRent'), companyBoost(s, company.id)), rankFactor(s, owner));
   return {
     amount: applyFactor(total * multiplier, factor),
     calc: { kind: 'company', dice, total, multiplier, factor },

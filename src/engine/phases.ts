@@ -17,7 +17,8 @@ import {
 } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
 import { defaultLoans, regionPledged, startRepayments } from './loans.js';
-import { callUp, inService, offerDonation, remittance, roundInflation, takePot, tollsOnPath } from './myanmar.js';
+import { startSalary } from './general.js';
+import { callUp, offerDonation, remittance, roundInflation, takePot, tollsOnPath } from './myanmar.js';
 import { computeWinners } from './networth.js';
 import { airportRent, cityRent } from './rent.js';
 import { rollDie } from './rng.js';
@@ -182,6 +183,8 @@ export function moveSteps(c: Ctx, playerId: number, steps: number, by: 'dice' | 
     emit(c, { type: 'passedStart', player: playerId, amount: RULES.startBonus });
     // Myanmar map: a quarter of each loan is paid back from it, when the cash is there (D104).
     startRepayments(c, playerId);
+    // Myanmar map: a player with an army rank draws their salary at Start (D109).
+    startSalary(c, playerId);
   }
   // Myanmar map: tolls for the roads and gates passed are paid first, then the landing (D103).
   const tolls = tollsOnPath(c.s, playerId, path);
@@ -279,14 +282,7 @@ function resolveProperty(c: Ctx, space: number): void {
     return;
   }
   const kind = propertyKind(space);
-  // Myanmar map: an owner hiding or serving in the army collects no rent (D102).
-  const owner = s.players[ps.owner];
-  if (owner && inService(owner)) {
-    const amount = kind === 'city' ? cityRent(s, space, p.id).amount : kind === 'airport' ? airportRent(s, space).amount : 0;
-    emit(c, { type: 'rentWaived', player: p.id, space, owner: ps.owner, amount, why: 'draft' });
-    afterResolution(c);
-    return;
-  }
+  // Myanmar map: an owner in military service still collects rent (owner, D109; D102 had none).
   if (kind === 'company') {
     s.flow.phase = 'CompanyRoll';
     s.flow.pending = { kind: 'companyRoll', space, owner: ps.owner };

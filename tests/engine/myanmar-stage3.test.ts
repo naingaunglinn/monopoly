@@ -47,13 +47,13 @@ describe('tolls (spec 7.7)', () => {
     expect(landed.state.flow.pending).toMatchObject({ kind: 'rent' });
   });
 
-  test('no toll on your own, an unowned, a mortgaged one, or an owner in service', () => {
+  test('no toll on your own, an unowned or a mortgaged one; an owner in service still collects (D109)', () => {
     const expressway = (mm(), spaceOf('Yangon–Mandalay Expressway'));
     const pass = (s: GameState) => eventsOf(rollWith(at(s, 0, expressway - 2), 1, 3).events, 'tollPaid');
     expect(pass(mm())).toEqual([]);
     expect(pass(own(mm(), expressway, 0))).toEqual([]);
     expect(pass(act(own(mm(), expressway, 1), { type: 'debug', op: 'setMortgaged', space: expressway, mortgaged: true } as never))).toEqual([]);
-    expect(pass(edit(own(mm(), expressway, 1), (d) => void ((d.players[1] as P).draft = { status: 'hiding', turns: 2 })))).toEqual([]);
+    expect(pass(edit(own(mm(), expressway, 1), (d) => void ((d.players[1] as P).draft = { status: 'hiding', turns: 2 })))).toHaveLength(1);
   });
 
   test('a player who cannot pay a toll raises the money first, then lands', () => {

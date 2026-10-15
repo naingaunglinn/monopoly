@@ -378,7 +378,7 @@ export function tollsOnPath(s: GameState, mover: number, path: readonly number[]
     const ps = s.properties[space];
     if (!ps || ps.owner === null || ps.owner === mover || ps.mortgaged) continue;
     const owner = s.players[ps.owner];
-    if (!owner || owner.bankrupt || inService(owner)) continue;
+    if (!owner || owner.bankrupt) continue;
     out.push({ space, owner: ps.owner });
   }
   return out;

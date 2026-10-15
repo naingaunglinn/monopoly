@@ -233,6 +233,8 @@ function RentPanel({ s }: { s: GameState }) {
           <dd className="fact-big money is-loss">{signedMoney(-rent.amount)}</dd>
         </div>
         <p className="calc">{rentCalcText(rent.calc, rent.amount, name)}</p>
+        {/* Myanmar map: an owner with an army rank collects half rent (D109). */}
+        {owner && owner.rank > 0 && <p className="muted small">{T.panels.rent.rankHalf(owner.name, owner.rank)}</p>}
         {rent.calc.kind === 'airport' && (
           <p className="muted with-help">
             <QuickHelpButton topic="airports" label={T.focus.noAirportSet} />
@@ -486,7 +488,7 @@ function DraftSkipPanel({ s }: { s: GameState }) {
       }
     >
       <p className="fact-strong">{T.panels.draft.skip(left)}</p>
-      <p>{draft.status === 'fled' ? T.panels.draft.rentStill : T.panels.draft.noRent}</p>
+      <p>{T.panels.draft.rentStill}</p>
       {draft.status === 'serving' && left === 0 && <p>{T.panels.draft.bonus(MYANMAR.draftServeBonus)}</p>}
     </Panel>
   );

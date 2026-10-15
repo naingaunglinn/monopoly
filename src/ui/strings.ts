@@ -458,6 +458,7 @@ export const T = {
       toBank: 'Paid to the bank',
       freeStay: (left: number) => `Use Free Stay (${left} left)`,
       merit: (left: number) => `Skip it with a merit point (${left} left)`,
+      rankHalf: (owner: string, rank: number) => `${owner} holds army rank ${rank}: half rent, since the army pays them.`,
       freeStayHint: 'A Free Stay token skips the rent on another player’s city.',
     },
     company: {
@@ -525,18 +526,18 @@ export const T = {
     // Myanmar map (D102)
     draft: {
       title: (name: string) => `${name} is called up`,
-      intro: 'Choose how to deal with military service. During service no rent comes in, except for a player who fled to Chiang Mai.',
+      intro: 'Choose how to deal with military service. Your rent still comes in meanwhile.',
       pay: (amount: number) => `Pay ${money(amount)}`,
       get payHint() {
         return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
       },
       hide: 'Hide',
-      hideHint: `Skip ${MYANMAR.draftHideTurns} turns. No rent meanwhile.`,
+      hideHint: `Skip ${MYANMAR.draftHideTurns} turns.`,
       flee: (amount: number) => `Flee to Chiang Mai · ${money(amount)}`,
       fleeHint: `To the Chiang Mai corner. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
       serve: 'Serve',
       get serveHint() {
-        return `Skip ${MYANMAR.draftServeTurns} turns. No rent meanwhile. ${money(MYANMAR.draftServeBonus)} on return.`;
+        return `Skip ${MYANMAR.draftServeTurns} turns. ${money(MYANMAR.draftServeBonus)} on return, and a rank: army salary, but half rent.`;
       },
       merit: 'Use a merit point',
       meritHint: 'Free at once.',
@@ -1291,9 +1292,9 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         case 'pay':
           return `${who(e.player)} paid ${money(e.cost)} to stay out of military service.`;
         case 'hide':
-          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped, no rent.`;
+          return `${who(e.player)} went into hiding: ${MYANMAR.draftHideTurns} turns skipped.`;
         case 'serve':
-          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, no rent, ${money(MYANMAR.draftServeBonus)} on return.`;
+          return `${who(e.player)} joined the army: ${MYANMAR.draftServeTurns} turns skipped, ${money(MYANMAR.draftServeBonus)} on return.`;
         case 'flee':
           return `${who(e.player)} fled to Chiang Mai for ${money(e.cost)}.`;
         case 'merit':
@@ -1348,12 +1349,18 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return e.left > 0
         ? `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}; ${money(e.left)} still owed.`
         : `${who(e.borrower)} paid ${who(e.lender)} back ${money(e.amount)}${e.auto ? ' at Start' : ''}: the loan is paid off.`;
+    case 'loanDue':
+      return e.left <= 0
+        ? `${who(e.borrower)}’s loan from ${who(e.lender)} is due: ${who(e.borrower)} pays ${money(e.paid)}.`
+        : `${who(e.borrower)}’s loan from ${who(e.lender)} is due: ${who(e.borrower)} pays all their cash, ${money(e.paid)} of ${money(e.owed)}.`;
     case 'loanDefaulted':
       return e.why === 'term'
-        ? `${who(e.borrower)} did not pay back in time: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
+        ? `${who(e.borrower)} could not pay it all: ${who(e.lender)} takes ${andList(e.collateral.map(n.space))}.`
         : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
     case 'loanForgiven':
       return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
+    case 'salaryPaid':
+      return `${who(e.player)} draws their army salary: ${signedMoney(e.amount)}.`;
     case 'promoted':
       return `${who(e.player)} rolled ${e.die} on leaving the army: rank ${e.rank}, salary ${signedMoney(e.salary)}.`;
     case 'generalChanged':
@@ -1596,7 +1603,7 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'The two airports, the Expressway and the Muse Border Gate are the transport spaces. They never have buildings.',
             'Rent grows with the number of transport spaces the owner holds.',
-            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned, mortgaged, or its owner is in military service).`,
+            `Passing over the Expressway or the Muse Border Gate without stopping costs a ${money(MYANMAR.toll)} toll for its owner (none when it is yours, unowned or mortgaged).`,
           ]
         : ['Airports never have buildings.', 'Rent grows with the number of airports the owner holds.'],
     },
@@ -1651,9 +1658,10 @@ export function ruleTopics(): readonly RuleTopic[] {
         ? [
             'You are called up by the Call-up letter space, by a Chance card, or by rolling three doubles in one turn. You go to the Military camp and choose at once:',
             `Pay a tenth of your cash, at least ${money(MYANMAR.draftPayMin)}, and you are free.`,
-            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns and collect no rent.`,
+            `Hide: free, but you skip ${MYANMAR.draftHideTurns} turns.`,
             `Flee: ${money(MYANMAR.draftFleeCost)} takes you straight to Chiang Mai (without taking the pot). You skip ${MYANMAR.draftFleeTurns} turn and still collect rent.`,
-            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns, collect no rent, and get ${money(MYANMAR.draftServeBonus)} on return.`,
+            `Serve: free. You skip ${MYANMAR.draftServeTurns} turns and get ${money(MYANMAR.draftServeBonus)} on return, and a rank (see Rank and the general).`,
+            'Your rent still comes in during military service, whichever way you chose.',
             'A merit point or a Call-up exemption card frees you at once, also at the start of a skipped turn.',
             'Landing on the Military camp during a normal move is just visiting.',
           ]
@@ -1697,7 +1705,9 @@ export function ruleTopics(): readonly RuleTopic[] {
           id: 'general',
           title: 'Rank and the general',
           lines: [
-            `Serving in the army earns rank: when the service ends, one die is rolled, an even number adds 2 ranks and an odd one 1 (at most ${MYANMAR.rankMax}). The salary is your rank × ${money(MYANMAR.salaryPerRank)}, paid then on top of the ${money(MYANMAR.draftServeBonus)}. Rank stays for the rest of the game.`,
+            `Serving in the army earns rank: when the service ends, one die is rolled, an even number adds 2 ranks and an odd one 1 (at most ${MYANMAR.rankMax}). Rank stays for the rest of the game.`,
+            `A player with a rank draws an army salary of rank × ${money(MYANMAR.salaryPerRank)}: on return from serving (on top of the ${money(MYANMAR.draftServeBonus)}) and every time they pass Start.`,
+            'Because the army pays them, a player with a rank collects half rent on their properties.',
             `The one player with the highest rank, ${MYANMAR.generalMinRank} or more, is the general. Of equal ranks the one who got there first stays general; whoever climbs higher takes over.`,
             `Once in ${MYANMAR.powerEveryRounds} rounds, on their own turn, the general may use their power: two dice, up to ${MYANMAR.powerMoneyUpTo} takes ${money(MYANMAR.powerMoney)} from a player of their choice, above ${MYANMAR.powerMoneyUpTo} takes one of their properties (never one with buildings, in a region with buildings, or pledged for a loan).`,
             `The player hit can block it with ${MYANMAR.powerBlockMerit} merit points.`,
@@ -1715,7 +1725,7 @@ export function ruleTopics(): readonly RuleTopic[] {
             'The other player accepts, rejects or answers with new terms. Only one offer, trade or loan, is on the table at a time.',
             `Interest is simple: each round adds the rate on the amount lent, up to ${MYANMAR.loanMaxMultiple} times the amount at most. The rate is at most ${MYANMAR.loanMaxRatePercent}% a round.`,
             `Pay back on your own turn from the Loans list. Passing Start pays back ${MYANMAR.loanStartRepayPercent}% of the debt when you have the cash.`,
-            'Not paid back in time, the collateral goes to the lender. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
+            'At the end of the term the debt, with its interest, is paid from the borrower’s cash. If the cash does not cover it, the borrower pays what they have and the lender takes the collateral too. If the borrower goes bankrupt, the lender takes the collateral before anyone else.',
             'Collateral cannot be mortgaged or traded, and its region cannot be built on, until the loan is paid back. A chain on the tile marks it.',
           ],
         }

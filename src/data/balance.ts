@@ -184,8 +184,10 @@ export const MYANMAR = {
   rankEven: 2,
   /** ...an odd one by this. */
   rankOdd: 1,
-  /** Salary on return from serving: rank × this, from the bank. */
+  /** Salary: rank × this, from the bank, on return from serving and each time Start is passed (D109). */
   salaryPerRank: 200,
+  /** A player with a rank collects this share of their rent: the army pays them (owner, D109). */
+  rankRentFactor: 0.5,
   /** The general has at least this rank. */
   generalMinRank: 4,
   /** The general's power can be used once in this many rounds. */
