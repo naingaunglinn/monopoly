@@ -1671,6 +1671,11 @@ select {
   font-size: calc(23px * var(--cash-scale, 1));
 }
 
+/* Amounts in lakh run longer than in dollars: a little smaller on the Myanmar map, more in Burmese. */
+.app[data-map='myanmar'] {
+  --cash-scale: 0.88;
+}
+
 .app[data-names='my'] {
   --cash-scale: 0.7;
 }
@@ -5102,7 +5107,7 @@ ol.rules-lines {
 
 .tb-me-cash {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: calc(21px * var(--cash-scale, 1));
   font-weight: 700;
 }
 
@@ -5168,7 +5173,7 @@ ol.rules-lines {
 
 .tb-other-cash {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: max(11px, calc(16px * var(--cash-scale, 1)));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -5351,7 +5356,7 @@ ol.rules-lines {
   }
 
   .tb-players.is-crowded .tb-other-cash {
-    font-size: 15px;
+    font-size: max(11px, calc(15px * var(--cash-scale, 1)));
   }
 
   .tb-players.is-crowded .tb-counts {

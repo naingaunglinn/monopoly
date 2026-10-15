@@ -175,6 +175,58 @@ test('online: the host picks Myanmar in the lobby; each device keeps its own lan
   await guest.context.close();
 });
 
+for (const lang of LANGUAGES) {
+  test(`online room play, six players, ${lang}: the top bar, the pot, the Loan button; your turn and waiting`, async ({ browser }) => {
+    test.setTimeout(240_000);
+    problems = [];
+    const ONLINE = 'http://localhost:4175';
+    const names = ['Mia', 'Leo', 'Aung', 'Sofia', 'Kenji', 'Nadia'];
+    const devices = [];
+    for (let i = 0; i < names.length; i++) {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, permissions: ['microphone'] });
+      await context.addInitScript((language) => window.localStorage.setItem('global-monopoly/prefs/v1', JSON.stringify({ onlineSpeed: 'off', language })), lang);
+      const page = await context.newPage();
+      devices.push({ context, page, log: trackErrors(page) });
+    }
+    const [host, ...rest] = devices as [(typeof devices)[number], ...(typeof devices)[number][]];
+    await host.page.goto(`${ONLINE}/`);
+    await host.page.locator('#start-create').click();
+    await host.page.locator('#online-name').fill(names[0] as string);
+    await host.page.locator('#online-submit').click();
+    await expect(host.page.locator('.lobby-code')).toBeVisible();
+    const code = (await host.page.locator('.lobby-code').innerText()).trim();
+    const map = host.page.getByRole('radiogroup', { name: 'Map' });
+    await map.locator('label', { hasText: 'Myanmar' }).click();
+    await expect(map.getByRole('radio', { name: 'Myanmar', exact: true })).toBeChecked();
+    for (let i = 0; i < rest.length; i++) {
+      const d = rest[i] as (typeof rest)[number];
+      await d.page.goto(`${ONLINE}/?room=${code}`);
+      await d.page.locator('#online-name').fill(names[i + 1] as string);
+      await d.page.locator('#online-submit').click();
+      await expect(d.page.locator('.lobby-code')).toBeVisible();
+    }
+    await expect(host.page.locator('.lobby-seat')).toHaveCount(6);
+    await shot(host.page, { width: 1280, height: 720 }, `online-lobby-${lang}`);
+    await host.page.locator('#lobby-start').click();
+    await expect(host.page.locator('.tb-others .tb-slot')).toHaveCount(5);
+    await host.page.locator('#voice-join').click();
+    for (const size of SIZES) {
+      await host.page.setViewportSize(size);
+      await expect(host.page.locator('.pot-line')).toBeVisible();
+      await shot(host.page, size, `online-six-${lang}`);
+    }
+    // Whoever is not deciding sees "waiting"; a Loan button is there for them too.
+    const guest = rest[2] as (typeof rest)[number];
+    await expect(guest.page.locator('#act-loan')).toBeVisible();
+    await shot(guest.page, { width: 1280, height: 720 }, `online-waiting-${lang}`);
+    await guest.page.locator('#act-loan').click();
+    await shot(guest.page, { width: 1280, height: 720 }, `online-loan-sheet-${lang}`);
+    expect(devices.flatMap((d) => d.log.errors)).toEqual([]);
+    expect(problems).toEqual([]);
+    for (const d of devices) await d.context.close();
+  });
+}
+
 for (const size of SIZES) {
   test.describe(`Myanmar ${size.width} x ${size.height}`, () => {
     test.use({ viewport: size });
@@ -236,6 +288,13 @@ for (const size of PHONES) {
           await loadState(page, state, '?seed=42', { language: lang });
           await expect(page.locator('.game-screen.is-phone')).toBeVisible();
           await shot(page, size, `phone-${name}-${lang}`, true);
+          if (name === 'mm-loan-active') {
+            await page.locator('#tab-mine').click();
+            await shot(page, size, `phone-mine-loans-${lang}`, true);
+            await page.locator('#mine-loan').click();
+            await shot(page, size, `phone-loan-sheet-${lang}`, true);
+            await page.keyboard.press('Escape');
+          }
         }
       }
       expect(log.errors).toEqual([]);
