@@ -1,15 +1,40 @@
 // The rule guide (spec section 16): topic list on the left, text on the right, a search box on top.
 // It opens over anything, even a mandatory decision, and never changes game state: it only reads
 // the settings to say which topics are switched off.
-import { Search, X } from 'lucide-react';
+import { Languages, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BALANCE, MYANMAR } from '../../data/balance';
-import { AIRPORTS, COMPANIES, RULES } from '../../data/board';
+import { AIRPORTS, COMPANIES, MAP, RULES } from '../../data/board';
+import { setPrefs, usePrefs } from '../prefs';
 import { closeRules, useApp, useUi } from '../store';
-import { money, ruleTopics, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
+import { burmeseGuide, money, ruleTopics, RULES_MY, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
 import { useFocusTrap } from './Overlays';
 
+/** The tables in Burmese (Myanmar map, D114). */
+function tableRowsMy(topic: RuleTopic): Array<[string, string]> {
+  const W = RULES_MY;
+  switch (topic.table) {
+    case 'cityRent':
+      return [
+        [W.incomplete, `${W.baseRent} × ${W.times(1)}`],
+        ...BALANCE.cityRentMultipliers.map((m, level): [string, string] => [
+          level === 0 ? W.completeEmpty : level === 5 ? W.hotel : W.houses(level),
+          `${W.baseRent} × ${W.times(m)}`,
+        ]),
+      ];
+    case 'airportRent':
+      return RULES.airportRent.slice(0, AIRPORTS.length).map((rent, i): [string, string] => [W.count(i + 1), money(rent)]);
+    case 'companies':
+      return (RULES.companyMultipliers ?? []).map((m, i): [string, string] => [W.count(i + 1), W.diceTimes(m)]);
+    case 'salary':
+      return Array.from({ length: MYANMAR.rankMax }, (_, i): [string, string] => [W.rank(i + 1), money((i + 1) * MYANMAR.salaryPerRank)]);
+    default:
+      return [];
+  }
+}
+
 function tableRows(topic: RuleTopic): Array<[string, string]> {
+  if (burmeseGuide()) return tableRowsMy(topic);
   switch (topic.table) {
     case 'cityRent':
       return [
@@ -37,6 +62,13 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
 }
 
 function tableHead(topic: RuleTopic): [string, string] {
+  if (burmeseGuide()) {
+    const W = RULES_MY;
+    if (topic.table === 'airportRent') return [W.tableOwned, W.tableRent];
+    if (topic.table === 'companies') return [W.tableCompanies, W.tableRent];
+    if (topic.table === 'salary') return [W.tableRank, W.tableSalary];
+    return [W.tableLevel, W.tableRent];
+  }
   if (topic.table === 'airportRent') return [T.rules.tableAirports, T.rules.tableRent];
   if (topic.table === 'salary') return [T.rules.tableRank, T.rules.tableSalary];
   if (topic.table === 'companies') {
@@ -57,6 +89,10 @@ export function RuleGuide() {
   const ref = useFocusTrap();
   const searchRef = useRef<HTMLInputElement>(null);
   const settings = screen === 'game' ? game?.meta.settings : undefined;
+  // On the Myanmar map the guide follows this device's language, and can switch it (D114).
+  const { language } = usePrefs();
+  const my = burmeseGuide();
+  const W = my ? RULES_MY : null;
 
   useEffect(() => {
     if (rules.topic) setActive(rules.topic);
@@ -82,29 +118,55 @@ export function RuleGuide() {
 
   return (
     <div className="sheet-backdrop rules-backdrop" data-sheet="rules">
-      <div ref={ref} className="sheet rule-guide is-wide" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+      <div
+        ref={ref}
+        className={`sheet rule-guide is-wide ${my ? 'is-burmese' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rules-title"
+        lang={my ? 'my' : undefined}
+      >
         <header className="sheet-head">
           <h2 id="rules-title" className="sheet-title">
-            {T.rules.title}
+            {W?.title ?? T.rules.title}
           </h2>
           <label className="rules-search">
             <Search size={16} aria-hidden="true" />
-            <span className="sr-only">{T.rules.search}</span>
+            <span className="sr-only">{W?.search ?? T.rules.search}</span>
             <input
               ref={searchRef}
               type="search"
-              placeholder={T.rules.search}
+              placeholder={W?.search ?? T.rules.search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
             />
           </label>
-          <button type="button" className="icon-btn" onClick={closeRules} aria-label={T.rules.close} title={T.rules.close} id="rules-close">
+          {MAP.id === 'myanmar' && (
+            <button
+              type="button"
+              className="rules-lang"
+              id="rules-language"
+              onClick={() => setPrefs({ language: language === 'my' ? 'en' : 'my' })}
+              aria-label={`${W?.language ?? T.setup.language}: ${T.setup.languages[language === 'my' ? 'en' : 'my']}`}
+            >
+              <Languages size={16} aria-hidden="true" />
+              <span lang={language === 'my' ? 'en' : 'my'}>{T.setup.languages[language === 'my' ? 'en' : 'my']}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={closeRules}
+            aria-label={W?.close ?? T.rules.close}
+            title={W?.close ?? T.rules.close}
+            id="rules-close"
+          >
             <X size={20} aria-hidden="true" />
           </button>
         </header>
         <div className="rules-body">
-          <nav className="rules-topics" aria-label={T.rules.topics}>
+          <nav className="rules-topics" aria-label={W?.topics ?? T.rules.topics}>
             <ul>
               {visible.map((t) => (
                 <li key={t.id}>
@@ -119,14 +181,18 @@ export function RuleGuide() {
                 </li>
               ))}
             </ul>
-            {visible.length === 0 && <p className="muted">{T.rules.noMatch}</p>}
+            {visible.length === 0 && <p className="muted">{W?.noMatch ?? T.rules.noMatch}</p>}
           </nav>
           <article className="rules-text" aria-live="polite">
             {topic && (
               <>
                 <h3 className="rules-topic-title">{topic.title}</h3>
                 {off.length > 0 && (
-                  <p className="rules-off">{T.rules.offInGame(off.map((sw) => SWITCH_NAMES[sw]).join(' and '))}</p>
+                  <p className="rules-off">
+                    {W
+                      ? W.offInGame(off.map((sw) => W.switches[sw]).join(' နဲ့ '))
+                      : T.rules.offInGame(off.map((sw) => SWITCH_NAMES[sw]).join(' and '))}
+                  </p>
                 )}
                 {topic.ordered ? (
                   <ol className="rules-lines">
@@ -143,7 +209,7 @@ export function RuleGuide() {
                 )}
                 {topic.table && (
                   <table className="rules-table">
-                    {topic.table === 'cityRent' && <caption>{T.rules.cityRentIntro}</caption>}
+                    {topic.table === 'cityRent' && <caption>{W?.cityRentIntro ?? T.rules.cityRentIntro}</caption>}
                     <thead>
                       <tr>
                         <th scope="col">{tableHead(topic)[0]}</th>

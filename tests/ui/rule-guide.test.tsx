@@ -8,7 +8,8 @@ import { App } from '../../src/ui/App';
 import { app, resetUi } from '../../src/ui/store';
 import { BALANCE } from '../../src/data/balance';
 import { AIRPORTS, setActiveMap, SPACES } from '../../src/data/board';
-import { money } from '../../src/ui/strings';
+import { setPrefs } from '../../src/ui/prefs';
+import { money, ruleTopics, ruleTopicsMy } from '../../src/ui/strings';
 import { act, endTurn, game, own, rollTo, setCash, spaceOf, spacesOf } from '../engine/helpers';
 
 const CAIRO = spaceOf('Cairo');
@@ -163,6 +164,40 @@ describe('rule guide on the Myanmar map (D101)', () => {
       expect(dialog.getByText('Pass Start and collect 750 lakh.')).toBeTruthy();
       expect(guide()?.textContent).not.toContain('$');
     } finally {
+      setActiveMap('world');
+    }
+  });
+
+  test('the Burmese guide has every English topic, with the same lines, table and switches (D114)', () => {
+    try {
+      setActiveMap('myanmar');
+      const shape = (topics: ReturnType<typeof ruleTopics>) =>
+        topics.map((t) => [t.id, t.lines.length, t.table ?? null, (t.switches ?? []).join(), t.ordered ?? false]);
+      expect(shape(ruleTopicsMy())).toEqual(shape(ruleTopics()));
+    } finally {
+      setActiveMap('world');
+    }
+  });
+
+  test('in Burmese on a device that reads the map in Burmese, with a switch back to English (D114)', () => {
+    try {
+      show(game({ map: 'myanmar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
+      const english = within(within(guide() as HTMLElement).getByRole('navigation')).getAllByRole('button').length;
+      fireEvent.click(within(guide() as HTMLElement).getByRole('button', { name: /မြန်မာ/ }));
+      const dialog = within(screen.getByRole('dialog', { name: 'စည်းကမ်းလမ်းညွှန်' }));
+      const topics = within(dialog.getByRole('navigation')).getAllByRole('button');
+      expect(topics.length).toBe(english);
+      expect(topics.map((b) => b.textContent)).toEqual(expect.arrayContaining(['စစ်ရာထူး', 'စစ်လစာ', 'ဗိုလ်ချုပ် အာဏာ', 'ချေးငွေ']));
+      fireEvent.click(dialog.getByRole('button', { name: 'စစ်လစာ' }));
+      expect(dialog.getByText('ရာထူး ၆')).toBeTruthy();
+      expect(dialog.getByText('၁,၂၀၀ သိန်း')).toBeTruthy();
+      fireEvent.click(dialog.getByRole('button', { name: 'အမြန် စတင်ရန်' }));
+      expect(dialog.getByText('စတင်ရာ ဖြတ်ရင် ၇၅၀ သိန်း ရတယ်။')).toBeTruthy();
+      fireEvent.click(dialog.getByRole('button', { name: /English/ }));
+      expect(guide()).toBeTruthy();
+    } finally {
+      setPrefs({ language: 'en' });
       setActiveMap('world');
     }
   });
