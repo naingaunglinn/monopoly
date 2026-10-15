@@ -269,3 +269,21 @@ describe('army pay and half rent (owner, D109)', () => {
     expect(eventsOf(passed.events, 'salaryPaid')).toEqual([]);
   });
 });
+
+describe('rank 4 or more: no land (owner, D113)', () => {
+  test('landing on land for sale goes on with no auction; no bidding in others’ auctions; rank 3 still buys', () => {
+    const falam = (mm(), spaceOf('Falam'));
+    const high = withGeneral();
+    const moved = rollTo(high, falam);
+    expect(eventsOf(moved.events, 'buyBarred')).toEqual([{ type: 'buyBarred', player: 0, space: falam, rank: 4 }]);
+    expect(moved.state.flow.pending).toBeNull();
+    expect(moved.state.properties[falam]?.owner).toBeNull();
+    // Someone else's auction: the general does not bid.
+    const other = endTurn(moved.state);
+    const auction = act(rollTo(other, falam).state, { type: 'decline' });
+    expect(auction.flow.pending?.kind === 'auction' && auction.flow.pending.auction.order.includes(0)).toBe(false);
+    // Rank 3 buys as before.
+    const three = edit(mm(), (d) => void ((d.players[0] as P).rank = 3));
+    expect(validateAction(rollTo(three, falam).state, { type: 'buy' })).toBeNull();
+  });
+});
