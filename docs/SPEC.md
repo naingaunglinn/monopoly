@@ -1279,11 +1279,17 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar ma
 | --- | --- | --- |
 | 1 | The Refuge corner is renamed Chiang Mai; Brycen Myanmar becomes the fifth company; company rent in five tiers | Done (D106) |
 | 2 | Two porter cards; Brycen Myanmar's loss | Done (D106) |
-| 3 | Military rank, the general's power, unrest cups | To do |
+| 3 | Military rank, the general's power, unrest cups | Done (D107) |
 
 - **Chiang Mai** (ချင်းမိုင်), the Refuge corner renamed, still pays out the community pot. A player who flees military service now goes there instead of the Muse Border Gate.
 - **Brycen Myanmar** (IT company, 250 lakh) replaces the Special tax at the owner's number 41. Purchasable spaces: 25 cities, 4 transport, 5 companies = 34. Company rent: dice total × 25, 50, 100, 200, or 400 with all five.
 - **Chance, Taken as a porter:** straight to the Military camp. The only way out is paying 500 lakh: no hiding, fleeing, serving or merit.
 - **Chance, Brycen Myanmar posts a loss:** every player pays its owner 100 lakh (the owner collects from everyone else, even when they drew it). If nobody owns it, every player puts 100 lakh into the community pot.
 - **News, Porters wanted:** a player picked at random (the drawer included) goes straight to the Military camp, with the usual five ways out.
+- **Rank:** when serving ends, one die is rolled: even +2 ranks, odd +1, at most 6. A salary of rank × 200 lakh is paid then. Rank stays after leaving the camp.
+- **The general:** the one player with the highest rank, 4 or more (on a tie, the one who got there first). Whoever climbs higher takes over; the previous general keeps their rank.
+- **The power** (from rank 4, once in two rounds): two dice. Up to 8 takes 1,000 lakh from a player of the general's choice; above 8 takes one of their properties without buildings. The player hit can block it once with 2 merit points.
+- **Unrest:** every player other than the general holds 2 unrest cups. After each use of power there is a 20-second window in which the others may show a cup; who did is shown to all. At 3 cups in all, the general falls at once, loses all rank, and everyone gets their cups back.
+- **Bribes:** before a use, the general may offer a player money not to show unrest at that use.
+- **On screen:** each player's rank (0 to 6), the general's medal, the cups each player has left, the x/3 count, when the power is next ready, and the 20-second window.
 

@@ -98,6 +98,8 @@ export const SIM = {
   sensibleFreeStayAbove: 150,
   sensibleJailFeeAbove: 1000,
   sensibleUnmortgageAbove: 1500,
+  /** Myanmar map: the sensible bot takes a bribe of at least this much (D107). */
+  sensibleBribeAbove: 300,
   /** Myanmar map: the sensible bot spends a merit point on rent of at least this much. */
   sensibleMeritRentAbove: 400,
   /** Non-progress actions (trade, mortgage, sell...) a bot may take before it must make progress. */
@@ -219,6 +221,8 @@ export interface MapRules {
   tolls: boolean;
   lottery: boolean;
   loans: boolean;
+  /** Rank, the general and unrest (Myanmar spec v2, D107). */
+  general: boolean;
 }
 
 export const WORLD_RULES: MapRules = {
@@ -236,6 +240,7 @@ export const WORLD_RULES: MapRules = {
   tolls: false,
   lottery: false,
   loans: false,
+  general: false,
 };
 
 export const MYANMAR_RULES: MapRules = {
@@ -253,6 +258,7 @@ export const MYANMAR_RULES: MapRules = {
   tolls: true,
   lottery: true,
   loans: true,
+  general: true,
 };
 
 /** Index into `cityRentMultipliers` etc. is the building level. */

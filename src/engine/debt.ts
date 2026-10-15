@@ -11,6 +11,7 @@ import {
   propertiesOwnedBy,
   transfer,
 } from './core.js';
+import { bankruptGeneral } from './general.js';
 import { bankruptLoans, isPledged } from './loans.js';
 import { toPot } from './myanmar.js';
 import { afterResolution, endGame, leaveJail, moveSteps, passTurn, resolveLanding } from './phases.js';
@@ -39,6 +40,8 @@ function moneyReason(debt: DebtItem): MoneyReason {
       return 'jailFine';
     case 'toll':
       return 'toll';
+    case 'power':
+      return 'power';
   }
 }
 
@@ -65,6 +68,9 @@ export function payDebtItem(c: Ctx, debt: DebtItem): void {
       break;
     case 'toll':
       emit(c, { type: 'tollPaid', from: debt.debtor, to: debt.creditor as number, space: reason.space, amount: debt.amount });
+      break;
+    case 'power':
+      emit(c, { type: 'powerPaid', from: debt.debtor, to: debt.creditor as number, amount: debt.amount });
       break;
     case 'jailFine':
       emit(c, { type: 'feePaid', player: debt.debtor, amount: debt.amount, reason: 'jailFine' });
@@ -197,9 +203,10 @@ export function goBankrupt(c: Ctx, playerId: number, creditor: number | null): v
   p.inJail = false;
   p.jailAttempts = 0;
   p.skipNextTurn = false;
-  // Myanmar map: service and merit end with the player (D102).
+  // Myanmar map: service and merit end with the player (D102); rank too, and the general moves (D107).
   p.draft = null;
   p.merit = 0;
+  bankruptGeneral(c, playerId);
   p.recap = [];
 
   // Debts owed by or to this player are void now.

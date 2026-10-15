@@ -35,6 +35,8 @@ export type Sheet =
   | { kind: 'trade'; counter?: boolean }
   /** Myanmar map: ask for a loan, or (`counter`) new terms for the request on the table (D104). */
   | { kind: 'loan'; counter?: boolean }
+  /** Myanmar map: the general offers a bribe (D107). */
+  | { kind: 'bribe' }
   | { kind: 'results' }
   | { kind: 'settings' }
   | null;

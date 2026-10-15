@@ -89,7 +89,7 @@ describe('military service (spec 7.1)', () => {
     expect(eventsOf(done.events, 'draftEnded')).toEqual([{ type: 'draftEnded', player: 0, how: 'done', bonus: 0 }]);
   });
 
-  test('serve: three turns skipped, then 300 lakh', () => {
+  test('serve: three turns skipped, then 300 lakh (and, since spec v2, rank and a salary)', () => {
     let s = act(calledUp(), { type: 'draftChoose', how: 'serve' });
     expect(s.players[0]?.draft).toEqual({ status: 'serving', turns: 3 });
     s = edit(s, (d) => {
@@ -98,11 +98,13 @@ describe('military service (spec 7.1)', () => {
     s = backToPlayer0(s);
     const cash = cashOf(s, 0);
     const done = run(s, { type: 'acknowledge' });
-    expect(cashOf(done.state, 0)).toBe(cash + MYANMAR.draftServeBonus);
+    const salary = eventsOf(done.events, 'promoted')[0]?.salary ?? 0;
+    expect(salary).toBeGreaterThan(0);
+    expect(cashOf(done.state, 0)).toBe(cash + MYANMAR.draftServeBonus + salary);
     expect(eventsOf(done.events, 'draftEnded')[0]?.bonus).toBe(300);
   });
 
-  test('flee: 800 lakh, straight to the Muse Border Gate (no Start money), rent still comes in', () => {
+  test('flee: 800 lakh, straight to Chiang Mai (no Start money), rent still comes in', () => {
     const mandalay = (mm(), spaceOf('Mandalay'));
     const s = calledUp(own(setCash(mm(), 0, 2000), mandalay, 0));
     const { state, events } = run(s, { type: 'draftChoose', how: 'flee' });

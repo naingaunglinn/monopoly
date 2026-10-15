@@ -84,7 +84,11 @@ export type MoneyReason =
   | 'remittance'
   | 'lottery'
   /** Myanmar map: a loan paid out or paid back (D104). */
-  | 'loan';
+  | 'loan'
+  /** Myanmar map (D107): pay on return from the army, the general's power, a bribe. */
+  | 'salary'
+  | 'power'
+  | 'bribe';
 
 /** Something that changed a player's cash while it was not their turn (shown at turn start). */
 export interface RecapItem {
@@ -266,7 +270,19 @@ export type Pending =
   /** Myanmar map: a turn spent hiding, serving or at the border is skipped (D102). */
   | { kind: 'draftSkip' }
   /** Myanmar map: landed on a pagoda, the player may donate for merit (D102). */
-  | { kind: 'donation'; space: number };
+  | { kind: 'donation'; space: number }
+  /** Myanmar map (spec v2, D107): the general's power came up money or land; the general picks the target. */
+  | { kind: 'powerTarget'; outcome: PowerOutcome; dice: Dice }
+  /**
+   * The unrest window after a use of power: `waiting` answer in any order (seat order for the
+   * decision maker); `used` showed a cup; `blocked`: the target spent merit to stop it.
+   */
+  | { kind: 'unrest'; outcome: PowerOutcome; target: number; space: number | null; waiting: number[]; used: number[]; blocked: boolean }
+  /** The general offers `to` money not to show unrest at the next use of power. */
+  | { kind: 'bribe'; to: number; amount: number };
+
+/** The general's power (spec v2): money from a player, or one of their properties. */
+export type PowerOutcome = 'money' | 'land';
 
 /** The five ways out of military service, and the Call-up exemption card (spec 7.1, D102). */
 export type DraftChoice = 'pay' | 'hide' | 'flee' | 'serve' | 'merit' | 'card';
@@ -277,7 +293,9 @@ export type DebtReason =
   | { kind: 'card'; cardId: string }
   | { kind: 'jailFine' }
   /** Myanmar map: passing a toll road or gate (D103). */
-  | { kind: 'toll'; space: number };
+  | { kind: 'toll'; space: number }
+  /** Myanmar map: the money the general's power takes (D107). */
+  | { kind: 'power' };
 
 export interface DebtItem {
   debtor: number;
@@ -442,6 +460,15 @@ export type Action =
   | { type: 'withdrawLoan' }
   /** The borrower pays back part or all of a loan on their own turn. */
   | { type: 'repayLoan'; loanId: number; amount: number }
+  /** Myanmar map (spec v2, D107): the general rolls for their power. */
+  | { type: 'usePower' }
+  /** The general picks who the power hits (and, for land, which property). */
+  | { type: 'powerTarget'; player: number; space: number | null }
+  /** A player's answer in the unrest window: show a cup, or (the target) block with merit, or hold. */
+  | { type: 'unrestAnswer'; player: number; use: boolean; block: boolean }
+  /** The general offers a player money not to show unrest at the next use of power. */
+  | { type: 'offerBribe'; to: number; amount: number }
+  | { type: 'respondBribe'; accept: boolean }
   /** Myanmar map: pay the broker on the card instead of going to the Military camp. */
   | { type: 'brokerPay' }
   | { type: 'endTurn' }
@@ -455,11 +482,12 @@ export type ActionType = Action['type'];
 
 /** legalActions() lists concrete actions, plus trade templates the caller fills in. */
 export type LegalAction =
-  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' } | { type: 'requestLoan' } | { type: 'counterLoan' }>
+  | Exclude<Action, { type: 'proposeTrade' } | { type: 'counterTrade' } | { type: 'requestLoan' } | { type: 'counterLoan' } | { type: 'offerBribe' }>
   | { type: 'proposeTrade'; offer: null }
   | { type: 'counterTrade'; offer: null }
   | { type: 'requestLoan'; offer: null }
-  | { type: 'counterLoan'; offer: null };
+  | { type: 'counterLoan'; offer: null }
+  | { type: 'offerBribe'; to: null; amount: null };
 
 // ---------------------------------------------------------------------------------------------
 // Events: what just happened, for animation and the log. State is final when they are emitted.
@@ -470,7 +498,7 @@ export type GameEvent =
   | { type: 'turnStarted'; player: number }
   | { type: 'turnSkipped'; player: number }
   | { type: 'turnEnded'; player: number }
-  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company' | 'lottery'; doubles: boolean }
+  | { type: 'diceRolled'; player: number; dice: Dice; purpose: 'move' | 'jail' | 'company' | 'lottery' | 'power'; doubles: boolean }
   | { type: 'moved'; player: number; from: number; to: number; path: number[]; direction: 1 | -1; by: 'dice' | 'card' }
   | { type: 'teleported'; player: number; from: number; to: number; reason: 'jail' | 'vacation' | 'flee' | 'debug' }
   | { type: 'passedStart'; player: number; amount: number }
@@ -548,6 +576,19 @@ export type GameEvent =
   | { type: 'loanDefaulted'; loanId: number; borrower: number; lender: number; collateral: number[]; why: 'term' | 'bankruptcy' }
   /** The lender went bankrupt: the loan is cancelled and its collateral freed. */
   | { type: 'loanForgiven'; loanId: number; borrower: number; lender: number }
+  // Myanmar map: rank, the general and unrest (spec v2, D107)
+  | { type: 'promoted'; player: number; die: number; rank: number; salary: number }
+  | { type: 'generalChanged'; player: number | null; previous: number | null }
+  | { type: 'powerRolled'; player: number; dice: Dice; outcome: PowerOutcome }
+  | { type: 'powerFizzled'; player: number }
+  | { type: 'powerTargeted'; player: number; target: number; space: number | null; outcome: PowerOutcome }
+  | { type: 'unrestAnswered'; player: number; use: boolean; block: boolean }
+  | { type: 'generalDeposed'; player: number; used: number }
+  | { type: 'powerBlocked'; player: number; target: number }
+  | { type: 'powerSeized'; from: number; to: number; space: number }
+  | { type: 'powerPaid'; from: number; to: number; amount: number }
+  | { type: 'bribeOffered'; from: number; to: number; amount: number }
+  | { type: 'bribeAnswered'; from: number; to: number; amount: number; accept: boolean }
   | { type: 'debugApplied'; op: DebugOp['op'] };
 
 export type GameEventType = GameEvent['type'];
@@ -598,7 +639,12 @@ export type ErrorCode =
   | 'loanTerms'
   | 'loanCollateral'
   | 'pledged'
-  | 'loanRepay';
+  | 'loanRepay'
+  /** Myanmar map (D107). */
+  | 'powerNotReady'
+  | 'powerTarget'
+  | 'unrestNone'
+  | 'meritShort';
 
 export type ErrorParams = Record<string, string | number>;
 

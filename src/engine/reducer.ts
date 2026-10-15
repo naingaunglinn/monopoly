@@ -24,6 +24,7 @@ import {
   setRentDue,
   teleport,
 } from './phases.js';
+import { answerUnrest, offerBribe, respondBribe, setPowerTarget, usePower } from './general.js';
 import { acceptLoan, repayLoan } from './loans.js';
 import { buyTicket, chooseDraft, donate, leaveDraft, payBroker, skipDraftTurn, useMerit } from './myanmar.js';
 import { removePlayer } from './remove.js';
@@ -241,6 +242,21 @@ function apply(c: Ctx, action: Action): void {
     }
     case 'repayLoan':
       repayLoan(c, action.loanId, action.amount, false);
+      return;
+    case 'usePower':
+      usePower(c);
+      return;
+    case 'powerTarget':
+      setPowerTarget(c, action.player, action.space);
+      return;
+    case 'unrestAnswer':
+      answerUnrest(c, action.player, action.use, action.block);
+      return;
+    case 'offerBribe':
+      offerBribe(c, action.to, action.amount);
+      return;
+    case 'respondBribe':
+      respondBribe(c, action.accept);
       return;
     case 'buyTicket': {
       if (pending?.kind !== 'card') return;

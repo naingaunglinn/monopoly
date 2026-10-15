@@ -9,6 +9,7 @@ import {
   draftPayCost,
   loanOfferBlocker,
   pledgedSpaces,
+  validateAction,
   type LoanOffer,
   netWorth,
   tradeBlocker,
@@ -37,7 +38,7 @@ export class BotRandom {
   }
 }
 
-const FREE_ACTIONS: ReadonlySet<Action['type']> = new Set(['mortgage', 'unmortgage', 'sellBuilding', 'proposeTrade', 'requestLoan', 'repayLoan']);
+const FREE_ACTIONS: ReadonlySet<Action['type']> = new Set(['mortgage', 'unmortgage', 'sellBuilding', 'proposeTrade', 'requestLoan', 'repayLoan', 'offerBribe']);
 
 export function isFreeAction(type: Action['type']): boolean {
   return FREE_ACTIONS.has(type);
@@ -47,8 +48,9 @@ function concrete(legal: LegalAction[]): Action[] {
   return legal.filter(
     (a) =>
       !(
-        (a.type === 'proposeTrade' || a.type === 'counterTrade' || a.type === 'requestLoan' || a.type === 'counterLoan') &&
-        a.offer === null
+        ((a.type === 'proposeTrade' || a.type === 'counterTrade' || a.type === 'requestLoan' || a.type === 'counterLoan') &&
+          a.offer === null) ||
+        (a.type === 'offerBribe' && a.to === null)
       ),
   ) as Action[];
 }
@@ -143,7 +145,17 @@ export function randomBot(ctx: BotContext): Action {
   // Myanmar map: loans (D104). Never offered on the World map, so its games are unchanged.
   if (legal.some((a) => a.type === 'requestLoan') && !capped) types.push('requestLoan');
   if (legal.some((a) => a.type === 'counterLoan') && state.flow.loan !== null) types.push('counterLoan');
+  // Myanmar map: the general may bribe someone before a use of power (D107).
+  if (legal.some((a) => a.type === 'offerBribe') && !capped) types.push('offerBribe');
   const type = rnd.pick(types);
+  if (type === 'offerBribe') {
+    const to = rnd.pick(state.players.filter((p) => validateAction(state, { type: 'offerBribe', to: p.id, amount: 1 }) === null));
+    const me = state.players[actor] as GameState['players'][number];
+    const amount = 1 + Math.floor(rnd.next() * Math.min(500, me.cash));
+    if (to && validateAction(state, { type: 'offerBribe', to: to.id, amount }) === null) return { type: 'offerBribe', to: to.id, amount };
+    const progress = options.filter((a) => !isFreeAction(a.type));
+    return rnd.pick(progress.length > 0 ? progress : options);
+  }
   if (type === 'counterLoan' && state.flow.loan) {
     const counter = randomLoanOffer(state, state.flow.loan.borrower, rnd, state.flow.loan);
     if (counter) return { type: 'counterLoan', offer: counter };
@@ -210,6 +222,28 @@ export function sensibleBot(ctx: BotContext): Action {
     return { type: 'respondLoan', accept: canAccept && good };
   }
 
+  // Myanmar map: the general's power and the unrest window (D107).
+  const pending = s.flow.pending;
+  if (pending?.kind === 'bribe') return { type: 'respondBribe', accept: pending.amount >= SIM.sensibleBribeAbove };
+  if (pending?.kind === 'unrest') {
+    const answers = legal.filter((a): a is Extract<Action, { type: 'unrestAnswer' }> => a.type === 'unrestAnswer' && a.player === actor);
+    // The target blocks with merit if it can, else shows unrest; the others are glad to hold back.
+    const pick = actor === pending.target ? (answers.find((a) => a.block) ?? answers.find((a) => a.use)) : undefined;
+    return pick ?? answers.find((a) => !a.use && !a.block) ?? (concrete(legal)[0] as Action);
+  }
+  if (pending?.kind === 'powerTarget') {
+    const options = legal.filter((a): a is Extract<Action, { type: 'powerTarget' }> => a.type === 'powerTarget');
+    // Money from the richest, or the most valuable property.
+    const best = [...options].sort((a, b) =>
+      a.space === null || b.space === null
+        ? (s.players[b.player]?.cash ?? 0) - (s.players[a.player]?.cash ?? 0)
+        : propertyPrice(b.space) - propertyPrice(a.space),
+    )[0];
+    return best ?? (concrete(legal)[0] as Action);
+  }
+  const power = has('usePower');
+  if (power) return power;
+
   if (s.flow.trade && s.flow.trade.to === actor) {
     const offer = s.flow.trade;
     const gain = sideValue(s, offer.give);
@@ -249,6 +283,8 @@ export function sensibleBot(ctx: BotContext): Action {
           choose('merit') ??
           choose('card') ??
           (me.cash - payCost >= SIM.sensibleJailFeeAbove ? pay : undefined) ??
+          // Spec v2: serving earns rank and a salary, so it beats hiding (D107).
+          choose('serve') ??
           choose('hide') ??
           (concrete(legal)[0] as Action)
         );

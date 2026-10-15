@@ -8,6 +8,7 @@ import type { CompanyId } from '../data/companies.js';
 import { addModifier, cardById, discardCard } from './cards.js';
 import { changeCash, currentPlayer, emit, livingPlayers, playerById, playersInTurnOrderFrom, type Ctx } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
+import { promote } from './general.js';
 import { afterResolution, passTurn, rollDice, teleport } from './phases.js';
 import { randomInt, rollDie } from './rng.js';
 import type { DraftChoice, GameState, Player } from './types.js';
@@ -129,10 +130,13 @@ export function skipDraftTurn(c: Ctx): void {
   if (draft) {
     draft.turns -= 1;
     if (draft.turns <= 0) {
-      const bonus = draft.status === 'serving' ? MYANMAR.draftServeBonus : 0;
+      const serving = draft.status === 'serving';
+      const bonus = serving ? MYANMAR.draftServeBonus : 0;
       p.draft = null;
       if (bonus > 0) changeCash(c, p.id, bonus, 'draft');
       emit(c, { type: 'draftEnded', player: p.id, how: 'done', bonus });
+      // Spec v2: serving also earns rank, and a salary for it (D107).
+      if (serving && RULES.general) promote(c, p);
     }
   }
   s.flow.pending = null;

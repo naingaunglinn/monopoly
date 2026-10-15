@@ -10,7 +10,7 @@ const PENDING_FOR_PHASE: Readonly<Record<GameState['flow']['phase'], readonly (P
   PassDevice: [null],
   TurnStart: ['jailChoice', 'vacationSkip', 'draftChoice', 'draftSkip'],
   AwaitRoll: [null],
-  BuyDecision: ['buy', 'donation'],
+  BuyDecision: ['buy', 'donation', 'powerTarget', 'unrest', 'bribe'],
   Auction: ['auction'],
   RentDue: ['rent'],
   CompanyRoll: ['companyRoll'],
@@ -42,6 +42,9 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     if (!Number.isInteger(p.merit) || p.merit < 0 || p.merit > MYANMAR.meritMax) errors.push(`${p.name} holds ${p.merit} merit`);
     if (p.draft && (!Number.isInteger(p.draft.turns) || p.draft.turns < 1)) errors.push(`${p.name} has ${p.draft.turns} turns of service left`);
     if (!RULES.conscription && (p.draft !== null || p.merit !== 0)) errors.push(`${p.name} has military service or merit on this map`);
+    if (!Number.isInteger(p.rank) || p.rank < 0 || p.rank > MYANMAR.rankMax) errors.push(`${p.name} has rank ${p.rank}`);
+    if (!Number.isInteger(p.unrest) || p.unrest < 0 || p.unrest > MYANMAR.unrestCups) errors.push(`${p.name} holds ${p.unrest} unrest cups`);
+    if (!RULES.general && p.rank !== 0) errors.push(`${p.name} has a rank on this map`);
   }
   if (!Number.isInteger(s.economy.pot) || s.economy.pot < 0) errors.push(`the pot holds ${s.economy.pot}`);
   // Myanmar map loans (D104): live parties, collateral the borrower holds unmortgaged, never pledged twice.
@@ -58,6 +61,15 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
     }
   }
   if (s.flow.loan !== null && s.flow.trade !== null) errors.push('a trade and a loan on the table at once');
+  // Myanmar map: the general (D107).
+  const general = s.economy.general;
+  if (general !== null) {
+    const g = s.players[general];
+    if (!RULES.general || !g || g.bankrupt || g.rank < MYANMAR.generalMinRank) errors.push(`general ${general} is not a living player of rank 4 or more`);
+    else if (s.players.some((p) => !p.bankrupt && p.rank > g.rank)) errors.push('someone outranks the general');
+  } else if (s.players.some((p) => !p.bankrupt && p.rank >= MYANMAR.generalMinRank)) {
+    errors.push('a player of rank 4 or more but no general');
+  }
   if (!RULES.pot && s.economy.pot !== 0) errors.push('a pot on a map without one');
   const current = s.players[s.turn.currentPlayerIndex];
   if (!current) errors.push('no current player');

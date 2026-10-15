@@ -640,6 +640,43 @@ export const T = {
       return byMap('Free Stay tokens and Free House cards cannot be traded.', 'Merit points cannot be traded.');
     },
   },
+  // Myanmar map: rank, the general and unrest (spec v2, D107)
+  general: {
+    title: 'General',
+    none: `No general yet: rank ${MYANMAR.generalMinRank} is needed`,
+    who: (name: string, rank: number) => `General: ${name}, rank ${rank}`,
+    unrest: (used: number, needed: number) => `Unrest ${used}/${needed}`,
+    ready: 'Power ready',
+    wait: (rounds: number) => (rounds === 1 ? 'Power in 1 round' : `Power in ${rounds} rounds`),
+    rank: (n: number) => `Rank ${n}`,
+    badge: 'General',
+    cups: (n: number) => plural(n, 'unrest cup', 'unrest cups'),
+    usePower: 'Use power',
+    bribe: 'Bribe',
+    rolled: (total: number, outcome: 'money' | 'land') =>
+      outcome === 'money' ? `Rolled ${total}: take ${money(MYANMAR.powerMoney)} from a player` : `Rolled ${total}: take a property from a player`,
+    pickPlayer: 'Who pays?',
+    pickLand: 'Which property?',
+    targetTitle: 'The general’s power',
+    windowTitle: (general: string) => `${general} uses the general’s power`,
+    windowMoney: (target: string) => `${target} is to pay ${money(MYANMAR.powerMoney)}.`,
+    windowLand: (target: string, space: string) => `${target} is to lose ${space}.`,
+    windowHint: (needed: number) => `Show an unrest cup to stand against it. At ${needed} cups the general falls, loses all rank and this use is cancelled.`,
+    countdown: (seconds: number) => `${seconds} s`,
+    show: 'Show unrest',
+    hold: 'Hold back',
+    block: (merit: number) => `Block with ${merit} merit points`,
+    answered: (name: string, use: boolean, block: boolean) => (block ? `${name} blocked it` : use ? `${name} showed unrest` : `${name} held back`),
+    waiting: (name: string) => `${name} is deciding`,
+    bribeTitle: 'Offer a bribe',
+    bribeTo: 'To',
+    bribeAmount: 'Amount',
+    bribeHint: 'If they accept, they get the money now and cannot show unrest at your next use of power.',
+    bribeSend: 'Offer',
+    bribeOffer: (general: string, to: string, amount: number) => `${general} offers ${to} ${money(amount)} to hold back`,
+    bribeAccept: 'Take the money',
+    bribeReject: 'Turn it down',
+  },
   // Myanmar map: loans between players (D104)
   loan: {
     button: 'Loan',
@@ -1003,6 +1040,10 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
       : 'Pick at least one property of the borrower as collateral.',
   pledged: (x) => `${p(x, 'name')} is pledged for a loan until it is paid back.`,
   loanRepay: (x) => `Pay back between ${money(1)} and ${m(x, 'max')}.`,
+  powerNotReady: () => `The general’s power can be used on the general’s own turn, once in ${MYANMAR.powerEveryRounds} rounds.`,
+  powerTarget: () => 'Pick another player, and for land a property without buildings, not pledged, in a region without buildings.',
+  unrestNone: () => 'No unrest cup left to show, or paid not to show one this time.',
+  meritShort: () => `Only the player the power hits can block it, with ${MYANMAR.powerBlockMerit} merit points.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -1065,6 +1106,9 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   remittance: 'money from home',
   lottery: 'lottery',
   loan: 'loan',
+  salary: 'army salary',
+  power: 'the general’s power',
+  bribe: 'bribe',
 };
 
 /** One recap entry: "+$172 rent from Player 3". */
@@ -1310,6 +1354,36 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
     case 'loanForgiven':
       return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
+    case 'promoted':
+      return `${who(e.player)} rolled ${e.die} on leaving the army: rank ${e.rank}, salary ${signedMoney(e.salary)}.`;
+    case 'generalChanged':
+      return e.player === null ? 'There is no general now.' : `${who(e.player)} is the general now.`;
+    case 'powerRolled':
+      return `${who(e.player)} used the general’s power: ${e.dice[0]} + ${e.dice[1]}, ${e.outcome === 'money' ? 'money' : 'land'}.`;
+    case 'powerFizzled':
+      return 'Nobody has a property the power could take: nothing happens.';
+    case 'powerTargeted':
+      return e.space === null
+        ? `${who(e.player)} demands ${money(MYANMAR.powerMoney)} from ${who(e.target)}.`
+        : `${who(e.player)} moves to take ${n.space(e.space)} from ${who(e.target)}.`;
+    case 'unrestAnswered':
+      return e.block
+        ? `${who(e.player)} spends ${MYANMAR.powerBlockMerit} merit points to block it.`
+        : e.use
+          ? `${who(e.player)} shows unrest.`
+          : `${who(e.player)} holds back.`;
+    case 'generalDeposed':
+      return `${e.used} unrest cups: ${who(e.player)} is brought down and loses all rank.`;
+    case 'powerBlocked':
+      return `${who(e.target)} blocked the general’s power.`;
+    case 'powerSeized':
+      return `${who(e.to)} takes ${n.space(e.space)} from ${who(e.from)}.`;
+    case 'powerPaid':
+      return `${who(e.from)} pays ${who(e.to)} ${money(e.amount)}.`;
+    case 'bribeOffered':
+      return `${who(e.from)} offers ${who(e.to)} ${money(e.amount)} to hold back.`;
+    case 'bribeAnswered':
+      return e.accept ? `${who(e.to)} takes ${who(e.from)}’s ${money(e.amount)}.` : `${who(e.to)} turns down ${who(e.from)}’s money.`;
     case 'earthquake':
       return e.spaces.length > 0
         ? `Earthquake (die ${e.die}): every building in ${groupName(e.region)} fell.`
@@ -1375,7 +1449,8 @@ export type RuleTopicId =
   /** Myanmar map only (D102). */
   | 'merit'
   | 'companyEvents'
-  | 'loans';
+  | 'loans'
+  | 'general';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1614,6 +1689,20 @@ export function ruleTopics(): readonly RuleTopic[] {
             'Earthquake: one die; 1, 3 or 5 destroys every building in the Mandalay region, 2, 4 or 6 every building in Anyar, with no refund.',
             `Community donation: every player puts ${money(MYANMAR.potDonation)} into the pot.`,
             `A player who fled to Chiang Mai receives ${money(MYANMAR.remittance)} from home at the start of every round while there.`,
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'general',
+          title: 'Rank and the general',
+          lines: [
+            `Serving in the army earns rank: when the service ends, one die is rolled, an even number adds 2 ranks and an odd one 1 (at most ${MYANMAR.rankMax}). The salary is your rank × ${money(MYANMAR.salaryPerRank)}, paid then on top of the ${money(MYANMAR.draftServeBonus)}. Rank stays for the rest of the game.`,
+            `The one player with the highest rank, ${MYANMAR.generalMinRank} or more, is the general. Of equal ranks the one who got there first stays general; whoever climbs higher takes over.`,
+            `Once in ${MYANMAR.powerEveryRounds} rounds, on their own turn, the general may use their power: two dice, up to ${MYANMAR.powerMoneyUpTo} takes ${money(MYANMAR.powerMoney)} from a player of their choice, above ${MYANMAR.powerMoneyUpTo} takes one of their properties (never one with buildings, in a region with buildings, or pledged for a loan).`,
+            `The player hit can block it with ${MYANMAR.powerBlockMerit} merit points.`,
+            `Every other player holds ${MYANMAR.unrestCups} unrest cups. After each use everyone else decides, within 20 seconds, whether to show one; who did is shown to all. At ${MYANMAR.unrestToDepose} cups in all the general falls: that use is cancelled, the general loses all rank, and everyone gets their cups back. (With two players, two cups are enough.)`,
+            'Before a use of power the general may offer a player money to hold back. Taken, it is paid at once and that player cannot show unrest at the next use.',
           ],
         }
       : null,

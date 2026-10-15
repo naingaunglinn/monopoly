@@ -4,7 +4,8 @@
 // are in Jail, on Vacation, disconnected or played by someone else. A chip opens that player's
 // properties (and, for the host, Play for them and Remove); the current player's chip wears a ring
 // in their colour. Money changes float under the chips, and coins and stamps land on them.
-import { BedDouble, Building2, Factory, Gamepad2, House, IdCard, Lock, Plane, TreePalm, WifiOff, type LucideIcon } from 'lucide-react';
+import { BedDouble, Building2, ChevronsUp, Factory, Gamepad2, House, IdCard, Lock, Medal, Megaphone, Plane, TreePalm, WifiOff, type LucideIcon } from 'lucide-react';
+import { RULES } from '../../data/board';
 import {
   airportsOwnedBy,
   citiesOwnedBy,
@@ -116,6 +117,10 @@ function MeChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
             {p.jailCards.length > 0 && <Count icon={IdCard} n={p.jailCards.length} label={T.players.jailCard} />}
             {p.houseVouchers.length > 0 && <Count icon={House} n={p.houseVouchers.length} label={T.players.voucher} />}
             {p.merit > 0 && <Count icon={Pagoda} n={p.merit} label={T.players.merit(p.merit)} />}
+            {RULES.general && p.rank > 0 && <Count icon={ChevronsUp} n={p.rank} label={T.general.rank(p.rank)} />}
+            {RULES.general && s.economy.general !== null && s.economy.general !== p.id && (
+              <Count icon={Megaphone} n={p.unrest} label={T.general.cups(p.unrest)} />
+            )}
           </span>
         )}
         {heldLabel(p) && (
@@ -140,19 +145,21 @@ function MeChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
  * One sign on the token's corner, the most useful first: played by someone (only a disconnected
  * player can be), disconnected, in Jail, on Vacation.
  */
-function statusSign(p: Player, net: SeatNet | null): { kind: string; Icon: LucideIcon } | null {
+function statusSign(s: GameState, p: Player, net: SeatNet | null): { kind: string; Icon: LucideIcon } | null {
   if (p.bankrupt) return null;
   if (net?.proxyName) return { kind: 'proxy', Icon: Gamepad2 };
   if (net?.offline) return { kind: 'offline', Icon: WifiOff };
   if (heldLabel(p)) return { kind: 'jail', Icon: jailIcon(Lock) };
   if (p.skipNextTurn) return { kind: 'vacation', Icon: TreePalm };
+  // Myanmar map: the general (D107).
+  if (RULES.general && s.economy.general === p.id) return { kind: 'general', Icon: Medal };
   return null;
 }
 
 /** Another player: their name and money (name above the money when the bar is crowded). */
-function OtherChip({ p, cash, current, floats, pulse, net }: ChipProps) {
-  const words = statusWords(p, net);
-  const sign = statusSign(p, net);
+function OtherChip({ s, p, cash, current, floats, pulse, net }: ChipProps) {
+  const words = [...statusWords(p, net), ...(RULES.general && s.economy.general === p.id ? [T.general.badge] : [])];
+  const sign = statusSign(s, p, net);
   return (
     <li className="tb-slot">
       <button

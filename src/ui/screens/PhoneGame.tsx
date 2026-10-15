@@ -9,7 +9,7 @@
 //   a player out of the chat, nor does their own while they are writing.
 // The board keeps its desktop layout at a fixed size and is scaled as a whole (camera in a ref,
 // written straight to the transform, so gestures never re-render the tiles).
-import { ArrowLeftRight, BookOpen, Hammer, HandCoins, IdCard, LayoutList, MessageCircle, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
+import { ArrowLeftRight, BookOpen, Hammer, HandCoins, Medal, IdCard, LayoutList, MessageCircle, Repeat, ScrollText, Sparkles, Users } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { decisionMaker, freeActor, legalActions, type GameState, type Player } from '../../engine';
 import { prefersReducedMotion } from '../animation';
@@ -27,9 +27,10 @@ import { ActivePanel } from '../panels/DecisionPanels';
 import { chatRequest, useOnline } from '../session/online';
 import { canAct, openRules, openSheet, useAnimationSpeed, useApp, useUi } from '../store';
 import { money, recapLine, T } from '../strings';
-import { hasBoardNews, names } from '../view';
+import { hasBoardNews, legalTypes, names } from '../view';
 import { Board, GameMenu, Modifiers, PotLine, PrimaryButton, showLoanButton, showTradeButton } from './GameScreen';
 import { LoansList, openLoanSheet } from '../panels/LoanPanel';
+import { GeneralLine } from '../panels/GeneralPanels';
 
 /** The board's layout size on phones: the 1280 x 720 desktop board (below its top bar), scaled as a whole. */
 export const CANVAS_W = 1280;
@@ -429,6 +430,7 @@ function Sheet({ s }: { s: GameState }) {
           </div>
         )}
         {tab === 'players' && <PotLine s={s} />}
+        {tab === 'players' && <GeneralLine s={s} />}
         {tab === 'players' && hasBoardNews(s) && (
           <Modifiers s={s} className="stage-modifiers phone-modifiers" />
         )}
@@ -442,6 +444,13 @@ function Sheet({ s }: { s: GameState }) {
             )}
             {showLoanButton(s) && (
               <Button id="mine-loan" label={T.loan.button} icon={<HandCoins size={16} aria-hidden="true" />} onClick={() => openLoanSheet()} />
+            )}
+            {/* Myanmar map: the general's power and bribes (D107). */}
+            {legalTypes(s).has('usePower') && canAct(s.turn.currentPlayerIndex) && (
+              <Button id="mine-power" label={T.general.usePower} icon={<Medal size={16} aria-hidden="true" />} action={{ type: 'usePower' }} />
+            )}
+            {legalTypes(s).has('offerBribe') && canAct(s.turn.currentPlayerIndex) && (
+              <Button id="mine-bribe" label={T.general.bribe} onClick={() => openSheet({ kind: 'bribe' })} />
             )}
             <PropertyGroups s={s} player={me} />
             <LoansList s={s} player={me} />

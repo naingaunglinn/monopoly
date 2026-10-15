@@ -209,6 +209,8 @@ export function primarySpec(s: GameState): PrimarySpec | null {
     case 'AwaitRoll':
       return spec(s, s.turn.dice && s.turn.rollsLeft > 0 ? T.play.extraRoll : T.play.rollDice, { type: 'roll' });
     case 'BuyDecision':
+      // Myanmar map: the general's steps have no single next step; their panels hold the choices (D107).
+      if (pending?.kind === 'powerTarget' || pending?.kind === 'unrest' || pending?.kind === 'bribe') return null;
       // Myanmar map: a pagoda donation; with too little cash the big button declines it.
       if (pending?.kind === 'donation') {
         return validateAction(s, { type: 'donate', give: true }) === null

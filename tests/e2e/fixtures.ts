@@ -328,6 +328,31 @@ function myanmarStage3(
     'mm-pot-phone': tweak(mm(), (d) => void (d.economy.pot = 2400)),
     ...myanmarLoans(mm),
     ...myanmarV2Cards(mm, at),
+    ...myanmarGeneral(mm),
+  };
+}
+
+/** Spec v2 stage 3 (D107): ranks, the general, the power, the unrest window, a bribe. */
+function myanmarGeneral(mm: (settings?: Partial<Settings>, seed?: number) => GameState): Record<string, GameState> {
+  const falam = sp('Falam');
+  const general = tweak(own(mm(), [falam], 2), (d) => {
+    const ranks = [4, 2, 1, 0];
+    d.players.forEach((p, i) => {
+      p.rank = ranks[i] as number;
+      p.rankAt = i + 1;
+    });
+    d.economy.rankSeq = 4;
+    d.economy.general = 0;
+    (d.players[2] as GameState['players'][number]).merit = 2;
+  });
+  const power = (dice: [number, number]) => act(dbg(general, { op: 'setNextDice', dice }), { type: 'usePower' });
+  const window = act(power([2, 3]), { type: 'powerTarget', player: 2, space: null }, { type: 'unrestAnswer', player: 1, use: true, block: false });
+  return {
+    'mm-general': general,
+    'mm-power-money': power([2, 3]),
+    'mm-power-land': power([6, 5]),
+    'mm-unrest-window': window,
+    'mm-bribe': act(general, { type: 'offerBribe', to: 3, amount: 400 }),
   };
 }
 

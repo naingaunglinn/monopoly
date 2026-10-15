@@ -2,7 +2,8 @@
 // colour. Clicking a card opens that player's property list. Money changes float beside the card.
 // Online, a card also shows when its player is disconnected or played by the host, and the host
 // gets Play for them and Remove for a disconnected player.
-import { BedDouble, Building2, Factory, Gamepad2, House, IdCard, Lock, Plane, TreePalm, UserX, WifiOff } from 'lucide-react';
+import { BedDouble, Building2, ChevronsUp, Factory, Gamepad2, House, IdCard, Lock, Medal, Megaphone, Plane, TreePalm, UserX, WifiOff } from 'lucide-react';
+import { RULES } from '../../data/board';
 import { airportsOwnedBy, citiesOwnedBy, companiesOwnedBy, type GameState, type Player } from '../../engine';
 import { shownCash, useDisplay, type FloatAmount } from '../display';
 import { amHost, hostControl, isSeatConnected, useOnline, usePresenceClock, type OnlineState } from '../session/online';
@@ -160,6 +161,27 @@ function PlayerCard({
               <IdCard aria-hidden="true" />
               {p.jailCards.length}
               <span className="sr-only">{T.players.jailCard}</span>
+            </span>
+          )}
+          {/* Myanmar map: the general, rank and unrest cups (spec v2, D107). */}
+          {RULES.general && s.economy.general === p.id && (
+            <span className="badge badge-general" title={T.general.badge}>
+              <Medal aria-hidden="true" />
+              {T.general.badge}
+            </span>
+          )}
+          {RULES.general && p.rank > 0 && !p.bankrupt && (
+            <span className="badge badge-soft" title={T.general.rank(p.rank)}>
+              <ChevronsUp aria-hidden="true" />
+              {p.rank}
+              <span className="sr-only">{T.general.rank(p.rank)}</span>
+            </span>
+          )}
+          {RULES.general && s.economy.general !== null && s.economy.general !== p.id && !p.bankrupt && (
+            <span className="badge badge-soft" title={T.general.cups(p.unrest)}>
+              <Megaphone aria-hidden="true" />
+              {p.unrest}
+              <span className="sr-only">{T.general.cups(p.unrest)}</span>
             </span>
           )}
           {p.merit > 0 && (

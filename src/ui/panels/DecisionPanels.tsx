@@ -41,6 +41,7 @@ import { askConfirm, dispatch, openSheet, refuse, useApp } from '../store';
 import { levelText, money, rentCalcText, signedMoney, specialName, T } from '../strings';
 import { cardText, cardTitle, countryOfSpace, decider, playerName, spaceName } from '../view';
 import { Panel, QuickHelpButton } from './Panel';
+import { BribePanel, PowerTargetPanel, UnrestPanel } from './GeneralPanels';
 import { LoanPanel } from './LoanPanel';
 import { TradePanel } from './TradePanel';
 
@@ -677,6 +678,10 @@ export function ActivePanel({ s }: { s: GameState }) {
       return pending?.kind === 'vacationSkip' ? <VacationSkipPanel s={s} /> : <JailPanel s={s} />;
     case 'BuyDecision':
       if (pending?.kind === 'donation') return <DonationPanel s={s} space={pending.space} />;
+      // Myanmar map: the general's power, the unrest window, a bribe (D107).
+      if (pending?.kind === 'powerTarget') return <PowerTargetPanel s={s} />;
+      if (pending?.kind === 'unrest') return <UnrestPanel s={s} />;
+      if (pending?.kind === 'bribe') return <BribePanel s={s} />;
       return pending?.kind === 'buy' ? <BuyPanel s={s} space={pending.space} /> : null;
     case 'Auction':
       return <AuctionPanel s={s} />;

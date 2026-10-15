@@ -5,6 +5,7 @@ import {
   BookOpen,
   Coins,
   HandCoins,
+  Medal,
   Copy,
   FastForward,
   Hammer,
@@ -59,6 +60,7 @@ import { Box, chatRequest, inviteLink, leaveToStart, useOnline, usePending, type
 import { playCue } from '../sound';
 import { PhoneGame } from './PhoneGame';
 import { ActivePanel } from '../panels/DecisionPanels';
+import { BribeSheet, GeneralLine } from '../panels/GeneralPanels';
 import { LoanBuilder, openLoanSheet } from '../panels/LoanPanel';
 import {
   app,
@@ -443,6 +445,13 @@ function ActionBar({ s }: { s: GameState }) {
         {showLoanButton(s) && (
           <Button id="act-loan" label={T.loan.button} icon={<HandCoins size={16} aria-hidden="true" />} onClick={() => openLoanSheet()} />
         )}
+        {/* Myanmar map: the general's power and bribes, on the general's own turn (D107). */}
+        {types.has('usePower') && canAct(s.turn.currentPlayerIndex) && (
+          <Button id="act-power" label={T.general.usePower} icon={<Medal size={16} aria-hidden="true" />} action={{ type: 'usePower' }} />
+        )}
+        {types.has('offerBribe') && canAct(s.turn.currentPlayerIndex) && (
+          <Button id="act-bribe" label={T.general.bribe} onClick={() => openSheet({ kind: 'bribe' })} />
+        )}
         {s.flow.phase !== 'GameOver' && (
           <Button id="act-props" label={T.play.myProperties} onClick={() => openSheet({ kind: 'properties', player: owner })} />
         )}
@@ -525,6 +534,7 @@ function Stage({ s, compactLog }: { s: GameState; compactLog: boolean }) {
           {online && hasBoardNews(s) && <Modifiers s={s} className="stage-modifiers" />}
           <DicePanel dice={dice} line={moveLine} rolling={display.rolling} />
           <PotLine s={s} />
+          <GeneralLine s={s} />
           {doublesAgain && <p className="hint-line">{T.play.doubles}</p>}
           {showRecap && <p className="recap-line">{recapLine(s.turn.recap, names(s))}</p>}
         </div>
@@ -820,6 +830,7 @@ export function GameScreen() {
       {s.flow.trade && <TradeHandover key={`trade-${s.meta.logSeq}`} s={s} />}
       {u.sheet?.kind === 'trade' && <TradeBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
       {u.sheet?.kind === 'loan' && <LoanBuilder key={u.sheet.counter ? 'counter' : 'offer'} s={s} counter={u.sheet.counter === true} />}
+      {u.sheet?.kind === 'bribe' && <BribeSheet s={s} />}
       {u.sheet?.kind === 'properties' && <PropertyList s={s} player={u.sheet.player} />}
       {u.sheet?.kind === 'results' && <Results s={s} />}
       <QuickHelpPopover />

@@ -7,6 +7,7 @@ import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
 import { cardById, isKnownCard } from './cards.js';
 import { countryOf, currentPlayer, livingPlayers, makeError } from './core.js';
+import { powerReady, seizable } from './general.js';
 import { loanOfferBlocker, loanOwed } from './loans.js';
 import { cancellableCard, draftChoiceBlocker, draftPayCost, tradeBlockedFor } from './myanmar.js';
 import { canOfferBuild } from './phases.js';
@@ -20,6 +21,9 @@ export function decisionMaker(s: GameState): number | null {
   if (s.flow.trade) return s.flow.trade.to;
   if (s.flow.loan) return s.flow.loan.to;
   if (s.flow.pending?.kind === 'auction') return s.flow.pending.auction.current;
+  // Myanmar map (D107): the unrest window waits on its players in seat order; a bribe on its receiver.
+  if (s.flow.pending?.kind === 'unrest') return s.flow.pending.waiting[0] ?? s.turn.currentPlayerIndex;
+  if (s.flow.pending?.kind === 'bribe') return s.flow.pending.to;
   if (s.flow.phase === 'Debt') return s.flow.debts[0]?.debtor ?? s.turn.currentPlayerIndex;
   return s.turn.currentPlayerIndex;
 }
@@ -76,6 +80,9 @@ export function actorFor(s: GameState, action: Action): number | null {
       return s.flow.loan?.from ?? null;
     case 'repayLoan':
       return freeActor(s);
+    case 'unrestAnswer':
+      // Every player in the window answers for themselves, in any order (D107).
+      return Number.isInteger(action.player) && s.players[action.player] ? action.player : null;
     case 'setPassDevice':
     case 'setAnimationSpeed':
     case 'debug':
@@ -228,6 +235,33 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       }
       return wrong();
     }
+    case 'usePower':
+      return powerReady(s) ? null : makeError('powerNotReady');
+    case 'powerTarget': {
+      if (phase !== 'BuyDecision' || pending?.kind !== 'powerTarget') return wrong();
+      const target = Number.isInteger(action.player) ? s.players[action.player] : undefined;
+      if (!target || target.bankrupt || target.id === me.id) return makeError('powerTarget');
+      if (pending.outcome === 'money') return action.space === null ? null : makeError('powerTarget');
+      return action.space !== null && seizable(s, target.id).includes(action.space) ? null : makeError('powerTarget');
+    }
+    case 'unrestAnswer': {
+      if (phase !== 'BuyDecision' || pending?.kind !== 'unrest') return wrong();
+      if (!pending.waiting.includes(action.player) || typeof action.use !== 'boolean' || typeof action.block !== 'boolean') return wrong();
+      if (action.use && action.block) return makeError('invalidAction');
+      const p = s.players[action.player] as Player;
+      if (action.use && (p.unrest <= 0 || s.economy.bribed.includes(p.id))) return makeError('unrestNone');
+      if (action.block && (action.player !== pending.target || p.merit < MYANMAR.powerBlockMerit)) return makeError('meritShort');
+      return null;
+    }
+    case 'offerBribe': {
+      if (!powerReady(s)) return makeError('powerNotReady');
+      const to = Number.isInteger(action.to) ? s.players[action.to] : undefined;
+      if (!to || to.bankrupt || to.id === me.id || to.unrest <= 0 || s.economy.bribed.includes(to.id)) return makeError('unrestNone');
+      if (!Number.isInteger(action.amount) || action.amount < 1) return makeError('invalidAmount');
+      return me.cash >= action.amount ? null : makeError('notEnoughCash', { needed: action.amount, have: me.cash });
+    }
+    case 'respondBribe':
+      return phase === 'BuyDecision' && pending?.kind === 'bribe' && typeof action.accept === 'boolean' ? null : wrong();
     case 'buyTicket': {
       if (phase !== 'CardReveal' || pending?.kind !== 'card') return wrong();
       const effect = cardById(pending.cardId).effect;
@@ -420,12 +454,22 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'AwaitRoll':
       consider({ type: 'roll' });
       consider({ type: 'openBuild' });
+      consider({ type: 'usePower' });
       break;
     case 'BuyDecision':
       consider({ type: 'buy' });
       consider({ type: 'decline' });
       consider({ type: 'donate', give: true });
       consider({ type: 'donate', give: false });
+      if (pending?.kind === 'powerTarget') {
+        for (const p of livingPlayers(s)) {
+          if (pending.outcome === 'money') consider({ type: 'powerTarget', player: p.id, space: null });
+          else for (const space of seizable(s, p.id)) consider({ type: 'powerTarget', player: p.id, space });
+        }
+      }
+      if (pending?.kind === 'unrest') out.push(...unrestAnswers(s, pending.waiting[0] ?? -1));
+      consider({ type: 'respondBribe', accept: true });
+      consider({ type: 'respondBribe', accept: false });
       break;
     case 'Auction':
       for (const amount of auctionBidOptions(s)) consider({ type: 'bid', amount });
@@ -459,6 +503,7 @@ export function legalActions(s: GameState): LegalAction[] {
     case 'AwaitEndTurn':
       consider({ type: 'endTurn' });
       consider({ type: 'openBuild' });
+      consider({ type: 'usePower' });
       break;
   }
   const actor = freeActor(s);
@@ -478,6 +523,24 @@ export function legalActions(s: GameState): LegalAction[] {
         if (l.borrower === actor) consider({ type: 'repayLoan', loanId: l.id, amount: Math.min(loanOwed(s, l), cash) });
       }
     }
+    // Myanmar map: the general may offer a bribe while their power is ready (D107).
+    if (powerReady(s) && livingPlayers(s).some((p) => validateAction(s, { type: 'offerBribe', to: p.id, amount: 1 }) === null)) {
+      out.push({ type: 'offerBribe', to: null, amount: null });
+    }
+  }
+  return out;
+}
+
+/** A player's possible answers in the unrest window (D107). */
+function unrestAnswers(s: GameState, player: number): LegalAction[] {
+  const out: LegalAction[] = [];
+  for (const [use, block] of [
+    [false, false],
+    [true, false],
+    [false, true],
+  ] as const) {
+    const action = { type: 'unrestAnswer', player, use, block } as const;
+    if (validateAction(s, action) === null) out.push(action);
   }
   return out;
 }
@@ -492,6 +555,9 @@ export function legalActionsFor(s: GameState, player: number): LegalAction[] {
   const p = s.players[player];
   if (!p || p.bankrupt || s.flow.notices.length > 0 || s.flow.phase === 'GameOver') return out;
   if (s.flow.trade?.from === player) out.push({ type: 'withdrawTrade' });
+  // Myanmar map: everyone in the unrest window answers in any order (D107).
+  const pending = s.flow.pending;
+  if (pending?.kind === 'unrest' && pending.waiting.includes(player) && decisionMaker(s) !== player) out.push(...unrestAnswers(s, player));
   if (s.flow.loan?.from === player) out.push({ type: 'withdrawLoan' });
   if (RULES.loans && tradingOpen(s) && !tradeBlockedFor(s, player) && !out.some((a) => a.type === 'requestLoan')) {
     out.push({ type: 'requestLoan', offer: null });

@@ -319,7 +319,7 @@ export function startGame(room: Room, seed: number, now: number): Room | OpError
 /** Actions any player may send at any moment, checked against the latest game (D99). */
 export function isOpenAction(action: unknown): boolean {
   const type = typeof action === 'object' && action !== null ? (action as { type?: unknown }).type : null;
-  return type === 'proposeTrade' || type === 'withdrawTrade' || type === 'requestLoan' || type === 'withdrawLoan';
+  return type === 'proposeTrade' || type === 'withdrawTrade' || type === 'requestLoan' || type === 'withdrawLoan' || type === 'unrestAnswer';
 }
 
 /** True when the device holding `seat` may act for `player` now: its own seat, or one the host plays for. */
