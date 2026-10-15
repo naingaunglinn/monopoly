@@ -572,3 +572,7 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`, in English in spec section
 
 **D110. Myanmar Start pays 750 lakh.** The owner asked for the Myanmar map's Start pay to be 750 lakh instead of the spec's 500, for passing or landing on it (as D100 did for World Start). `MYANMAR.startBonus` is the one number; the three Chance card texts that state it were updated in English and Burmese. Everything else is unchanged, including the army salary and the 25% loan repayment at Start. Merged at the owner's request without running the tests again.
 
+**D111. Ranks are seen by all; a player with a rank may not buy land.** The owner, 2026-10-15:
+- *Everyone sees everyone's rank.* In room play on large screens the other players were only chips with name and money, so their rank could not be seen. Each chip now carries a small gold badge with the rank number on its token, the tooltip names the rank and the general, and every player's property sheet shows their rank. Player cards (one shared device, phones) already showed it.
+- *No land for a rank.* A player with an army rank (1 or more) may not buy land. Landing on an unowned property, they can only pass, and the panel says why. The auction that follows leaves out every player with a rank. In a trade they cannot receive a property (that would be buying it from a player); they can still give one. The general's power still takes a property, since spec v2 grants it, and a lender with a rank still gets the collateral of an unpaid loan.
+

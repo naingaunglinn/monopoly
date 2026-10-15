@@ -648,7 +648,9 @@ export type ErrorCode =
   | 'powerNotReady'
   | 'powerTarget'
   | 'unrestNone'
-  | 'meritShort';
+  | 'meritShort'
+  /** Myanmar map: a player with an army rank may not buy land (owner, D111). */
+  | 'rankNoBuy';
 
 export type ErrorParams = Record<string, string | number>;
 

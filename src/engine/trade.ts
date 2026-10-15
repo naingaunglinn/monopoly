@@ -1,6 +1,6 @@
 // Trading (spec 7.2): one partner, two columns (give / get) of properties, Get Out of Jail cards
 // and cash. Cities in a country with buildings cannot move. An accepted trade applies in one step.
-import { propertyName } from '../data/board.js';
+import { propertyName, RULES } from '../data/board.js';
 import { COUNTRY_BY_ID } from '../data/countries.js';
 import {
   type Ctx,
@@ -56,6 +56,16 @@ export function tradeBlocker(s: GameState, offer: TradeOffer): EngineError | nul
     offer.give.jailCards === 0 &&
     offer.get.jailCards === 0;
   if (empty) return makeError('tradeEmpty');
+  // Myanmar map: a player with an army rank may not buy land, from a player either (owner, D111).
+  if (RULES.general) {
+    for (const [receiver, props] of [
+      [offer.to, offer.give.properties ?? []],
+      [offer.from, offer.get.properties ?? []],
+    ] as const) {
+      const p = s.players[receiver];
+      if (props.length > 0 && p && p.rank > 0) return makeError('rankNoBuy', { player: p.name });
+    }
+  }
   // Myanmar map: a property pledged for a loan stays with its owner (D104).
   const pledged = all.find((space) => isPledged(s, space));
   if (pledged !== undefined) return makeError('pledged', { name: propertyName(pledged) });

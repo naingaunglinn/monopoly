@@ -1,6 +1,7 @@
 // Auctions (spec 7.1). Bidding goes clockwise from the player after the lander; the lander bids
 // last. A fold is final; a bidder who cannot beat the high bid folds automatically.
 import { BALANCE } from '../data/balance.js';
+import { RULES } from '../data/board.js';
 import { type Ctx, changeCash, emit, playerById, playersInTurnOrderFrom, prop } from './core.js';
 import { afterResolution } from './phases.js';
 import type { AuctionState } from './types.js';
@@ -8,7 +9,10 @@ import type { AuctionState } from './types.js';
 export function startAuction(c: Ctx, space: number): void {
   const s = c.s;
   const lander = s.turn.currentPlayerIndex;
-  const order = playersInTurnOrderFrom(s, (lander + 1) % s.players.length).map((p) => p.id);
+  // Myanmar map: players with an army rank may not buy land, so they take no part (owner, D111).
+  const order = playersInTurnOrderFrom(s, (lander + 1) % s.players.length)
+    .filter((p) => !(RULES.general && p.rank > 0))
+    .map((p) => p.id);
   const auction: AuctionState = {
     space,
     order,

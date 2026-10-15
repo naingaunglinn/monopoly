@@ -6221,3 +6221,22 @@ ol.rules-lines {
 .unrest-name {
   font-weight: 600;
 }
+
+/* Myanmar map: every player's army rank on their room chip (D111). */
+.tb-rank {
+  position: absolute;
+  left: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 0 0 2px #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
