@@ -268,6 +268,13 @@ function resolveProperty(c: Ctx, space: number): void {
   const p = currentPlayer(s);
   const ps = prop(s, space);
   if (ps.owner === null) {
+    // Myanmar map: from rank 4 a player may not buy land; it stays for sale and is not auctioned
+    // either: the move just goes on (owner, D113).
+    if (RULES.general && p.rank >= MYANMAR.noBuyRank) {
+      emit(c, { type: 'buyBarred', player: p.id, space, rank: p.rank });
+      afterResolution(c);
+      return;
+    }
     s.flow.phase = 'BuyDecision';
     s.flow.pending = { kind: 'buy', space };
     return;

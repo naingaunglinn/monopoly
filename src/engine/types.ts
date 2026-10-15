@@ -580,6 +580,8 @@ export type GameEvent =
   | { type: 'loanForgiven'; loanId: number; borrower: number; lender: number }
   // Myanmar map: rank, the general and unrest (spec v2, D107)
   | { type: 'promoted'; player: number; die: number; rank: number; salary: number }
+  /** Myanmar map: rank 4 or more may not buy land; it stays for sale, with no auction (owner, D113). */
+  | { type: 'buyBarred'; player: number; space: number; rank: number }
   /** A player with a rank draws their salary on passing Start (D109). */
   | { type: 'salaryPaid'; player: number; amount: number }
   | { type: 'generalChanged'; player: number | null; previous: number | null }
@@ -648,7 +650,9 @@ export type ErrorCode =
   | 'powerNotReady'
   | 'powerTarget'
   | 'unrestNone'
-  | 'meritShort';
+  | 'meritShort'
+  /** Myanmar map: rank 4 or more may not buy land (owner, D113). */
+  | 'rankNoBuy';
 
 export type ErrorParams = Record<string, string | number>;
 

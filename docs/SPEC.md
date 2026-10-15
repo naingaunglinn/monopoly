@@ -1298,3 +1298,4 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar ma
   - Their salary, rank × 200 lakh, is paid every time they pass Start as well as on return from serving.
 - **Owner's change, Oct 15 (D110):** passing or landing on Start pays 750 lakh (was 500).
 - **Owner's change, Oct 15 (D111, D112):** every player's rank is shown to all. A player with an army rank may buy land like anyone else (a ban on it was tried and withdrawn).
+- **Owner's change, Oct 15 (D113):** a player of rank 4 or more may not buy land. Landing on a property for sale, they go past it, and it is not auctioned. They do not bid in auctions either.

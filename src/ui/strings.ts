@@ -774,6 +774,8 @@ export const T = {
     },
     tableCompany: 'Company',
     tableCompaniesOwned: 'Companies owned',
+    tableRank: 'Rank',
+    tableSalary: 'Salary each time',
     tablePrice: 'Price',
     tableMultiplier: 'Multiplier',
     baseRent: 'Base rent',
@@ -1045,6 +1047,7 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   powerTarget: () => 'Pick another player, and for land a property without buildings, not pledged, in a region without buildings.',
   unrestNone: () => 'No unrest cup left to show, or paid not to show one this time.',
   meritShort: () => `Only the player the power hits can block it, with ${MYANMAR.powerBlockMerit} merit points.`,
+  rankNoBuy: (x) => `${p(x, 'player') || 'A player'} holds army rank ${MYANMAR.noBuyRank} or more and may not buy land.`,
 };
 
 export function errorText(code: ErrorCode, params: ErrorParams): string {
@@ -1359,6 +1362,8 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         : `${who(e.lender)} takes ${andList(e.collateral.map(n.space))}, pledged by ${who(e.borrower)}.`;
     case 'loanForgiven':
       return `${who(e.borrower)}’s loan from ${who(e.lender)} is cancelled.`;
+    case 'buyBarred':
+      return `${who(e.player)} holds army rank ${e.rank} and may not buy ${n.space(e.space)}: it stays for sale.`;
     case 'salaryPaid':
       return `${who(e.player)} draws their army salary: ${signedMoney(e.amount)}.`;
     case 'promoted':
@@ -1457,7 +1462,9 @@ export type RuleTopicId =
   | 'merit'
   | 'companyEvents'
   | 'loans'
-  | 'general';
+  | 'general'
+  | 'rank'
+  | 'salary';
 
 export interface RuleTopic {
   id: RuleTopicId;
@@ -1465,7 +1472,7 @@ export interface RuleTopic {
   lines: string[];
   ordered?: boolean;
   /** A table generated from the game data, shown after the lines. */
-  table?: 'cityRent' | 'airportRent' | 'companies';
+  table?: 'cityRent' | 'airportRent' | 'companies' | 'salary';
   /** Settings that can switch this topic off for a game. */
   switches?: Array<'freeStay' | 'vacation' | 'auction' | 'chance' | 'event'>;
 }
@@ -1702,17 +1709,44 @@ export function ruleTopics(): readonly RuleTopic[] {
       : null,
     myanmar
       ? {
-          id: 'general',
-          title: 'Rank and the general',
+          id: 'rank',
+          title: 'Military rank',
           lines: [
-            `Serving in the army earns rank: when the service ends, one die is rolled, an even number adds 2 ranks and an odd one 1 (at most ${MYANMAR.rankMax}). Rank stays for the rest of the game.`,
-            `A player with a rank draws an army salary of rank × ${money(MYANMAR.salaryPerRank)}: on return from serving (on top of the ${money(MYANMAR.draftServeBonus)}) and every time they pass Start.`,
-            'Because the army pays them, a player with a rank collects half rent on their properties.',
-            `The one player with the highest rank, ${MYANMAR.generalMinRank} or more, is the general. Of equal ranks the one who got there first stays general; whoever climbs higher takes over.`,
-            `Once in ${MYANMAR.powerEveryRounds} rounds, on their own turn, the general may use their power: two dice, up to ${MYANMAR.powerMoneyUpTo} takes ${money(MYANMAR.powerMoney)} from a player of their choice, above ${MYANMAR.powerMoneyUpTo} takes one of their properties (never one with buildings, in a region with buildings, or pledged for a loan).`,
-            `The player hit can block it with ${MYANMAR.powerBlockMerit} merit points.`,
-            `Every other player holds ${MYANMAR.unrestCups} unrest cups. After each use everyone else decides, within 20 seconds, whether to show one; who did is shown to all. At ${MYANMAR.unrestToDepose} cups in all the general falls: that use is cancelled, the general loses all rank, and everyone gets their cups back. (With two players, two cups are enough.)`,
-            'Before a use of power the general may offer a player money to hold back. Taken, it is paid at once and that player cannot show unrest at the next use.',
+            'Rank comes only from serving in the army: when you are called up, choose Serve.',
+            `When your service ends, one die is rolled: an even number adds ${MYANMAR.rankEven} ranks, an odd number adds ${MYANMAR.rankOdd}. Rank ${MYANMAR.rankMax} is the highest. Serve again to climb higher.`,
+            'Your rank stays for the rest of the game. You lose it only if you are brought down as the general, or go bankrupt.',
+            'Every player sees every rank: on the player cards and chips (the gold number on the token), and in each player’s property list.',
+            `A rank brings an army salary, but you collect half rent while you have one (see Army salary).`,
+            `From rank ${MYANMAR.noBuyRank} you may not buy land. When you land on a property for sale, you go past it: it stays for sale and is not auctioned. You do not bid in auctions either.`,
+            `The player with the highest rank, ${MYANMAR.generalMinRank} or more, is the general (see The general’s powers).`,
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'salary',
+          title: 'Army salary',
+          table: 'salary',
+          lines: [
+            `With a rank you draw an army salary from the bank: your rank × ${money(MYANMAR.salaryPerRank)}.`,
+            `It is paid when you come back from serving (on top of the ${money(MYANMAR.draftServeBonus)} return pay), and again every time you pass Start (on top of the Start money).`,
+            'Because the army pays you, you collect half rent on all your properties (cities, transport and companies) while you have a rank. The rent panel says so.',
+            'Tolls are not rent: you collect them in full.',
+          ],
+        }
+      : null,
+    myanmar
+      ? {
+          id: 'general',
+          title: 'The general’s powers',
+          lines: [
+            `The general is the one player with the highest rank, ${MYANMAR.generalMinRank} or more. Of equal ranks, whoever got there first stays general; whoever climbs higher takes over, and the old general keeps their rank. A medal marks the general.`,
+            `Power: once every ${MYANMAR.powerEveryRounds} rounds, on their own turn (before or after rolling), the general presses Use power and rolls two dice.`,
+            `${MYANMAR.powerMoneyUpTo} or less: the general takes ${money(MYANMAR.powerMoney)} from a player of their choice. More than ${MYANMAR.powerMoneyUpTo}: the general takes one of a player’s properties, never one with buildings, in a region with buildings, or pledged for a loan.`,
+            `The player hit can block it once with ${MYANMAR.powerBlockMerit} merit points.`,
+            `Unrest: every other player holds ${MYANMAR.unrestCups} unrest cups. After each use of power there is a 20-second window: everyone else may show a cup, and everyone sees who did. At ${MYANMAR.unrestToDepose} cups in all (2 with two players), the general falls at once: that use is cancelled, the general loses all rank, and everyone gets their cups back.`,
+            'Bribes: before a use of power the general may offer a player money to hold back. If they take it, it is paid at once and they cannot show unrest at the next use.',
+            'The line under the pot shows who is general, the unrest so far, and when the power is ready again.',
           ],
         }
       : null,

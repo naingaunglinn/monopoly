@@ -190,6 +190,8 @@ export const MYANMAR = {
   rankRentFactor: 0.5,
   /** The general has at least this rank. */
   generalMinRank: 4,
+  /** From this rank a player may not buy land, and land they leave is not auctioned (owner, D113). */
+  noBuyRank: 4,
   /** The general's power can be used once in this many rounds. */
   powerEveryRounds: 2,
   /** Power: a dice total up to this takes money, above it a property. */

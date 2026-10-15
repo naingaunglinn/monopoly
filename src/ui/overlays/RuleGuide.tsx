@@ -3,7 +3,7 @@
 // the settings to say which topics are switched off.
 import { Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { BALANCE } from '../../data/balance';
+import { BALANCE, MYANMAR } from '../../data/balance';
 import { AIRPORTS, COMPANIES, RULES } from '../../data/board';
 import { closeRules, useApp, useUi } from '../store';
 import { money, ruleTopics, SWITCH_NAMES, T, type RuleTopic, type RuleTopicId } from '../strings';
@@ -28,6 +28,9 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
         return RULES.companyMultipliers.map((m, i): [string, string] => [T.players.companies(i + 1), T.focus.companyFormula(m)]);
       }
       return COMPANIES.map((c): [string, string] => [c.name, `${money(c.price)} · ${T.focus.companyFormula(c.multiplier)}`]);
+    case 'salary':
+      // Myanmar map: the army salary for each rank (D109).
+      return Array.from({ length: MYANMAR.rankMax }, (_, i): [string, string] => [T.general.rank(i + 1), money((i + 1) * MYANMAR.salaryPerRank)]);
     default:
       return [];
   }
@@ -35,6 +38,7 @@ function tableRows(topic: RuleTopic): Array<[string, string]> {
 
 function tableHead(topic: RuleTopic): [string, string] {
   if (topic.table === 'airportRent') return [T.rules.tableAirports, T.rules.tableRent];
+  if (topic.table === 'salary') return [T.rules.tableRank, T.rules.tableSalary];
   if (topic.table === 'companies') {
     return RULES.companyMultipliers ? [T.rules.tableCompaniesOwned, T.rules.tableRent] : [T.rules.tableCompany, `${T.rules.tablePrice} · ${T.rules.tableRent}`];
   }

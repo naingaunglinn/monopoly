@@ -578,3 +578,7 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`, in English in spec section
 
 **D112. Players with a rank may buy land again.** At the owner's request (2026-10-15), D111's ban on buying land for a player with an army rank is withdrawn: they buy, bid and trade like anyone else. D111's other half stays: every player's rank is shown to all.
 
+**D113. From rank 4, no land and no auction; the rule guide explains rank, salary and powers.** The owner, 2026-10-15:
+- *Rank 4 or more may not buy land.* A player of rank 4, 5 or 6 who lands on a property for sale goes past it with no Buy decision; the property stays for sale and is not put up for auction (the owner: "skip it as it is"). The log says why. Such a player also does not bid in auctions others start, since bidding is buying. Ranks 1 to 3 buy as before (D112). Trades, the general's power and loan collateral are unchanged.
+- *Rule guide.* The single "Rank and the general" topic becomes three: *Military rank* (how rank is earned, that everyone sees it, half rent, no land from rank 4), *Army salary* (when it is paid, with a table of the salary for each rank), and *The general's powers* (who is general, the power, blocking, unrest, bribes, where to see it all).
+

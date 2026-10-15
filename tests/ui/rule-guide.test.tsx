@@ -151,7 +151,7 @@ describe('rule guide on the Myanmar map (D101)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
       const dialog = within(guide() as HTMLElement);
       const topics = within(dialog.getByRole('navigation')).getAllByRole('button').map((b) => b.textContent);
-      expect(topics).toEqual(expect.arrayContaining(['Start', 'Regions', 'Transport', 'Military service', 'Merit', 'Myanmar news and inflation', 'Chance and News cards']));
+      expect(topics).toEqual(expect.arrayContaining(['Start', 'Regions', 'Transport', 'Military service', 'Merit', 'Myanmar news and inflation', 'Chance and News cards', 'Military rank', 'Army salary', 'The general’s powers']));
       for (const world of ['World Start', 'Countries', 'Airports', 'Jail', 'Free Stay', 'Vacation']) expect(topics).not.toContain(world);
       fireEvent.click(dialog.getByRole('button', { name: 'Transport' }));
       expect(dialog.getByText('4 transports')).toBeTruthy();
