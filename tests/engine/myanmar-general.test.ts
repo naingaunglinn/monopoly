@@ -1,5 +1,6 @@
 // The Myanmar map's spec v2, stage 3 (D107): rank from serving, the general, the general's power,
-// the unrest window and bribes. Spaces are found by name; corners come from SPACES.
+// the unrest window and bribes; the power hits the richest player and the general is a house rule
+// (D115). Spaces are found by name; corners come from SPACES.
 import { describe, expect, test } from 'vitest';
 import { MYANMAR } from '../../src/data/balance';
 import { SPACES } from '../../src/data/board';
@@ -30,10 +31,20 @@ function withGeneral(s: GameState = mm(), rank = 4): GameState {
   });
 }
 
-/** The general uses the power with these dice and picks this target (and property). */
+/** Makes player `p` the richest by far, so the power hits them (D115). */
+function richest(s: GameState, p: number): GameState {
+  return edit(s, (d) => void ((d.players[p] as P).cash = Math.max(...d.players.map((x) => x.cash)) + 5000));
+}
+
+/**
+ * The general uses the power with these dice. Money goes straight to the window against the
+ * richest player, who must be `target`; for land the general takes `space` from `target`.
+ */
 function powerOn(s: GameState, dice: [number, number], target: number, space: number | null = null): GameState {
   const rolled = run(nextDice(s, dice[0], dice[1]), { type: 'usePower' }).state;
-  return act(rolled, { type: 'powerTarget', player: target, space });
+  if (rolled.flow.pending?.kind === 'powerTarget') return act(rolled, { type: 'powerTarget', player: target, space });
+  if (rolled.flow.pending?.kind !== 'unrest' || rolled.flow.pending.target !== target) throw new Error(`the power did not hit player ${target}`);
+  return rolled;
 }
 
 /** Everyone in the window answers: `uses` show a cup, the rest hold. */
@@ -114,7 +125,7 @@ describe('rank from serving', () => {
 
 describe('the general’s power', () => {
   test('ready on the general’s own turn, once in two rounds', () => {
-    const s = withGeneral();
+    const s = richest(withGeneral(), 1);
     expect(legalActions(s)).toContainEqual({ type: 'usePower' });
     const used = act(powerOn(s, [2, 3], 1), { type: 'unrestAnswer', player: 1, use: false, block: false });
     const done = answerAll(used);
@@ -123,15 +134,46 @@ describe('the general’s power', () => {
     expect(validateAction(endTurn(rollTo(withGeneral(), SPACES.jail).state), { type: 'usePower' })?.code).toBe('powerNotReady');
   });
 
-  test('up to 8: 1,000 lakh from the target; above 8: one of their properties', () => {
+  test('up to 8: 10% of the richest player’s cash, from 300 to 1,500 lakh (D115)', () => {
+    const at = (cash: number) => {
+      const s = edit(withGeneral(), (d) => {
+        for (const p of d.players) p.cash = 1000;
+        (d.players[2] as P).cash = cash;
+      });
+      const after = answerAll(powerOn(s, [4, 4], 2));
+      expect(cashOf(after, 0) - cashOf(s, 0)).toBe(cashOf(s, 2) - cashOf(after, 2));
+      return cashOf(s, 2) - cashOf(after, 2);
+    };
+    expect(at(9000)).toBe(900);
+    expect(at(2000)).toBe(MYANMAR.powerMoneyMin);
+    expect(at(40000)).toBe(MYANMAR.powerMoneyMax);
+  });
+
+  test('the general does not choose: the richest by net worth, then cash, then the earlier seat (D115)', () => {
+    // Everyone equal: the lowest seat other than the general's.
     const s = withGeneral();
-    const money = answerAll(powerOn(s, [4, 4], 2));
-    expect(cashOf(money, 2)).toBe(cashOf(s, 2) - 1000);
-    expect(cashOf(money, 0)).toBe(cashOf(s, 0) + 1000);
-    const falam = spaceOf('Falam');
-    const owned = own(s, falam, 3);
-    const land = answerAll(powerOn(owned, [5, 4], 3, falam));
-    expect(land.properties[falam]?.owner).toBe(0);
+    const tie = run(nextDice(s, 2, 2), { type: 'usePower' }).state;
+    expect(tie.flow.pending?.kind === 'unrest' && tie.flow.pending.target).toBe(1);
+    // Land counts: player 3 owns a city and so is richer than the rest at equal cash.
+    const owned = own(s, spaceOf('Falam'), 3);
+    const byWorth = run(nextDice(owned, 2, 2), { type: 'usePower' }).state;
+    expect(byWorth.flow.pending?.kind === 'unrest' && byWorth.flow.pending.target).toBe(3);
+  });
+
+  test('above 8: one property of the richest player who has one; the general picks which', () => {
+    const [falam, hakha] = (mm(), [spaceOf('Falam'), spaceOf('Hakha')]);
+    // Player 1 is richest but owns nothing: the land goes past them to player 3.
+    const s = richest(own(withGeneral(), [falam, hakha], 3), 1);
+    const rolled = run(nextDice(s, 5, 4), { type: 'usePower' }).state;
+    expect(legalActions(rolled)).toEqual([
+      { type: 'powerTarget', player: 3, space: falam },
+      { type: 'powerTarget', player: 3, space: hakha },
+    ]);
+    expect(validateAction(rolled, { type: 'powerTarget', player: 1, space: null })?.code).toBe('powerTarget');
+    expect(validateAction(rolled, { type: 'powerTarget', player: 2, space: null })?.code).toBe('powerTarget');
+    const land = answerAll(act(rolled, { type: 'powerTarget', player: 3, space: hakha }));
+    expect(land.properties[hakha]?.owner).toBe(0);
+    expect(land.properties[falam]?.owner).toBe(3);
   });
 
   test('no built land, no pledged land, nothing in a region with buildings', () => {
@@ -144,7 +186,7 @@ describe('the general’s power', () => {
   });
 
   test('the target can block it once with 2 merit points', () => {
-    const s = edit(withGeneral(), (d) => void ((d.players[2] as P).merit = 2));
+    const s = edit(richest(withGeneral(), 2), (d) => void ((d.players[2] as P).merit = 2));
     const blocked = answerAll(powerOn(s, [2, 2], 2), [], 2);
     expect(cashOf(blocked, 2)).toBe(cashOf(s, 2));
     expect(blocked.players[2]?.merit).toBe(0);
@@ -165,12 +207,12 @@ describe('unrest', () => {
   });
 
   test('the third cup brings the general down: the use is cancelled, rank lost, cups back', () => {
-    let s = withGeneral();
+    let s = richest(withGeneral(), 1);
     s = answerAll(powerOn(s, [2, 2], 1), [1]);
     expect(s.economy.unrestUsed).toBe(1);
-    s = edit(s, (d) => void (d.economy.powerRound = null));
+    s = richest(edit(s, (d) => void (d.economy.powerRound = null)), 2);
     s = answerAll(powerOn(s, [2, 2], 2), [2]);
-    s = edit(s, (d) => void (d.economy.powerRound = null));
+    s = richest(edit(s, (d) => void (d.economy.powerRound = null)), 3);
     const cash = cashOf(s, 3);
     const out = run(powerOn(s, [2, 2], 3), { type: 'unrestAnswer', player: 1, use: false, block: false });
     const final = answerAll(out.state, [3]);
@@ -200,7 +242,7 @@ describe('bribes', () => {
     const taken = act(offered, { type: 'respondBribe', accept: true });
     expect(cashOf(taken, 1)).toBe(cashOf(s, 1) + 300);
     expect(taken.economy.bribed).toEqual([1]);
-    const window = powerOn(taken, [2, 2], 2);
+    const window = powerOn(richest(taken, 2), [2, 2], 2);
     if (window.flow.pending?.kind !== 'unrest') throw new Error('no window');
     expect(window.flow.pending.waiting).toEqual([2, 3]);
     const after = answerAll(window);
@@ -219,7 +261,7 @@ describe('saves and the World map', () => {
   test('a window, a target choice and a bribe on the table survive a save and a load', () => {
     const s = withGeneral();
     const states = [
-      run(nextDice(s, 2, 2), { type: 'usePower' }).state,
+      run(nextDice(own(s, spaceOf('Falam'), 2), 6, 5), { type: 'usePower' }).state,
       powerOn(s, [2, 2], 1),
       act(s, { type: 'offerBribe', to: 1, amount: 300 }),
     ];
@@ -285,5 +327,40 @@ describe('rank 4 or more: no land (owner, D113)', () => {
     // Rank 3 buys as before.
     const three = edit(mm(), (d) => void ((d.players[0] as P).rank = 3));
     expect(validateAction(rollTo(three, falam).state, { type: 'buy' })).toBeNull();
+  });
+});
+
+describe('the general as a house rule (D115)', () => {
+  test('switched off: no general and no power; rank, salary, half rent and the rank 4 land rule stay', () => {
+    const off = mm({ general: false });
+    expect(off.meta.settings.general).toBe(false);
+    const serving = edit(off, (d) => {
+      const p = d.players[0] as P;
+      p.rank = 3;
+      p.draft = { status: 'serving', turns: 1 };
+      p.position = SPACES.jail;
+      d.flow.phase = 'TurnStart';
+      d.flow.pending = { kind: 'draftSkip' };
+    });
+    const back = run(nextDice(serving, 4, 1), { type: 'acknowledge' });
+    expect(back.state.players[0]?.rank).toBe(5);
+    expect(back.state.economy.general).toBeNull();
+    expect(eventsOf(back.events, 'generalChanged')).toEqual([]);
+    expect(checkInvariants(back.state)).toEqual([]);
+    expect(legalActions(back.state).some((a) => a.type === 'usePower' || a.type === 'offerBribe')).toBe(false);
+    expect(reduce(back.state, { type: 'offerBribe', to: 1, amount: 300 }).error).not.toBeNull();
+    // The rank 4 land rule and the salary at Start still apply.
+    const falam = (mm(), spaceOf('Falam'));
+    const ranked = edit(off, (d) => void ((d.players[0] as P).rank = 6));
+    expect(eventsOf(rollTo(ranked, falam).events, 'buyBarred')).toHaveLength(1);
+    const passed = run(nextDice(edit(ranked, (d) => void ((d.players[0] as P).position = 45)), 3, 4), { type: 'roll' });
+    expect(eventsOf(passed.events, 'salaryPaid')).toEqual([{ type: 'salaryPaid', player: 0, amount: 1200 }]);
+  });
+
+  test('on by default, and kept through a save', () => {
+    expect(mm().meta.settings.general).toBe(true);
+    const off = mm({ general: false });
+    const parsed = parseSave(serializeGame(off));
+    expect(parsed.ok && parsed.state.meta.settings.general).toBe(false);
   });
 });

@@ -56,6 +56,8 @@ export interface Settings {
   board: BoardSettings;
   /** The map: the World board, or the Myanmar map (D101). */
   map: MapId;
+  /** Myanmar map: the general, the power, unrest and bribes (house rule, D115). Rank stays either way. */
+  general: boolean;
 }
 
 export type MoneyReason =

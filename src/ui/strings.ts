@@ -105,6 +105,7 @@ export const T = {
       return byMap('Event', 'News');
     },
     randomFirst: 'Random first player',
+    general: 'The general (power, unrest, bribes)',
     map: 'Map',
     maps: { world: 'World', myanmar: 'Myanmar' } as Record<'world' | 'myanmar', string>,
     language: 'Names and cards',
@@ -655,12 +656,12 @@ export const T = {
     usePower: 'Use power',
     bribe: 'Bribe',
     rolled: (total: number, outcome: 'money' | 'land') =>
-      outcome === 'money' ? `Rolled ${total}: take ${money(MYANMAR.powerMoney)} from a player` : `Rolled ${total}: take a property from a player`,
-    pickPlayer: 'Who pays?',
-    pickLand: 'Which property?',
+      outcome === 'money' ? `Rolled ${total}: money from the richest player` : `Rolled ${total}: a property from the richest player`,
+    pickPlayer: 'The richest player pays',
+    pickLand: (name: string) => `${name} is the richest player with a property the power may take. Which one?`,
     targetTitle: 'The general’s power',
     windowTitle: (general: string) => `${general} uses the general’s power`,
-    windowMoney: (target: string) => `${target} is to pay ${money(MYANMAR.powerMoney)}.`,
+    windowMoney: (target: string, amount: number) => `${target} is to pay ${money(amount)}.`,
     windowLand: (target: string, space: string) => `${target} is to lose ${space}.`,
     windowHint: (needed: number) => `Show an unrest cup to stand against it. At ${needed} cups the general falls, loses all rank and this use is cancelled.`,
     countdown: (seconds: number) => `${seconds} s`,
@@ -1044,7 +1045,7 @@ export const ERROR_TEXT: Readonly<Record<ErrorCode, (params: ErrorParams) => str
   pledged: (x) => `${p(x, 'name')} is pledged for a loan until it is paid back.`,
   loanRepay: (x) => `Pay back between ${money(1)} and ${m(x, 'max')}.`,
   powerNotReady: () => `The general’s power can be used on the general’s own turn, once in ${MYANMAR.powerEveryRounds} rounds.`,
-  powerTarget: () => 'Pick another player, and for land a property without buildings, not pledged, in a region without buildings.',
+  powerTarget: () => 'The power hits the richest player; for land, one of their properties without buildings, not pledged, in a region without buildings.',
   unrestNone: () => 'No unrest cup left to show, or paid not to show one this time.',
   meritShort: () => `Only the player the power hits can block it, with ${MYANMAR.powerBlockMerit} merit points.`,
   rankNoBuy: (x) => `${p(x, 'player') || 'A player'} holds army rank ${MYANMAR.noBuyRank} or more and may not buy land.`,
@@ -1376,7 +1377,7 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       return 'Nobody has a property the power could take: nothing happens.';
     case 'powerTargeted':
       return e.space === null
-        ? `${who(e.player)} demands ${money(MYANMAR.powerMoney)} from ${who(e.target)}.`
+        ? `${who(e.player)} demands money from ${who(e.target)}.`
         : `${who(e.player)} moves to take ${n.space(e.space)} from ${who(e.target)}.`;
     case 'unrestAnswered':
       return e.block
@@ -1474,7 +1475,7 @@ export interface RuleTopic {
   /** A table generated from the game data, shown after the lines. */
   table?: 'cityRent' | 'airportRent' | 'companies' | 'salary';
   /** Settings that can switch this topic off for a game. */
-  switches?: Array<'freeStay' | 'vacation' | 'auction' | 'chance' | 'event'>;
+  switches?: Array<'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'general'>;
 }
 
 export const SWITCH_NAMES = {
@@ -1485,6 +1486,7 @@ export const SWITCH_NAMES = {
   get event() {
     return byMap('Event', 'News');
   },
+  general: 'The general',
 };
 
 /**
@@ -1741,14 +1743,17 @@ export function ruleTopics(): readonly RuleTopic[] {
       ? {
           id: 'general',
           title: 'The general’s powers',
+          switches: ['general'],
           lines: [
             `The general is the one player with the highest rank, ${MYANMAR.generalMinRank} or more. Of equal ranks, whoever got there first stays general; whoever climbs higher takes over, and the old general keeps their rank. A medal marks the general.`,
             `Power: once every ${MYANMAR.powerEveryRounds} rounds, on their own turn (before or after rolling), the general presses Use power and rolls two dice.`,
-            `${MYANMAR.powerMoneyUpTo} or less: the general takes ${money(MYANMAR.powerMoney)} from a player of their choice. More than ${MYANMAR.powerMoneyUpTo}: the general takes one of a player’s properties, never one with buildings, in a region with buildings, or pledged for a loan.`,
+            'The general does not choose who: the power hits the richest player, the highest net worth (cash, land, buildings and loans) of everyone but the general.',
+            `${MYANMAR.powerMoneyUpTo} or less: ${MYANMAR.powerMoneyPercent}% of that player’s cash, at least ${money(MYANMAR.powerMoneyMin)} and at most ${money(MYANMAR.powerMoneyMax)}. More than ${MYANMAR.powerMoneyUpTo}: one of their properties, never one with buildings, in a region with buildings, or pledged for a loan; the general picks which. If they have none, the next richest who has one loses it.`,
             `The player hit can block it once with ${MYANMAR.powerBlockMerit} merit points.`,
             `Unrest: every other player holds ${MYANMAR.unrestCups} unrest cups. After each use of power there is a 20-second window: everyone else may show a cup, and everyone sees who did. At ${MYANMAR.unrestToDepose} cups in all (2 with two players), the general falls at once: that use is cancelled, the general loses all rank, and everyone gets their cups back.`,
             'Bribes: before a use of power the general may offer a player money to hold back. If they take it, it is paid at once and they cannot show unrest at the next use.',
             'The line under the pot shows who is general, the unrest so far, and when the power is ready again.',
+            'The general is a house rule: the host can switch it off before the game. Rank, the army salary, half rent and the rank 4 land rule stay.',
           ],
         }
       : null,
@@ -1924,8 +1929,8 @@ export const RULES_MY = {
   topics: 'ခေါင်းစဉ်များ',
   close: 'ပိတ်ရန်',
   offInGame: (what: string) => `${what} ကို ဒီပွဲမှာ ပိတ်ထားတယ်။`,
-  switches: { freeStay: 'Free Stay', vacation: 'Vacation', auction: 'လေလံ', chance: 'ကံစမ်းမဲ', event: 'သတင်း' } as Record<
-    'freeStay' | 'vacation' | 'auction' | 'chance' | 'event',
+  switches: { freeStay: 'Free Stay', vacation: 'Vacation', auction: 'လေလံ', chance: 'ကံစမ်းမဲ', event: 'သတင်း', general: 'ဗိုလ်ချုပ်' } as Record<
+    'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'general',
     string
   >,
   tableLevel: 'အဆောက်အအုံ',
@@ -2125,14 +2130,17 @@ export function ruleTopicsMy(): readonly RuleTopic[] {
     {
       id: 'general',
       title: 'ဗိုလ်ချုပ် အာဏာ',
+      switches: ['general'],
       lines: [
         `ဗိုလ်ချုပ်က ရာထူး ${dMy(M.generalMinRank)} နဲ့အထက်ရှိပြီး ရာထူး အမြင့်ဆုံး ကစားသမား တစ်ယောက်တည်း။ ရာထူး တူရင် အရင်ရောက်သူက ဆက်ထိန်းတယ်။ ကျော်တက်သူ ပေါ်ရင် အာဏာ ပြောင်းတယ်၊ အရင်ဗိုလ်ချုပ်ရဲ့ ရာထူး မပျက်ဘူး။ ဗိုလ်ချုပ်ကို ဆုတံဆိပ် အမှတ်အသားနဲ့ ပြတယ်။`,
         `အာဏာ: round ${dMy(M.powerEveryRounds)} ခုမှာ တစ်ကြိမ်၊ ကိုယ့်အလှည့်မှာ (အန်စာ မလှိမ့်ခင် ဒါမှမဟုတ် လှိမ့်ပြီး) "Use power" ကို နှိပ်ပြီး အန်စာ ၂ လုံး လှိမ့်တယ်။`,
-        `${dMy(M.powerMoneyUpTo)} နဲ့အောက်: ကြိုက်တဲ့ ကစားသမား တစ်ယောက်ဆီက ${money(M.powerMoney)} ယူတယ်။ ${dMy(M.powerMoneyUpTo)} ထက်များရင်: ကစားသမား တစ်ယောက်ရဲ့ မြေ ၁ ကွက် သိမ်းတယ် (အဆောက်အအုံ ရှိတဲ့ မြေ၊ အဆောက်အအုံ ရှိတဲ့ အုပ်စုထဲက မြို့၊ ချေးငွေအတွက် အပေါင်ထားတဲ့ မြေ မသိမ်းရ)။`,
+        'ဘယ်သူ့ကို ထိမလဲ ဗိုလ်ချုပ်က မရွေးရဘူး: ဗိုလ်ချုပ်ကလွဲ၍ ပိုင်ဆိုင်မှု (ပိုက်ဆံ၊ မြေ၊ အဆောက်အအုံ၊ ချေးငွေ) အများဆုံး ကစားသမားကို အာဏာ ထိတယ်။',
+        `${dMy(M.powerMoneyUpTo)} နဲ့အောက်: အဲဒီ ကစားသမားရဲ့ လက်ကျန်ငွေ ${dMy(M.powerMoneyPercent)}% (အနည်းဆုံး ${money(M.powerMoneyMin)}၊ အများဆုံး ${money(M.powerMoneyMax)}) ယူတယ်။ ${dMy(M.powerMoneyUpTo)} ထက်များရင်: သူ့မြေ ၁ ကွက် သိမ်းတယ်၊ ဘယ်ကွက်လဲ ဗိုလ်ချုပ် ရွေးတယ် (အဆောက်အအုံ ရှိတဲ့ မြေ၊ အဆောက်အအုံ ရှိတဲ့ အုပ်စုထဲက မြို့၊ ချေးငွေအတွက် အပေါင်ထားတဲ့ မြေ မသိမ်းရ)။ သိမ်းလို့ရတဲ့ မြေ မရှိရင် နောက်ထပ် အချမ်းသာဆုံး ဖြစ်ပြီး မြေရှိသူက ခံရတယ်။`,
         `ခံရသူက ကုသိုလ် ${dMy(M.powerBlockMerit)} မှတ် သုံးပြီး တစ်ကြိမ် တားလို့ရတယ်။`,
         `မကျေနပ်မှု: ဗိုလ်ချုပ် မဟုတ်တဲ့ ကစားသမားတိုင်း မကျေနပ်မှု ခွက် ${dMy(M.unrestCups)} ခု ရှိတယ်။ အာဏာ သုံးတိုင်း စက္ကန့် ၂၀ အတွင်း ကျန်သူတွေ ခွက် ပြမလား ဆုံးဖြတ်ရတယ်၊ ဘယ်သူ ပြလဲ အားလုံး မြင်ရတယ်။ စုစုပေါင်း ${dMy(M.unrestToDepose)} ခု ပြည့်တာနဲ့ (၂ ယောက်ပွဲမှာ ၂ ခု) ဗိုလ်ချုပ် ချက်ချင်း ပြုတ်တယ်: အဲဒီ အာဏာ ပယ်ဖျက်ခံရပြီး ဗိုလ်ချုပ်ရဲ့ ရာထူး အကုန် ပျက်တယ်၊ အားလုံး ခွက် ပြန်ရတယ်။`,
         'လာဘ်ပေးခြင်း: အာဏာ မသုံးခင် ဗိုလ်ချုပ်က ကစားသမား တစ်ယောက်ကို မကျေနပ်မှု မပြဖို့ ပိုက်ဆံ ကမ်းလှမ်းလို့ရတယ် ("Bribe" ခလုတ်)။ လက်ခံရင် ချက်ချင်း ပေးပြီး နောက် အာဏာ သုံးမှုမှာ သူ ခွက် မပြရတော့ဘူး။',
         'အိုးရဲ့ အောက်က စာကြောင်းမှာ ဗိုလ်ချုပ် ဘယ်သူလဲ၊ မကျေနပ်မှု ဘယ်လောက် ရှိပြီလဲ၊ အာဏာ ဘယ်တော့ ပြန်သုံးလို့ရလဲ ပြတယ်။',
+        'ဗိုလ်ချုပ်က အိမ်စည်းကမ်း (House rules) တစ်ခု: ပွဲမစခင် အခန်းရှင်က ပိတ်လို့ရတယ်။ ရာထူး၊ စစ်လစာ၊ ငှားခ တစ်ဝက်နဲ့ ရာထူး ၄ မြေ မဝယ်ရ စည်းကမ်း ဆက်ရှိတယ်။',
       ],
     },
     {

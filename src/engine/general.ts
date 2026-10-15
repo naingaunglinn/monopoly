@@ -1,12 +1,14 @@
 // Rank, the general and unrest on the Myanmar map (owner's spec v2 sections 5 and 6, D107).
 // Serving in the army raises a player's rank; the highest rank of 4 or more is the general, whose
-// power (once in two rounds) takes 1,000 lakh or a property from a player. After every use, the
-// other players may show unrest cups; three cups bring the general down. Bribes buy silence.
-import { MYANMAR } from '../data/balance.js';
+// power (once in two rounds) takes money or a property from the richest player (D115). After every
+// use, the other players may show unrest cups; three cups bring the general down. Bribes buy
+// silence. The general is a house rule the host may switch off; rank stays (D115).
+import { MYANMAR, roundMoney } from '../data/balance.js';
 import { CITY_BY_SPACE, COUNTRY_CITIES, RULES } from '../data/board.js';
 import { countryOf, emit, livingPlayers, playerById, transfer, changeCash, currentPlayer, type Ctx } from './core.js';
 import { queueDebt, settleDebts } from './debt.js';
 import { isPledged } from './loans.js';
+import { netWorth } from './networth.js';
 import { afterResolution, rollDice } from './phases.js';
 import { rollDie } from './rng.js';
 import type { GameState, Player, PowerOutcome } from './types.js';
@@ -38,6 +40,11 @@ export function startSalary(c: Ctx, playerId: number): void {
   emit(c, { type: 'salaryPaid', player: p.id, amount });
 }
 
+/** This game has a general: the Myanmar map, with the house rule on (D115). */
+export function generalOn(s: GameState): boolean {
+  return RULES.general && s.meta.settings.general;
+}
+
 /** Everyone gets their cups back, and the new general starts afresh. */
 function freshTerm(s: GameState): void {
   for (const p of s.players) p.unrest = MYANMAR.unrestCups;
@@ -52,7 +59,7 @@ function freshTerm(s: GameState): void {
  */
 export function updateGeneral(c: Ctx): void {
   const s = c.s;
-  if (!RULES.general) return;
+  if (!generalOn(s)) return;
   const before = s.economy.general;
   const ranked = livingPlayers(s).filter((p) => p.rank >= MYANMAR.generalMinRank);
   const top = Math.max(0, ...ranked.map((p) => p.rank));
@@ -72,7 +79,7 @@ export function updateGeneral(c: Ctx): void {
 /** The general's power is ready: on their own turn, between decisions, once in two rounds. */
 export function powerReady(s: GameState): boolean {
   const general = s.economy.general;
-  if (!RULES.general || general === null || general !== s.turn.currentPlayerIndex) return false;
+  if (!generalOn(s) || general === null || general !== s.turn.currentPlayerIndex) return false;
   if (s.flow.phase !== 'AwaitRoll' && s.flow.phase !== 'AwaitEndTurn') return false;
   if (s.flow.notices.length > 0 || s.flow.trade !== null || s.flow.loan !== null) return false;
   const p = s.players[general];
@@ -96,7 +103,31 @@ export function seizable(s: GameState, from: number): number[] {
   return out;
 }
 
-/** The power: two dice, up to 8 money, above 8 land. The general then picks the target. */
+/**
+ * Who the power hits (owner, D115): the general does not choose. It is the richest other player by
+ * net worth (then cash, then the earlier seat); for land, the richest who has a property the power
+ * may take. Null when nobody can be hit.
+ */
+export function powerVictim(s: GameState, outcome: PowerOutcome): number | null {
+  const general = s.economy.general;
+  const order = livingPlayers(s)
+    .filter((p) => p.id !== general)
+    .map((p) => ({ id: p.id, worth: netWorth(s, p.id).total, cash: p.cash }))
+    .sort((a, b) => b.worth - a.worth || b.cash - a.cash || a.id - b.id);
+  return order.find((p) => outcome === 'money' || seizable(s, p.id).length > 0)?.id ?? null;
+}
+
+/** What the money power takes: 10% of the player's cash, at least 300 and at most 1,500 lakh (D115). */
+export function powerAmount(s: GameState, target: number): number {
+  const cash = Math.max(0, s.players[target]?.cash ?? 0);
+  const share = roundMoney((cash * MYANMAR.powerMoneyPercent) / 100);
+  return Math.min(MYANMAR.powerMoneyMax, Math.max(MYANMAR.powerMoneyMin, share));
+}
+
+/**
+ * The power: two dice, up to 8 money, above 8 land. Money goes straight to the unrest window
+ * against the richest player; for land the general picks which of that player's properties.
+ */
 export function usePower(c: Ctx): void {
   const s = c.s;
   const general = currentPlayer(s);
@@ -105,13 +136,14 @@ export function usePower(c: Ctx): void {
   s.economy.powerRound = s.turn.roundNumber;
   emit(c, { type: 'diceRolled', player: general.id, dice, purpose: 'power', doubles: false });
   emit(c, { type: 'powerRolled', player: general.id, dice, outcome });
-  const others = livingPlayers(s).filter((p) => p.id !== general.id);
-  if (outcome === 'land' && !others.some((p) => seizable(s, p.id).length > 0)) {
+  const victim = powerVictim(s, outcome);
+  if (victim === null) {
     emit(c, { type: 'powerFizzled', player: general.id });
     return;
   }
   s.flow.phase = 'BuyDecision';
-  s.flow.pending = { kind: 'powerTarget', outcome, dice };
+  if (outcome === 'money') openWindow(c, outcome, victim, null);
+  else s.flow.pending = { kind: 'powerTarget', outcome, dice };
 }
 
 /** Who answers in the unrest window: players with a cup left and not bribed, and the target if they can block. */
@@ -125,16 +157,21 @@ function windowPlayers(s: GameState, target: number): number[] {
     .map((p) => p.id);
 }
 
-/** The target is chosen: everyone else may now show unrest (the window). */
+/** The general picks the property (land): everyone else may now show unrest. */
 export function setPowerTarget(c: Ctx, target: number, space: number | null): void {
-  const s = c.s;
-  const pending = s.flow.pending;
+  const pending = c.s.flow.pending;
   if (pending?.kind !== 'powerTarget') return;
+  openWindow(c, pending.outcome, target, space);
+}
+
+/** The target is known: everyone else may now show unrest (the window). */
+function openWindow(c: Ctx, outcome: PowerOutcome, target: number, space: number | null): void {
+  const s = c.s;
   const general = s.turn.currentPlayerIndex;
-  emit(c, { type: 'powerTargeted', player: general, target, space, outcome: pending.outcome });
+  emit(c, { type: 'powerTargeted', player: general, target, space, outcome });
   s.flow.pending = {
     kind: 'unrest',
-    outcome: pending.outcome,
+    outcome,
     target,
     space,
     waiting: windowPlayers(s, target),
@@ -207,7 +244,8 @@ export function resolveUnrest(c: Ctx): void {
     afterResolution(c);
     return;
   }
-  queueDebt(c, { debtor: pending.target, creditor: general, amount: MYANMAR.powerMoney, reason: { kind: 'power' } });
+  // The target's cash cannot change during the window, so this is the amount the window showed.
+  queueDebt(c, { debtor: pending.target, creditor: general, amount: powerAmount(s, pending.target), reason: { kind: 'power' } });
   s.flow.resume = { kind: 'afterResolution' };
   settleDebts(c);
 }

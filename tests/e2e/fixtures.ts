@@ -346,7 +346,8 @@ function myanmarGeneral(mm: (settings?: Partial<Settings>, seed?: number) => Gam
     (d.players[2] as GameState['players'][number]).merit = 2;
   });
   const power = (dice: [number, number]) => act(dbg(general, { op: 'setNextDice', dice }), { type: 'usePower' });
-  const window = act(power([2, 3]), { type: 'powerTarget', player: 2, space: null }, { type: 'unrestAnswer', player: 1, use: true, block: false });
+  // Player 2 owns Falam, so is the richest: money goes straight to the window against them (D115).
+  const window = act(power([2, 3]), { type: 'unrestAnswer', player: 1, use: true, block: false });
   return {
     'mm-general': general,
     'mm-power-money': power([2, 3]),

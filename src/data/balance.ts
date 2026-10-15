@@ -196,7 +196,10 @@ export const MYANMAR = {
   powerEveryRounds: 2,
   /** Power: a dice total up to this takes money, above it a property. */
   powerMoneyUpTo: 8,
-  powerMoney: 1000,
+  /** Power money: this share of the richest player's cash, within the two limits (owner, D115). */
+  powerMoneyPercent: 10,
+  powerMoneyMin: 300,
+  powerMoneyMax: 1500,
   /** Merit points the target spends to block one use of power. */
   powerBlockMerit: 2,
   /** Unrest cups each player holds. */

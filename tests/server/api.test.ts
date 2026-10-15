@@ -225,6 +225,23 @@ describe.each(CASES)('$name', (storeCase) => {
       expect(text).not.toContain(`"rngState":${room?.game?.meta.rngState}`);
     });
 
+    test('the general is a house rule the host switches off, also in a lobby made before it existed (D115)', async () => {
+      const h = harness();
+      const { code, tokens } = await lobby(h, ['Aung', 'Sofia']);
+      expect((await view(h, code)).settings.general).toBe(true);
+      // A lobby from before the switch: its settings have no general.
+      const room = structuredClone(await h.store.load(code)) as NonNullable<Awaited<ReturnType<RoomStore['load']>>>;
+      delete (room.settings as { general?: unknown }).general;
+      const old = { ...room, version: room.version + 1 };
+      expect(await h.store.commit(old, room.version, { v: old.version, kind: 'settings', seat: 0, events: [] })).toBe('ok');
+      const set = await h.call('POST', '/api/room?op=settings', { code, token: tokens[0], settings: { map: 'myanmar', general: false } });
+      expect(set.status).toBe(200);
+      expect(set.body.view.settings).toMatchObject({ map: 'myanmar', general: false });
+      const start = await h.call('POST', '/api/room?op=start', { code, token: tokens[0] });
+      expect(start.status).toBe(200);
+      expect(((await h.store.load(code))?.game as GameState).meta.settings.general).toBe(false);
+    });
+
     test('a room whose game began on another board reads as closed (D96)', async () => {
       const h = harness();
       const { code, tokens, view: v } = await started(h, ['Mia', 'Leo']);

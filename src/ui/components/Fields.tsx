@@ -79,7 +79,7 @@ export function Toggle({
 
 export type GameOptions = Pick<
   Settings,
-  'map' | 'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer'
+  'map' | 'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer' | 'general'
 >;
 
 type Change = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => void;
@@ -198,6 +198,16 @@ export function RuleToggles({
         <Toggle id="opt-auction" label={T.setup.auction} checked={options.auction} onChange={(v) => onChange('auction', v)} disabled={disabled} />
         <Toggle id="opt-chance" label={T.setup.chance} checked={options.chance} onChange={(v) => onChange('chance', v)} disabled={disabled} />
         <Toggle id="opt-event" label={T.setup.event} checked={options.event} onChange={(v) => onChange('event', v)} disabled={disabled} />
+        {/* Myanmar map: the general is a house rule; rank and salary stay without it (D115). */}
+        {options.map === 'myanmar' && (
+          <Toggle
+            id="opt-general"
+            label={T.setup.general}
+            checked={options.general !== false}
+            onChange={(v) => onChange('general', v)}
+            disabled={disabled}
+          />
+        )}
         <Toggle
           id="opt-random-first"
           label={T.setup.randomFirst}

@@ -1,11 +1,20 @@
 // The general on the Myanmar map (owner's spec v2, D107): the status line (who is general, unrest
-// so far, when the power is next ready), the general's choice of target after the power roll, the
-// unrest window everyone answers within 20 seconds, the bribe offer and its answer.
+// so far, when the power is next ready), the general's choice of property after a land roll (the
+// power always hits the richest player, D115), the unrest window everyone answers within 20
+// seconds, the bribe offer and its answer.
 import { Megaphone, Medal, ShieldBan, Swords } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MYANMAR } from '../../data/balance';
-import { RULES } from '../../data/board';
-import { legalActions, legalActionsFor, validateAction, type Action, type GameState, type Player } from '../../engine';
+import {
+  generalOn,
+  legalActions,
+  legalActionsFor,
+  powerAmount,
+  validateAction,
+  type Action,
+  type GameState,
+  type Player,
+} from '../../engine';
 import { Button } from '../components/Button';
 import { TokenChip } from '../components/glyphs';
 import { Sheet } from '../overlays/Overlays';
@@ -28,7 +37,7 @@ export function powerWait(s: GameState): number {
 
 /** Who is general, the unrest shown against them, and when their power is next ready. */
 export function GeneralLine({ s }: { s: GameState }) {
-  if (!RULES.general) return null;
+  if (!generalOn(s)) return null;
   const g = s.economy.general !== null ? s.players[s.economy.general] : undefined;
   return (
     <p className="general-line">
@@ -46,7 +55,7 @@ export function GeneralLine({ s }: { s: GameState }) {
   );
 }
 
-/** The general picks who the power hits: a player (money), or one of their properties (land). */
+/** After a land roll the general picks which property of the richest player (D115). */
 export function PowerTargetPanel({ s }: { s: GameState }) {
   const pending = s.flow.pending;
   if (pending?.kind !== 'powerTarget') return null;
@@ -56,7 +65,11 @@ export function PowerTargetPanel({ s }: { s: GameState }) {
   return (
     <Panel id="power-target" icon={Swords} title={T.general.targetTitle} whose={general} help="general" tone="warn">
       <p className="fact-strong">{T.general.rolled(total, pending.outcome)}</p>
-      <p className="field-label">{pending.outcome === 'money' ? T.general.pickPlayer : T.general.pickLand}</p>
+      <p className="field-label">
+        {pending.outcome === 'money' || options[0] === undefined
+          ? T.general.pickPlayer
+          : T.general.pickLand((s.players[options[0].player] as Player).name)}
+      </p>
       <ul className="power-options">
         {options.map((a) => {
           const p = s.players[a.player] as Player;
@@ -122,7 +135,7 @@ export function UnrestPanel({ s }: { s: GameState }) {
     <Panel id="unrest" icon={Megaphone} title={T.general.windowTitle(general.name)} help="general" tone="warn" className="unrest-panel">
       <p className="fact-strong">
         {pending.outcome === 'money' || pending.space === null
-          ? T.general.windowMoney(target.name)
+          ? T.general.windowMoney(target.name, powerAmount(s, target.id))
           : T.general.windowLand(target.name, spaceName(s, pending.space))}
       </p>
       <p className="muted small">{T.general.windowHint(needed(s))}</p>

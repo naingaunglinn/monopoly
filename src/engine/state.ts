@@ -14,7 +14,7 @@ import type { BoardSettings, GameState, Player, Settings } from './types.js';
  * map setting, merit and military service, the economy and loans); older saves are migrated on
  * load (save.ts).
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /** The World board in play, as the settings record it. */
 export const THIS_BOARD: Readonly<BoardSettings> = { spaces: BOARD_SIZE, shape: BOARD_SHAPE };
@@ -55,6 +55,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   animationSpeed: 'normal',
   board: THIS_BOARD,
   map: 'world',
+  general: true,
 };
 
 /**
@@ -116,6 +117,7 @@ export function normalizeSettings(input: Partial<Settings> = {}): Settings {
       merged.animationSpeed === 'fast' || merged.animationSpeed === 'off' ? merged.animationSpeed : 'normal',
     board: boardOf(map),
     map,
+    general: merged.general !== false,
   };
 }
 
