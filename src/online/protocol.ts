@@ -30,7 +30,7 @@ export type StampId = (typeof STAMPS)[number];
 /** The options the host chooses (spec section 8, without names, colours and per-device ones). */
 export type RoomSettings = Pick<
   Settings,
-  'map' | 'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer'
+  'map' | 'startingMoney' | 'mode' | 'roundLimit' | 'freeStay' | 'vacation' | 'auction' | 'chance' | 'event' | 'randomFirstPlayer' | 'general'
 >;
 
 export type RoomStatus = 'lobby' | 'playing' | 'over';

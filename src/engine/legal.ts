@@ -7,7 +7,7 @@ import { minimumBid } from './auction.js';
 import { buildBlocker, mortgageBlocker, sellBlocker, unmortgageBlocker } from './building.js';
 import { cardById, isKnownCard } from './cards.js';
 import { countryOf, currentPlayer, livingPlayers, makeError } from './core.js';
-import { powerReady, seizable } from './general.js';
+import { powerReady, powerVictim, seizable } from './general.js';
 import { loanOfferBlocker, loanOwed } from './loans.js';
 import { cancellableCard, draftChoiceBlocker, draftPayCost, tradeBlockedFor } from './myanmar.js';
 import { canOfferBuild } from './phases.js';
@@ -241,6 +241,8 @@ export function validateAction(s: GameState, action: Action): EngineError | null
       if (phase !== 'BuyDecision' || pending?.kind !== 'powerTarget') return wrong();
       const target = Number.isInteger(action.player) ? s.players[action.player] : undefined;
       if (!target || target.bankrupt || target.id === me.id) return makeError('powerTarget');
+      // The power hits the richest player, not one the general picks (D115).
+      if (target.id !== powerVictim(s, pending.outcome)) return makeError('powerTarget');
       if (pending.outcome === 'money') return action.space === null ? null : makeError('powerTarget');
       return action.space !== null && seizable(s, target.id).includes(action.space) ? null : makeError('powerTarget');
     }
@@ -463,10 +465,9 @@ export function legalActions(s: GameState): LegalAction[] {
       consider({ type: 'donate', give: true });
       consider({ type: 'donate', give: false });
       if (pending?.kind === 'powerTarget') {
-        for (const p of livingPlayers(s)) {
-          if (pending.outcome === 'money') consider({ type: 'powerTarget', player: p.id, space: null });
-          else for (const space of seizable(s, p.id)) consider({ type: 'powerTarget', player: p.id, space });
-        }
+        const victim = powerVictim(s, pending.outcome);
+        if (victim !== null && pending.outcome === 'money') consider({ type: 'powerTarget', player: victim, space: null });
+        else if (victim !== null) for (const space of seizable(s, victim)) consider({ type: 'powerTarget', player: victim, space });
       }
       if (pending?.kind === 'unrest') out.push(...unrestAnswers(s, pending.waiting[0] ?? -1));
       consider({ type: 'respondBribe', accept: true });

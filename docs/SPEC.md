@@ -1299,3 +1299,7 @@ The owner's additions (`docs/myanmar-map-spec-v2.md`) change only the Myanmar ma
 - **Owner's change, Oct 15 (D110):** passing or landing on Start pays 750 lakh (was 500).
 - **Owner's change, Oct 15 (D111, D112):** every player's rank is shown to all. A player with an army rank may buy land like anyone else (a ban on it was tried and withdrawn).
 - **Owner's change, Oct 15 (D113):** a player of rank 4 or more may not buy land. Landing on a property for sale, they go past it, and it is not auctioned. They do not bid in auctions either.
+- **Owner's changes, Oct 15 (D115):**
+  - The power hits the richest player, never one the general picks. "Richest" means the highest net worth, excluding the general. For land, it hits the richest player who has a property the power may take, and the general picks which property.
+  - The money taken is 10% of that player's cash, at least 300 and at most 1,500 lakh (was 1,000).
+  - The general is a house rule. The host can switch it off before the game. Rank, the army salary, half rent and the rank 4 land rule stay either way.

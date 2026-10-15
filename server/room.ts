@@ -178,6 +178,7 @@ function pickRoomSettings(s: Settings): RoomSettings {
     chance: s.chance,
     event: s.event,
     randomFirstPlayer: s.randomFirstPlayer,
+    general: s.general,
   };
 }
 
@@ -185,7 +186,8 @@ function pickRoomSettings(s: Settings): RoomSettings {
 export function cleanSettings(current: RoomSettings, patch: unknown): RoomSettings {
   const input = typeof patch === 'object' && patch !== null ? (patch as Partial<RoomSettings>) : {};
   const merged = { ...current };
-  for (const key of Object.keys(current) as (keyof RoomSettings)[]) {
+  // Every option the host has now, also one added after this room was made (D115).
+  for (const key of Object.keys(defaultRoomSettings()) as (keyof RoomSettings)[]) {
     if (key in input) (merged as Record<string, unknown>)[key] = input[key];
   }
   return pickRoomSettings(normalizeSettings(merged));

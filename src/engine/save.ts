@@ -156,11 +156,13 @@ function migrateV1(raw: Record<string, unknown>): Record<string, unknown> | null
   delete expected.playerColors;
   delete expected.board;
   delete expected.map;
+  delete expected.general;
   if (JSON.stringify(expected) !== JSON.stringify(v1)) return null;
   const playerColors = players.map((p) => (isObj(p) ? p.color : null)) as string[];
   const settings: Record<string, unknown> = { ...normalizeSettings({ ...(v1 as Partial<Settings>), playerColors }) };
   delete settings.board;
   delete settings.map;
+  delete settings.general;
   return { ...raw, meta: { ...meta, schemaVersion: 2, settings } };
 }
 
@@ -229,6 +231,16 @@ function migrateV4(raw: Record<string, unknown>): Record<string, unknown> | null
 }
 
 /**
+ * Version 5 to 6: the settings gain the general house rule, on as before (D115). An unrest window
+ * that is open keeps its target; the money it takes follows the new rule.
+ */
+function migrateV5(raw: Record<string, unknown>): Record<string, unknown> | null {
+  const { meta } = raw;
+  if (!isObj(meta) || !isObj(meta.settings) || 'general' in meta.settings) return null;
+  return { ...raw, meta: { ...meta, schemaVersion: 6, settings: { ...meta.settings, general: true } } };
+}
+
+/**
  * Brings a game the server kept (an online room started before this version) up to the current
  * version, without checking it again: the server wrote it. Null when it cannot be migrated.
  */
@@ -243,6 +255,7 @@ export function upgradeGame<T>(game: T): T | null {
   if (current && version <= 2) current = migrateV2(current);
   if (current && version <= 3) current = migrateV3(current);
   if (current && version <= 4) current = migrateV4(current);
+  if (current && version <= 5) current = migrateV5(current);
   return current as unknown as T | null;
 }
 
@@ -268,6 +281,7 @@ export function parseSave(text: string | null | undefined): ParseResult {
     if (current && version <= 2) current = migrateV2(current);
     if (current && version <= 3) current = migrateV3(current);
     if (current && version <= 4) current = migrateV4(current);
+    if (current && version <= 5) current = migrateV5(current);
     if (!current) return { ok: false, problem: 'corrupt' };
     // A game from another board cannot go on: its spaces are not this board's (D96).
     const settings = (current.meta as Record<string, unknown>).settings;

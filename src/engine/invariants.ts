@@ -65,9 +65,10 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
   const general = s.economy.general;
   if (general !== null) {
     const g = s.players[general];
-    if (!RULES.general || !g || g.bankrupt || g.rank < MYANMAR.generalMinRank) errors.push(`general ${general} is not a living player of rank 4 or more`);
+    if (!RULES.general || !s.meta.settings.general) errors.push('a general in a game without the general (D115)');
+    else if (!g || g.bankrupt || g.rank < MYANMAR.generalMinRank) errors.push(`general ${general} is not a living player of rank 4 or more`);
     else if (s.players.some((p) => !p.bankrupt && p.rank > g.rank)) errors.push('someone outranks the general');
-  } else if (s.players.some((p) => !p.bankrupt && p.rank >= MYANMAR.generalMinRank)) {
+  } else if (RULES.general && s.meta.settings.general && s.players.some((p) => !p.bankrupt && p.rank >= MYANMAR.generalMinRank)) {
     errors.push('a player of rank 4 or more but no general');
   }
   if (!RULES.pot && s.economy.pot !== 0) errors.push('a pot on a map without one');

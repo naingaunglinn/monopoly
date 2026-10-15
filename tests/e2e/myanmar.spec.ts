@@ -38,11 +38,14 @@ test('choose the Myanmar map: a 48-space board in lakh, its corners, and names i
   const map = page.getByRole('radiogroup', { name: 'Map' });
   await expect(map.getByRole('radio', { name: 'World', exact: true })).toBeChecked();
   await expect(page.locator('#opt-freestay')).toHaveCount(1);
+  await expect(page.locator('#opt-general')).toHaveCount(0);
   await map.getByRole('radio', { name: 'Myanmar', exact: true }).check();
   // Starting money in lakh; no Free Stay or Vacation on this map.
   await expect(page.getByRole('radiogroup', { name: 'Starting money' })).toContainText('4,000 lakh');
   await expect(page.locator('#opt-freestay')).toHaveCount(0);
   await expect(page.locator('#opt-vacation')).toHaveCount(0);
+  // The general is a house rule on this map, on unless the host switches it off (D115).
+  await expect(page.locator('#opt-general')).toBeChecked();
   await expect(page.getByRole('radiogroup', { name: 'Names and cards' })).toBeVisible();
   await page.locator('label[for="opt-pass"]').click();
   await page.locator('#setup-start').click();
@@ -179,6 +182,11 @@ test('online: the host picks Myanmar in the lobby; each device keeps its own lan
   const guestMap = guest.page.getByRole('radiogroup', { name: 'Map' });
   await expect(guestMap.getByRole('radio', { name: 'Myanmar', exact: true })).toBeChecked();
   await expect(guestMap.getByRole('radio', { name: 'Myanmar', exact: true })).toBeDisabled();
+  // The host switches the general off; the guest sees it, and the game starts without one (D115).
+  await expect(guest.page.locator('#opt-general')).toBeChecked();
+  await host.page.locator('label[for="opt-general"]').click();
+  await expect(guest.page.locator('#opt-general')).not.toBeChecked();
+  await expect(guest.page.locator('#opt-general')).toBeDisabled();
   // The guest reads the board in Burmese; the host keeps English.
   await guest.page.getByRole('radiogroup', { name: 'Names and cards' }).locator('label', { hasText: 'မြန်မာ' }).click();
 
@@ -190,6 +198,7 @@ test('online: the host picks Myanmar in the lobby; each device keeps its own lan
   await expect(host.page.locator('.tile[data-space="1"]')).toContainText('Falam');
   await expect(host.page.locator('.tile[data-space="1"]')).toContainText('60 lakh');
   await expect(guest.page.locator('.tile[data-space="1"]')).toContainText('ဖလမ်း');
+  await expect(host.page.locator('.general-line')).toHaveCount(0);
   expect(await host.page.locator('.board').innerText()).not.toContain('$');
   expect(host.log.errors).toEqual([]);
   expect(guest.log.errors).toEqual([]);

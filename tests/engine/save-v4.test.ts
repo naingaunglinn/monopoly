@@ -27,7 +27,7 @@ const V3_BOARD_IN_PLAY = BOARD_SIZE === 60 && BOARD_SHAPE === 'square';
 function withoutV4(s: GameState): unknown {
   const { economy: _economy, ...rest } = s;
   const { loan: _loan, ...flow } = s.flow;
-  const { map: _map, ...settings } = s.meta.settings;
+  const { map: _map, general: _general, ...settings } = s.meta.settings;
   return {
     ...rest,
     players: s.players.map(({ merit: _merit, draft: _draft, rank: _rank, rankAt: _rankAt, unrest: _unrest, ...p }) => p),
@@ -45,8 +45,8 @@ describe('version 3 saves', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const s = parsed.state;
-    expect(SCHEMA_VERSION).toBe(5);
-    expect(s.meta.schemaVersion).toBe(5);
+    expect(SCHEMA_VERSION).toBe(6);
+    expect(s.meta.schemaVersion).toBe(SCHEMA_VERSION);
     expect(s.meta.settings.map).toBe('world');
     expect(Object.keys(s.meta.settings)).toEqual(Object.keys(normalizeSettings()));
     expect(s.players.map((p) => [p.merit, p.draft])).toEqual(s.players.map(() => [0, null]));
@@ -61,7 +61,7 @@ describe('version 3 saves', () => {
     const step = reduce(s, (next?.type === 'respondTrade' ? { type: 'respondTrade', accept: false } : { type: 'roll' }) as never);
     expect(step.error).toBeNull();
     const again = parseSave(serializeGame(step.state));
-    expect(again.ok && again.state.meta.schemaVersion).toBe(5);
+    expect(again.ok && again.state.meta.schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   test.runIf(V3_BOARD_IN_PLAY)('the server upgrades a kept version 3 game the same way', () => {
@@ -130,7 +130,7 @@ describe('rooms kept from version 3', () => {
     const { map: _map, ...old } = defaultRoomSettings();
     const v3 = JSON.parse(v3Text) as GameState;
     const read = playable(room(v3, old));
-    expect(read?.game?.meta.schemaVersion).toBe(5);
+    expect(read?.game?.meta.schemaVersion).toBe(SCHEMA_VERSION);
     expect(read?.game?.meta.settings.map).toBe('world');
     expect(read && checkInvariants(read.game as GameState)).toEqual([]);
     const elsewhere = JSON.parse(v3Text);

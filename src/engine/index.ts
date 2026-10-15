@@ -37,4 +37,5 @@ export {
 } from './core.js';
 export * from './types.js';
 export { draftPayCost, fleeSpace, inService, companyOwner, cancellableCard, tradeBlockedFor } from './myanmar.js';
+export { generalOn, powerVictim, powerAmount } from './general.js';
 export { loanOwed, loanRoundsLeft, isPledged, pledgedSpaces, regionPledged, loanOfferBlocker, collateralValue } from './loans.js';

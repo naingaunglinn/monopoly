@@ -23,7 +23,7 @@ const v4Text = readFileSync(new URL('../fixtures/save-v4.json', import.meta.url)
 const BRYCEN = 44;
 
 describe('version 4 saves', () => {
-  test('a version 4 Myanmar save loads as version 5: Brycen Myanmar unowned, new cards drawn last, nothing else changed', () => {
+  test('a version 4 Myanmar save loads as the current version: Brycen Myanmar unowned, new cards drawn last, nothing else changed', () => {
     const v4 = JSON.parse(v4Text);
     expect(v4.meta.schemaVersion).toBe(4);
     expect(v4.properties[BRYCEN]).toBeNull();
@@ -31,8 +31,8 @@ describe('version 4 saves', () => {
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const s = parsed.state;
-    expect(SCHEMA_VERSION).toBe(5);
-    expect(s.meta.schemaVersion).toBe(5);
+    expect(SCHEMA_VERSION).toBe(6);
+    expect(s.meta.schemaVersion).toBe(SCHEMA_VERSION);
     expect(s.properties[BRYCEN]).toEqual({ owner: null, level: 0, mortgaged: false });
     expect(s.players.map((p) => [p.rank, p.rankAt, p.unrest])).toEqual(s.players.map(() => [0, 0, MYANMAR.unrestCups]));
     expect(s.economy).toMatchObject({ general: null, powerRound: null, unrestUsed: 0, bribed: [], rankSeq: 0 });
@@ -54,7 +54,7 @@ describe('version 4 saves', () => {
       properties: g.properties.map((p: unknown, i: number) => (i === BRYCEN ? null : p)),
       players: g.players.map(({ rank: _r, rankAt: _a, unrest: _u, ...p }: Record<string, unknown>) => p),
       economy: { pot: g.economy.pot, inflation: g.economy.inflation, loans: g.economy.loans, loanSeq: g.economy.loanSeq },
-      meta: { ...g.meta, schemaVersion: 4 },
+      meta: { ...g.meta, schemaVersion: 4, settings: { ...g.meta.settings, general: null } },
     });
     expect(strip(s)).toEqual(strip(v4));
     expect(checkInvariants(s)).toEqual([]);
