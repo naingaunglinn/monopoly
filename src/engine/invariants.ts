@@ -123,7 +123,7 @@ export function checkInvariants(s: GameState, options: { legalActions?: boolean 
       ...(deck === 'chance' ? s.decks.chanceDiscard : s.decks.eventDiscard),
       ...s.players
         .flatMap((p) => [...p.jailCards, ...p.houseVouchers])
-        .filter((id) => id.startsWith(`${deck}-`) || id.startsWith(`mm-${deck}-`)),
+        .filter((id) => id.startsWith(`${deck}-`) || id.startsWith(`mm-${deck}-`) || id.startsWith(`ygn-${deck}-`)),
     ];
     if (s.flow.pending?.kind === 'card' && s.flow.pending.deck === deck) seen.push(s.flow.pending.cardId);
     const sortedSeen = [...seen].sort();

@@ -38,6 +38,7 @@ import { TokenChip } from '../components/glyphs';
 import { Log, LogLines, LogMoreButton } from '../components/Log';
 import { OceanArt } from '../components/OceanArt';
 import { RiverArt } from '../components/RiverArt';
+import { YangonArt } from '../components/YangonArt';
 import { PlayersColumn } from '../components/PlayersColumn';
 import { RoomPlayers } from '../components/RoomBar';
 import { Tile } from '../components/Tile';
@@ -602,7 +603,7 @@ export function Board({ s, hud, compactLog }: { s: GameState; hud: boolean; comp
         />
       ))}
       <div className="ocean">
-        {MAP.id === 'myanmar' ? <RiverArt /> : <OceanArt />}
+        {MAP.id === 'myanmar' ? <RiverArt /> : MAP.id === 'yangon' ? <YangonArt /> : <OceanArt />}
         {/* Myanmar map, phones: the open middle of the board shows the community pot (D103). */}
         {!hud && RULES.pot && (
           <div className="pot-plaque" aria-hidden="true">

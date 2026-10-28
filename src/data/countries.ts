@@ -2,8 +2,9 @@
 // (section 10). The board in play holds all or some of them (board.ts: COUNTRIES). The Myanmar
 // map's nine regions are colour groups of the same kind (data/myanmar.ts, D101).
 import { MYANMAR_GROUPS, type MyanmarGroupId } from './myanmar.js';
+import { YANGON_GROUPS, type YangonGroupId } from './yangon.js';
 
-export type CountryId = WorldCountryId | MyanmarGroupId;
+export type CountryId = WorldCountryId | MyanmarGroupId | YangonGroupId;
 
 export type WorldCountryId =
   | 'brazil'
@@ -76,7 +77,7 @@ export const ALL_COUNTRIES: readonly CountryData[] = [
   { id: 'unitedStates', name: 'United States', colorName: 'Midnight navy', color: '#1C2F4F', flag: 'us', at: [-74.0, 40.7] },
 ];
 
-/** Every colour group by id: the World countries and the Myanmar map's regions. */
+/** Every colour group by id: the World countries, the Myanmar map's regions and the Yangon map's areas. */
 export const COUNTRY_BY_ID: Readonly<Record<CountryId, CountryData>> = Object.fromEntries(
-  [...ALL_COUNTRIES, ...MYANMAR_GROUPS].map((c) => [c.id, c]),
+  [...ALL_COUNTRIES, ...MYANMAR_GROUPS, ...YANGON_GROUPS].map((c) => [c.id, c]),
 ) as Record<CountryId, CountryData>;

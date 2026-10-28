@@ -2,8 +2,9 @@
 // Plain data and pure formatting functions only: no React, no DOM.
 import { BALANCE, BOARD_SIZE, MYANMAR } from '../data/balance.js';
 import { AIRPORTS, groupName, MAP, RULES, type SpecialType } from '../data/board.js';
-import { MYANMAR_COMPANIES, MYANMAR_TRANSPORT } from '../data/myanmar.js';
+import { MYANMAR_COMPANIES, MYANMAR_TRANSPORT, type MyanmarTransport } from '../data/myanmar.js';
 import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
+import { YANGON_CARD_BY_ID } from '../data/yangonCards.js';
 import { burmeseDigits, language, pick } from '../data/lang.js';
 import type { DeckId, ModifierType } from '../data/cardTypes.js';
 import type {
@@ -47,13 +48,96 @@ export function signedMoney(amount: number): string {
   return `${amount > 0 ? '+' : MINUS}${amountText(Math.abs(Math.round(amount)))}`;
 }
 
-/** The Myanmar map is in play (D101): texts below name its spaces, regions and rules. */
+/** The Myanmar map or the Yangon map (its rules, D116) is in play (D101): texts below name its spaces, regions and rules. */
 function onMyanmar(): boolean {
-  return MAP.id === 'myanmar';
+  return MAP.id !== 'world';
 }
 
-/** The World text, or the Myanmar map's version of it (D101). */
-function byMap(world: string, myanmar: string): string {
+/** The Yangon map is in play (D116): the Myanmar map's rules, told as office life, in Burmese. */
+function onYangon(): boolean {
+  return MAP.id === 'yangon';
+}
+
+/**
+ * The Myanmar map's English words for its military-service rules, and the Yangon map's office words
+ * for the same rules (D116). Longer phrases come first so they win over the words inside them.
+ */
+const YANGON_WORDS: readonly (readonly [RegExp, string])[] = [
+  [/the Military camp/g, 'OT'],
+  [/Military camp/g, 'OT'],
+  [/Military service/g, 'OT'],
+  [/military service/g, 'OT'],
+  [/Call-up exemption cards?/g, 'Sick leave card'],
+  [/Call-up letter/g, 'Urgent Teams message'],
+  [/called up/g, 'sent to OT'],
+  [/Called up/g, 'Sent to OT'],
+  [/In the camp/g, 'Doing OT'],
+  [/in the camp/g, 'in OT'],
+  [/the camp/g, 'OT'],
+  [/Chiang Mai/g, 'the tea shop'],
+  [/the army/g, 'OT'],
+  [/army salary/g, 'office salary'],
+  [/Myanmar news/g, 'Ward news'],
+  [/porters?/gi, 'weekend OT'],
+  [/the general/g, 'the Big Boss'],
+  [/The general/g, 'The Big Boss'],
+  [/Military rank/g, 'Job title'],
+  [/regions/g, 'areas'],
+  [/region/g, 'area'],
+  [/Regions/g, 'Areas'],
+  [/Region/g, 'Area'],
+];
+
+/** The Myanmar map's Burmese words and the Yangon map's (D116), for the Burmese rule guide. */
+const YANGON_WORDS_MY: readonly (readonly [string, string])[] = [
+  ['စစ်မှုထမ်းစခန်း', 'OT'],
+  ['စစ်မှုထမ်း ခေါ်ခံရ', 'OT ဆင်းခိုင်းခံရ'],
+  ['စစ်မှုထမ်း', 'OT'],
+  ['ခေါ်စာရောက်ပြီ', 'Boss က Teams မှာ Urgent ပို့လာပြီ'],
+  ['ခေါ်စာ', 'Teams Urgent'],
+  ['ကင်းလွတ်ခွင့်ကတ်', 'ဆေးခွင့်လက်မှတ်'],
+  ['ကင်းလွတ်ခွင့်', 'ဆေးခွင့်လက်မှတ်'],
+  ['ချင်းမိုင်', 'လက်ဖက်ရည်ဆိုင်'],
+  ['ပေါ်တာ', 'Weekend OT'],
+  ['ရှောင်ပုန်း', 'ဖုန်းပိတ်ထား'],
+  ['ထွက်ပြေး', 'အလုပ်ထွက်ပြေး'],
+  ['ပွဲစားခ', 'ခွင့်တိုင်ခ'],
+  ['ပွဲစား', 'ခွင့်တိုင်'],
+  ['ဗိုလ်ချုပ်', 'Boss ကြီး'],
+  ['စစ်တပ်', 'ရုံး'],
+  ['တပ်က', 'ရုံးက'],
+  ['စစ်လစာ', 'ရာထူးလစာ'],
+  ['စစ်ရာထူး', 'ရာထူး'],
+  ['ခေါ်ခံရ', 'OT ဆင်းခိုင်းခံရ'],
+  ['"တက်" (Serve)', '"OT ဆင်း" (Serve)'],
+  ['တက်: အခမဲ့', 'OT ဆင်း: အခမဲ့'],
+  ['ထပ်ထမ်းပါ', 'OT ထပ်ဆင်းပါ'],
+  ['ကံစမ်းမဲ', 'ဗေဒင်ဆရာ'],
+  ['သတင်းကတ်', 'ရပ်ကွက်ထဲက ကတ်'],
+  ['သတင်း ကွက်', 'ရပ်ကွက်ထဲက ကွက်'],
+];
+
+/** Turns the Myanmar map's English text into the Yangon map's office version of it (D116). */
+function yangonize(text: string): string {
+  return YANGON_WORDS.reduce((out, [from, to]) => out.replace(from, to), text);
+}
+
+/** Turns the Myanmar map's Burmese text into the Yangon map's office version of it (D116). */
+function yangonizeMy(text: string): string {
+  return YANGON_WORDS_MY.reduce((out, [from, to]) => out.split(from).join(to), text);
+}
+
+/** The Myanmar text, or on the Yangon map its own Burmese text (D116). */
+function ygn(myanmar: string, yangon: string): string {
+  return onYangon() ? yangon : myanmar;
+}
+
+/**
+ * The World text, or the Myanmar map's version of it (D101). The Yangon map takes its own text
+ * when there is one, else the Myanmar text in office words (D116).
+ */
+function byMap(world: string, myanmar: string, yangon?: string): string {
+  if (onYangon()) return yangon ?? yangonize(myanmar);
   return onMyanmar() ? myanmar : world;
 }
 
@@ -107,7 +191,7 @@ export const T = {
     randomFirst: 'Random first player',
     general: 'The general (power, unrest, bribes)',
     map: 'Map',
-    maps: { world: 'World', myanmar: 'Myanmar' } as Record<'world' | 'myanmar', string>,
+    maps: { world: 'World', myanmar: 'Myanmar', yangon: 'ရန်ကုန်' } as Record<'world' | 'myanmar' | 'yangon', string>,
     language: 'Names and cards',
     languages: { en: 'English', my: 'မြန်မာ' } as Record<'en' | 'my', string>,
     passDevice: 'Pass-device screen',
@@ -310,61 +394,115 @@ export const T = {
     tradeText: 'The trade happens at once and cannot be undone.',
     tradeYes: 'Accept trade',
   },
+  // The Yangon map reads in Burmese only (D116): its buttons take the Burmese through ygn().
   play: {
-    rollDice: 'Roll dice',
-    rollForDoubles: 'Roll for doubles',
-    move: (n: number) => `Move ${n} spaces`,
-    doubles: 'Doubles: roll again',
-    get thirdDouble() {
-      return byMap('Third double: go to Jail', 'Third double: go to the Military camp');
+    get rollDice() {
+      return ygn('Roll dice', 'အန်စာ လှိမ့်');
     },
-    extraRoll: 'Roll again',
-    trade: 'Trade',
-    myProperties: 'My properties',
-    build: 'Build here',
-    endTurn: 'End turn',
-    buy: 'Buy',
-    pass: 'Pass',
-    pay: (amount: number) => `Pay ${money(amount)}`,
-    ok: 'OK',
-    continue: 'Continue',
-    done: 'Done',
-    ready: 'I’m ready',
-    since: 'Since your last turn:',
-    nothingSince: 'Nothing happened to you since your last turn.',
-    yourTurn: (name: string) => `${name}, your turn`,
-    decides: (name: string) => `${name} decides`,
-    total: (n: number) => `Total ${n}`,
-    die: (n: number) => `Die showing ${n}`,
-    bid: (amount: number) => `Bid ${money(amount)}`,
-    fold: 'Fold',
-    waitingFor: (name: string) => `Waiting for ${name}`,
+    get rollForDoubles() {
+      return ygn('Roll for doubles', 'အတူတူ ကျဖို့ လှိမ့်');
+    },
+    move: (n: number) => ygn(`Move ${n} spaces`, `${dMy(n)} ကွက် သွား`),
+    get doubles() {
+      return ygn('Doubles: roll again', 'အတူတူ ကျပြီ: ထပ်လှိမ့်');
+    },
+    get thirdDouble() {
+      return byMap('Third double: go to Jail', 'Third double: go to the Military camp', 'အတူတူ ၃ ကြိမ်: OT ဆင်းရမယ်');
+    },
+    get extraRoll() {
+      return ygn('Roll again', 'ထပ်လှိမ့်');
+    },
+    get trade() {
+      return ygn('Trade', 'အရောင်းအဝယ်');
+    },
+    get myProperties() {
+      return ygn('My properties', 'ကိုယ့်ပိုင်ဆိုင်မှု');
+    },
+    get build() {
+      return ygn('Build here', 'ဒီမှာ ဆောက်');
+    },
+    get endTurn() {
+      return ygn('End turn', 'အလှည့် ပြီးပြီ');
+    },
+    get buy() {
+      return ygn('Buy', 'ဝယ်မယ်');
+    },
+    get pass() {
+      return ygn('Pass', 'မဝယ်ဘူး');
+    },
+    pay: (amount: number) => ygn(`Pay ${money(amount)}`, `${money(amount)} ပေးမယ်`),
+    get ok() {
+      return ygn('OK', 'အိုကေ');
+    },
+    get continue() {
+      return ygn('Continue', 'ဆက်သွား');
+    },
+    get done() {
+      return ygn('Done', 'ပြီးပြီ');
+    },
+    get ready() {
+      return ygn('I’m ready', 'အဆင်သင့်ပဲ');
+    },
+    get since() {
+      return ygn('Since your last turn:', 'ပြီးခဲ့တဲ့ အလှည့်ကစပြီး:');
+    },
+    get nothingSince() {
+      return ygn('Nothing happened to you since your last turn.', 'ပြီးခဲ့တဲ့ အလှည့်ကစပြီး ဘာမှ မဖြစ်ခဲ့ဘူး။');
+    },
+    yourTurn: (name: string) => ygn(`${name}, your turn`, `${name}၊ မင်းအလှည့်`),
+    decides: (name: string) => ygn(`${name} decides`, `${name} ဆုံးဖြတ်နေတယ်`),
+    total: (n: number) => ygn(`Total ${n}`, `စုစုပေါင်း ${dMy(n)}`),
+    die: (n: number) => ygn(`Die showing ${n}`, `အန်စာ ${dMy(n)}`),
+    bid: (amount: number) => ygn(`Bid ${money(amount)}`, `${money(amount)} ခေါ်မယ်`),
+    get fold() {
+      return ygn('Fold', 'လက်လျှော့');
+    },
+    waitingFor: (name: string) => ygn(`Waiting for ${name}`, `${name} ကို စောင့်နေတယ်`),
     /** The primary button while an animation plays: pressing it (or any key) finishes it. */
-    skip: 'Skip',
+    get skip() {
+      return ygn('Skip', 'ကျော်');
+    },
   },
   players: {
-    title: 'Players',
-    cities: (n: number) => plural(n, 'city', 'cities'),
-    airports: (n: number) => (onMyanmar() ? plural(n, 'transport', 'transports') : plural(n, 'airport', 'airports')),
-    companies: (n: number) => plural(n, 'company', 'companies'),
+    get title() {
+      return ygn('Players', 'ကစားသူများ');
+    },
+    cities: (n: number) => (onYangon() ? `မြို့နယ် ${dMy(n)}` : plural(n, 'city', 'cities')),
+    airports: (n: number) =>
+      onYangon() ? `ယာဉ် ${dMy(n)}` : onMyanmar() ? plural(n, 'transport', 'transports') : plural(n, 'airport', 'airports'),
+    companies: (n: number) => (onYangon() ? `ကုမ္ပဏီ ${dMy(n)}` : plural(n, 'company', 'companies')),
     freeStay: (n: number) => `${n} Free Stay`,
     get inJail() {
-      return byMap('In Jail', 'In the camp');
+      return byMap('In Jail', 'In the camp', 'OT ဆင်းနေ');
     },
     get onVacation() {
-      return byMap('On vacation', 'No fuel');
+      return byMap('On vacation', 'No fuel', 'ဆီတန်းစီနေ');
     },
-    bankrupt: 'Bankrupt',
+    get bankrupt() {
+      return ygn('Bankrupt', 'ဒေဝါလီ');
+    },
     /** A bankrupt player's chip in the top bar (room play). */
-    out: 'Out',
-    current: 'Current player',
+    get out() {
+      return ygn('Out', 'ထွက်ပြီ');
+    },
+    get current() {
+      return ygn('Current player', 'လက်ရှိ ကစားသူ');
+    },
     get jailCard() {
-      return byMap('Get Out of Jail card', 'Call-up exemption card');
+      return byMap('Get Out of Jail card', 'Call-up exemption card', 'ဆေးခွင့်လက်မှတ်');
     },
     voucher: 'Free House card',
-    merit: (n: number) => plural(n, 'merit point', 'merit points'),
+    merit: (n: number) => (onYangon() ? `ကုသိုလ် ${dMy(n)} မှတ်` : plural(n, 'merit point', 'merit points')),
     draft: (status: 'hiding' | 'serving' | 'fled' | 'called', turns: number) =>
-      status === 'hiding'
+      onYangon()
+        ? status === 'hiding'
+          ? `ဖုန်းပိတ်ထား၊ ${dMy(turns)} အလှည့်`
+          : status === 'serving'
+            ? `OT ဆင်းနေ၊ ${dMy(turns)} အလှည့်`
+            : status === 'fled'
+              ? 'လက်ဖက်ရည်ဆိုင်မှာ'
+              : 'OT ဆင်းခိုင်းခံရ'
+        : status === 'hiding'
         ? `Hiding, ${plural(turns, 'turn', 'turns')}`
         : status === 'serving'
           ? `In the army, ${plural(turns, 'turn', 'turns')}`
@@ -489,83 +627,162 @@ export const T = {
       rentNext: 'Rent after building',
     },
     card: {
-      chance: 'Chance',
+      get chance() {
+        return ygn('Chance', 'ဗေဒင်ဆရာ');
+      },
       get event() {
-        return byMap('Event', 'News');
+        return byMap('Event', 'News', 'ရပ်ကွက်ထဲက');
       },
       boarding: 'Boarding pass',
-      cancelMerit: 'Cancel it with a merit point',
-      ticket: (amount: number) => `Buy a ticket · ${money(amount)}`,
-      noTicket: 'No ticket',
-      brokerPay: (amount: number) => `Pay ${money(amount)}`,
-      toCamp: 'Go to the Military camp',
-      get news() {
-        return byMap('World news', 'Myanmar news');
+      get cancelMerit() {
+        return ygn('Cancel it with a merit point', 'ကုသိုလ် ၁ မှတ်နဲ့ ချေဖျက်မယ်');
       },
-      kept: 'Keep this card until you use it.',
+      ticket: (amount: number) => (onYangon() ? `ထီထိုးမယ် · ${money(amount)}` : `Buy a ticket · ${money(amount)}`),
+      get noTicket() {
+        return ygn('No ticket', 'မထိုးတော့ဘူး');
+      },
+      brokerPay: (amount: number) => (onYangon() ? `${money(amount)} ပေးမယ်` : `Pay ${money(amount)}`),
+      get toCamp() {
+        return ygn('Go to the Military camp', 'OT ဆင်းမယ်');
+      },
+      get news() {
+        return byMap('World news', 'Myanmar news', 'ရပ်ကွက်ထဲက သတင်း');
+      },
+      get kept() {
+        return ygn('Keep this card until you use it.', 'သုံးတဲ့အထိ ဒီကတ်ကို သိမ်းထားပါ။');
+      },
     },
     jail: {
-      title: (name: string) => byMap(`${name} is in Jail`, `${name} is in the Military camp`),
-      attempts: (used: number, max: number) => `Doubles attempts used: ${used} of ${max}`,
+      title: (name: string) => byMap(`${name} is in Jail`, `${name} is in the Military camp`, `${name} OT ဆင်းနေရတယ်`),
+      attempts: (used: number, max: number) =>
+        onYangon() ? `အတူတူကျအောင် လှိမ့်ပြီးသား: ${dMy(used)} / ${dMy(max)}` : `Doubles attempts used: ${used} of ${max}`,
       get lastAttempt() {
-        return `If this roll fails you must pay ${money(BALANCE.jailFine)} and move.`;
+        return onYangon()
+          ? `ဒီတစ်ခါ မကျရင် ${money(BALANCE.jailFine)} ပေးပြီး ရွှေ့ရမယ်။`
+          : `If this roll fails you must pay ${money(BALANCE.jailFine)} and move.`;
       },
-      pay: (amount: number) => `Pay ${money(amount)}`,
+      pay: (amount: number) => (onYangon() ? `${money(amount)} ပေးမယ်` : `Pay ${money(amount)}`),
       get useCard() {
-        return byMap('Use Get Out of Jail card', 'Use Call-up exemption card');
+        return byMap('Use Get Out of Jail card', 'Use Call-up exemption card', 'ဆေးခွင့်လက်မှတ် သုံးမယ်');
       },
-      roll: 'Roll for doubles',
+      get roll() {
+        return ygn('Roll for doubles', 'အတူတူကျအောင် လှိမ့်မယ်');
+      },
     },
     vacation: {
       title: 'Vacation',
       landed: (name: string) => `${name} is on vacation. Their next turn will be skipped.`,
-      skipTitle: (name: string) => byMap(`${name} is on vacation`, `${name} has no fuel`),
+      skipTitle: (name: string) => byMap(`${name} is on vacation`, `${name} has no fuel`, `${name} ဆီတန်းစီနေရတယ်`),
       get skip() {
-        return byMap('This turn is skipped. Rent still comes in as usual.', 'Fuel shortage: this turn is skipped. Rent still comes in as usual.');
+        return byMap(
+          'This turn is skipped. Rent still comes in as usual.',
+          'Fuel shortage: this turn is skipped. Rent still comes in as usual.',
+          'ဆီပြတ်နေလို့ ဒီအလှည့် ကျော်ရမယ်။ အိမ်လခတော့ ပုံမှန် ဝင်နေမယ်။',
+        );
       },
     },
-    // Myanmar map (D102)
+    // Myanmar map (D102); on the Yangon map the same rules are overtime (D116).
     draft: {
-      title: (name: string) => `${name} is called up`,
-      intro: 'Choose how to deal with military service. Your rent still comes in meanwhile.',
-      pay: (amount: number) => `Pay ${money(amount)}`,
+      title: (name: string) => (onYangon() ? `${name} ကို OT ဆင်းခိုင်းပြီ` : `${name} is called up`),
+      get intro() {
+        return ygn(
+          'Choose how to deal with military service. Your rent still comes in meanwhile.',
+          'OT ကို ဘယ်လို ဖြေရှင်းမလဲ ရွေးပါ။ အဲဒီအတောအတွင်း အိမ်လခ ဆက်ဝင်နေမယ်။',
+        );
+      },
+      pay: (amount: number) => (onYangon() ? `ခွင့်တိုင်ခ ${money(amount)} ပေးမယ်` : `Pay ${money(amount)}`),
       get payHint() {
-        return `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
+        return onYangon()
+          ? `လက်ထဲငွေရဲ့ ၁၀ ပုံ ၁ ပုံ၊ အနည်းဆုံး ${money(MYANMAR.draftPayMin)}။ ချက်ချင်း လွတ်မယ်။`
+          : `A tenth of your cash, at least ${money(MYANMAR.draftPayMin)}. Free at once.`;
       },
-      hide: 'Hide',
-      hideHint: `Skip ${MYANMAR.draftHideTurns} turns.`,
-      flee: (amount: number) => `Flee to Chiang Mai · ${money(amount)}`,
-      fleeHint: `To the Chiang Mai corner. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
-      serve: 'Serve',
+      get hide() {
+        return ygn('Hide', 'ဖုန်းပိတ်ထားမယ်');
+      },
+      get hideHint() {
+        return ygn(`Skip ${MYANMAR.draftHideTurns} turns.`, `${dMy(MYANMAR.draftHideTurns)} အလှည့် ကျော်ရမယ်။`);
+      },
+      flee: (amount: number) =>
+        onYangon() ? `အလုပ်ထွက်ပြီး လက်ဖက်ရည်ဆိုင်ပြေးမယ် · ${money(amount)}` : `Flee to Chiang Mai · ${money(amount)}`,
+      get fleeHint() {
+        return ygn(
+          `To the Chiang Mai corner. Skip ${MYANMAR.draftFleeTurns} turn. Rent still comes in.`,
+          `လက်ဖက်ရည်ဆိုင် ထောင့်ကွက်ကို သွားမယ်။ ${dMy(MYANMAR.draftFleeTurns)} အလှည့် ကျော်ရမယ်။ အိမ်လခ ဆက်ဝင်မယ်။`,
+        );
+      },
+      get serve() {
+        return ygn('Serve', 'OT ဆင်းမယ်');
+      },
       get serveHint() {
-        return `Skip ${MYANMAR.draftServeTurns} turns. ${money(MYANMAR.draftServeBonus)} on return, and a rank: army salary, but half rent.`;
+        return onYangon()
+          ? `${dMy(MYANMAR.draftServeTurns)} အလှည့် ကျော်ရမယ်။ ပြီးရင် OT ကြေး ${money(MYANMAR.draftServeBonus)} နဲ့ ရာထူးတိုးမယ်: ရာထူးလစာ ရပေမဲ့ အိမ်လခ တစ်ဝက်ပဲ ရမယ်။`
+          : `Skip ${MYANMAR.draftServeTurns} turns. ${money(MYANMAR.draftServeBonus)} on return, and a rank: army salary, but half rent.`;
       },
-      merit: 'Use a merit point',
-      meritHint: 'Free at once.',
-      card: 'Use Call-up exemption card',
-      cardHint: 'Free at once.',
+      get merit() {
+        return ygn('Use a merit point', 'ကုသိုလ် ၁ မှတ် သုံးမယ်');
+      },
+      get meritHint() {
+        return ygn('Free at once.', 'ချက်ချင်း လွတ်မယ်။');
+      },
+      get card() {
+        return ygn('Use Call-up exemption card', 'ဆေးခွင့်လက်မှတ် သုံးမယ်');
+      },
+      get cardHint() {
+        return ygn('Free at once.', 'ချက်ချင်း လွတ်မယ်။');
+      },
       skipTitle: (name: string, status: 'hiding' | 'serving' | 'fled' | 'called') =>
-        status === 'hiding'
-          ? `${name} is in hiding`
-          : status === 'serving'
-            ? `${name} is serving in the army`
-            : status === 'fled'
-              ? `${name} is in Chiang Mai`
-              : `${name} is called up`,
-      skip: (left: number) => (left > 0 ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.` : 'This turn is skipped. Free after it.'),
-      noRent: 'No rent comes in meanwhile.',
-      rentStill: 'Rent still comes in.',
-      bonus: (amount: number) => `Back from the army after this turn: ${signedMoney(amount)}.`,
-      leaveMerit: 'Leave now with a merit point',
-      leaveCard: 'Leave now with the exemption card',
+        onYangon()
+          ? status === 'hiding'
+            ? `${name} ဖုန်းပိတ်ထားတယ်`
+            : status === 'serving'
+              ? `${name} OT ဆင်းနေတယ်`
+              : status === 'fled'
+                ? `${name} လက်ဖက်ရည်ဆိုင်မှာ`
+                : `${name} ကို OT ဆင်းခိုင်းပြီ`
+          : status === 'hiding'
+            ? `${name} is in hiding`
+            : status === 'serving'
+              ? `${name} is serving in the army`
+              : status === 'fled'
+                ? `${name} is in Chiang Mai`
+                : `${name} is called up`,
+      skip: (left: number) =>
+        onYangon()
+          ? left > 0
+            ? `ဒီအလှည့် ကျော်ရမယ်။ နောက်ထပ် ${dMy(left)} အလှည့် ကျန်သေးတယ်။`
+            : 'ဒီအလှည့် ကျော်ရမယ်။ ပြီးရင် လွတ်ပြီ။'
+          : left > 0
+            ? `This turn is skipped. ${plural(left, 'more turn', 'more turns')} after this one.`
+            : 'This turn is skipped. Free after it.',
+      get noRent() {
+        return ygn('No rent comes in meanwhile.', 'အဲဒီအတောအတွင်း အိမ်လခ မဝင်ဘူး။');
+      },
+      get rentStill() {
+        return ygn('Rent still comes in.', 'အိမ်လခ ဆက်ဝင်နေတယ်။');
+      },
+      bonus: (amount: number) =>
+        onYangon() ? `ဒီအလှည့်ပြီးရင် OT ပြီးပြီ: ${signedMoney(amount)}။` : `Back from the army after this turn: ${signedMoney(amount)}.`,
+      get leaveMerit() {
+        return ygn('Leave now with a merit point', 'ကုသိုလ် ၁ မှတ်နဲ့ အခုပဲ ထွက်မယ်');
+      },
+      get leaveCard() {
+        return ygn('Leave now with the exemption card', 'ဆေးခွင့်လက်မှတ်နဲ့ အခုပဲ ထွက်မယ်');
+      },
     },
     donation: {
-      title: (name: string) => `Donate at ${name}?`,
-      text: (amount: number) => `Donate ${money(amount)} for 1 merit point.`,
-      have: (merit: number, max: number) => `Merit points: ${merit} of ${max}`,
-      uses: 'A merit point frees you from military service, skips one rent, or cancels a bad Chance card.',
-      give: (amount: number) => `Donate ${money(amount)}`,
-      no: 'No thanks',
+      title: (name: string) => (onYangon() ? `${name} မှာ လှူမလား?` : `Donate at ${name}?`),
+      text: (amount: number) => (onYangon() ? `${money(amount)} လှူရင် ကုသိုလ် ၁ မှတ် ရမယ်။` : `Donate ${money(amount)} for 1 merit point.`),
+      have: (merit: number, max: number) => (onYangon() ? `ကုသိုလ်: ${dMy(merit)} / ${dMy(max)}` : `Merit points: ${merit} of ${max}`),
+      get uses() {
+        return ygn(
+          'A merit point frees you from military service, skips one rent, or cancels a bad Chance card.',
+          'ကုသိုလ် ၁ မှတ်နဲ့ OT က လွတ်တာ၊ အိမ်လခ ၁ ကြိမ် ကျော်တာ၊ ဆိုးတဲ့ ဗေဒင်ဆရာကတ် ချေဖျက်တာ လုပ်လို့ရတယ်။',
+        );
+      },
+      give: (amount: number) => (onYangon() ? `${money(amount)} လှူမယ်` : `Donate ${money(amount)}`),
+      get no() {
+        return ygn('No thanks', 'မလှူတော့ဘူး');
+      },
     },
     debt: {
       title: (name: string) => `${name} owes money`,
@@ -861,8 +1078,55 @@ const MYANMAR_SPECIAL_NAMES: Readonly<Record<SpecialKey, readonly [string, strin
   rest: ['Rest', 'နားရာ'],
 };
 
+/** The Yangon map's special spaces, in Burmese only (D116). */
+const YANGON_SPECIAL_NAMES: Readonly<Record<SpecialKey, string>> = {
+  start: 'လစာထုတ်ရက်',
+  chance: 'ဗေဒင်ဆရာ',
+  event: 'ရပ်ကွက်ထဲက',
+  tax: 'အခွန်',
+  incomeTax: 'မီးစက်ဆီဖိုး',
+  luxuryTax: 'မင်္ဂလာဆောင်လက်ဖွဲ့',
+  jail: 'OT ဆင်းနေရတယ်',
+  goToJail: 'Boss က Teams မှာ Urgent ပို့လာပြီ',
+  vacation: 'လက်ဖက်ရည်ဆိုင်',
+  freeParking: 'ခဏနား',
+  temple: 'ဘုရား',
+  rest: 'ခဏနား',
+};
+
+/** What happens on each special space of the Yangon map (Focus Card), in Burmese (D116). */
+function yangonSpecialText(key: SpecialKey): string {
+  switch (key) {
+    case 'start':
+      return `ရှေ့ဆက်သွားရင်း ဖြတ်တိုင်း ဒါမှမဟုတ် ဆိုက်တိုင်း လစာ ${money(RULES.startBonus)} ရမယ်။`;
+    case 'chance':
+      return 'ဗေဒင်ဆရာကတ် အပေါ်ဆုံးတစ်ကတ် ဆွဲပြီး ပြောတဲ့အတိုင်း လုပ်ပါ။';
+    case 'event':
+      return 'ရပ်ကွက်ထဲက ကတ် အပေါ်ဆုံးတစ်ကတ် ဆွဲပါ: လူတိုင်းကို သက်ရောက်နိုင်တဲ့ သတင်း။';
+    case 'tax':
+      return 'အခွန်ကို ဘဏ်ထဲ ပေးပါ။';
+    case 'incomeTax':
+      return `မီးပျက်လို့ မီးစက်ဆီဖိုး ${money(RULES.incomeTax)} ဘဏ်ထဲ ပေးပါ။`;
+    case 'luxuryTax':
+      return `မင်္ဂလာဆောင်လက်ဖွဲ့ ${money(RULES.luxuryTax)} ဘဏ်ထဲ ပေးပါ။`;
+    case 'jail':
+      return 'ရုံးဘေးက ဖြတ်သွားရုံပဲ: ဘာမှ မဖြစ်ဘူး။ OT ဆင်းခိုင်းခံရသူတွေ ဒီမှာ စောင့်ရတယ်။';
+    case 'goToJail':
+      return `OT ကွက်ကို တန်းသွားပါ။ ${YANGON_SPECIAL_NAMES.start} ဖြတ်သွားပေမဲ့ ဘာမှ မရဘူး။`;
+    case 'vacation':
+      return 'ဒီမှာ ဆိုက်ရင် ရပ်ကွက်အိုးထဲက ငွေ အားလုံး ယူရမယ်။ အလုပ်ထွက်ပြေးသူတွေ ဒီကို ရောက်လာတယ်။';
+    case 'freeParking':
+      return 'ဘာမှ မဖြစ်ဘူး။';
+    case 'temple':
+      return 'ဘုရားဖူး ခဏနားရာ: ဘာမှ မဖြစ်ဘူး။';
+    case 'rest':
+      return 'ဘာမှ မဖြစ်ဘူး: ဒီကတ်အုပ် ပိတ်ထားတယ်။';
+  }
+}
+
 /** A special space's name on the map in play (pagodas are named from the board data). */
 export function specialName(key: SpecialKey): string {
+  if (MAP.id === 'yangon') return YANGON_SPECIAL_NAMES[key];
   if (MAP.id === 'myanmar') {
     const [en, my] = MYANMAR_SPECIAL_NAMES[key];
     return pick(en, my);
@@ -872,6 +1136,7 @@ export function specialName(key: SpecialKey): string {
 
 /** What happens on each special space (Focus Card), on the map in play. */
 export function specialText(key: SpecialKey): string {
+  if (MAP.id === 'yangon') return yangonSpecialText(key);
   const myanmar = MAP.id === 'myanmar';
   switch (key) {
     case 'start':
@@ -948,6 +1213,18 @@ const MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
   noTrade: 'Trading closed',
 };
 
+/** The modifiers' names on the Yangon map, in Burmese (D116). */
+const YANGON_MODIFIER_NAMES: Readonly<Record<ModifierType, string>> = {
+  cityRent: 'အိမ်လခ',
+  airportRent: 'ကားခ',
+  companyRent: 'ကုမ္ပဏီ ဝင်ငွေ',
+  buildCost: 'ဆောက်လုပ်ခ',
+  groupRent: 'အိမ်လခ',
+  transportRent: 'ကားခ',
+  companyBoost: 'ကုမ္ပဏီ ဝင်ငွေ',
+  noTrade: 'ရောင်းဝယ်ခွင့် ပိတ်',
+};
+
 /** A Myanmar company's name in the device's language. */
 function companyName(id: string): string {
   const company = MYANMAR_COMPANIES.find((c) => c.id === id);
@@ -963,14 +1240,20 @@ function andList(items: string[]): string {
 export function modifierLabel(type: ModifierType, factor: number, cardId: string | null = null): string {
   const pct = Math.round((factor - 1) * 100);
   const change = `${pct > 0 ? '+' : MINUS}${Math.abs(pct)}%`;
-  const effect = cardId ? MYANMAR_CARD_BY_ID.get(cardId)?.effect : undefined;
-  if (effect?.type === 'groupRent') return `${andList(effect.groups.map(groupName))} rent ${change}`;
-  if (effect?.type === 'blackout' && type === 'companyBoost') return `${companyName(effect.company)} rent ${change}`;
-  if (effect?.type === 'noTrade') return `Only the ${companyName(effect.company)} owner trades`;
-  if (effect?.type === 'transportClosed') {
-    const transport = MYANMAR_TRANSPORT.find((t) => t.kind === effect.kind);
-    return transport ? `${pick(transport.name, transport.nameMy)} closed` : `${MODIFIER_NAMES[type]} ${change}`;
+  const effect = cardId ? (MYANMAR_CARD_BY_ID.get(cardId) ?? YANGON_CARD_BY_ID.get(cardId))?.effect : undefined;
+  const my = onYangon();
+  if (effect?.type === 'groupRent') {
+    const groups = effect.groups.map(groupName);
+    return my ? `${groups.join('၊ ')} အိမ်လခ ${change}` : `${andList(groups)} rent ${change}`;
   }
+  if (effect?.type === 'blackout' && type === 'companyBoost') return my ? `${companyName(effect.company)} ဝင်ငွေ ${change}` : `${companyName(effect.company)} rent ${change}`;
+  if (effect?.type === 'noTrade') return my ? `${companyName(effect.company)} ပိုင်သူပဲ ရောင်းဝယ်လို့ရ` : `Only the ${companyName(effect.company)} owner trades`;
+  if (effect?.type === 'transportClosed') {
+    const transport = (onMyanmar() ? (AIRPORTS as readonly MyanmarTransport[]) : MYANMAR_TRANSPORT).find((t) => t.kind === effect.kind);
+    if (transport) return my ? `${transport.nameMy} ပိတ်ထား` : `${pick(transport.name, transport.nameMy)} closed`;
+    return `${MODIFIER_NAMES[type]} ${change}`;
+  }
+  if (my) return `${YANGON_MODIFIER_NAMES[type]} ${change}`;
   return `${MODIFIER_NAMES[type]} ${change}`;
 }
 
@@ -1104,15 +1387,21 @@ const REASON_TEXT: Readonly<Record<MoneyReason, string>> = {
   trade: 'trade',
   bankruptcy: 'bankruptcy',
   debug: 'debug',
-  draft: 'military service',
+  get draft() {
+    return ygn('military service', 'OT');
+  },
   merit: 'donation',
   toll: 'toll',
   pot: 'community pot',
   remittance: 'money from home',
   lottery: 'lottery',
   loan: 'loan',
-  salary: 'army salary',
-  power: 'the general’s power',
+  get salary() {
+    return ygn('army salary', 'ရာထူးလစာ');
+  },
+  get power() {
+    return ygn('the general’s power', 'Boss ကြီးရဲ့ အာဏာ');
+  },
   bribe: 'bribe',
 };
 
@@ -1236,6 +1525,11 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
     case 'unmortgaged':
       return `${who(e.player)} unmortgaged ${n.space(e.space)}: ${signedMoney(-e.cost)}.`;
     case 'jailed':
+      if (onYangon()) {
+        return e.reason === 'doubles'
+          ? `${who(e.player)} အတူတူ ၃ ကြိမ်ကျလို့ OT ဆင်းရပြီ။`
+          : `${who(e.player)} OT ဆင်းရပြီ။`;
+      }
       if (onMyanmar()) {
         return e.reason === 'doubles'
           ? `${who(e.player)} rolled a third double and went to the Military camp.`
@@ -1245,8 +1539,21 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         ? `${who(e.player)} rolled a third double and went to Jail.`
         : `${who(e.player)} went to Jail.`;
     case 'jailRollFailed':
-      return byMap(`${who(e.player)} stays in Jail (attempt ${e.attempts}).`, `${who(e.player)} stays in the camp (attempt ${e.attempts}).`);
+      return byMap(
+        `${who(e.player)} stays in Jail (attempt ${e.attempts}).`,
+        `${who(e.player)} stays in the camp (attempt ${e.attempts}).`,
+        `${who(e.player)} OT ဆက်ဆင်းရတယ် (${dMy(e.attempts)} ကြိမ်မြောက်)။`,
+      );
     case 'leftJail':
+      if (onYangon()) {
+        return e.how === 'card'
+          ? `${who(e.player)} ဆေးခွင့်လက်မှတ် သုံးလိုက်တယ်။`
+          : e.how === 'fine'
+            ? `${who(e.player)} ခွင့်တိုင်ခ ပေးပြီး OT က ထွက်တယ်။`
+            : e.how === 'forcedFine'
+              ? `${who(e.player)} ဒဏ်ကြေး ပေးပြီး OT က ထွက်တယ်။`
+              : `${who(e.player)} အတူတူကျလို့ OT က ထွက်တယ်။`;
+      }
       if (onMyanmar()) {
         return e.how === 'card'
           ? `${who(e.player)} used a Call-up exemption card.`
@@ -1292,6 +1599,23 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
         ? `Game over: shared win for ${e.winners.map(who).join(' and ')}.`
         : `Game over: ${who(e.winners[0] ?? 0)} wins.`;
     case 'draftChosen':
+      if (onYangon()) {
+        switch (e.how) {
+          case 'pay':
+            return `${who(e.player)} ခွင့်တိုင်ခ ${money(e.cost)} ပေးပြီး OT မဆင်းတော့ဘူး။`;
+          case 'hide':
+            return `${who(e.player)} ဖုန်းပိတ်ထားလိုက်တယ်: ${dMy(MYANMAR.draftHideTurns)} အလှည့် ကျော်ရမယ်။`;
+          case 'serve':
+            return `${who(e.player)} OT ဆင်းတယ်: ${dMy(MYANMAR.draftServeTurns)} အလှည့် ကျော်ပြီး ပြန်လာရင် ${money(MYANMAR.draftServeBonus)} ရမယ်။`;
+          case 'flee':
+            return `${who(e.player)} ${money(e.cost)} ပေးပြီး အလုပ်ထွက်လို့ လက်ဖက်ရည်ဆိုင် ပြေးတယ်။`;
+          case 'merit':
+            return `${who(e.player)} ကုသိုလ် ၁ မှတ် သုံးပြီး လွတ်သွားတယ်။`;
+          case 'card':
+            return `${who(e.player)} ဆေးခွင့်လက်မှတ် သုံးပြီး လွတ်သွားတယ်။`;
+        }
+        return null;
+      }
       switch (e.how) {
         case 'pay':
           return `${who(e.player)} paid ${money(e.cost)} to stay out of military service.`;
@@ -1308,12 +1632,23 @@ export function logText(e: GameEvent, n: NameLookup): string | null {
       }
       return null;
     case 'draftEnded':
+      if (onYangon()) {
+        if (e.how === 'merit') return `${who(e.player)} ကုသိုလ် ၁ မှတ် သုံးပြီး OT က ထွက်တယ်။`;
+        if (e.how === 'card') return `${who(e.player)} ဆေးခွင့်လက်မှတ် သုံးပြီး OT က ထွက်တယ်။`;
+        return e.bonus > 0 ? `${who(e.player)} OT ပြီးပြီ: ${signedMoney(e.bonus)}။` : `${who(e.player)} ပြန်လွတ်ပြီ။`;
+      }
       if (e.how === 'merit') return `${who(e.player)} spent a merit point to leave military service.`;
       if (e.how === 'card') return `${who(e.player)} used a Call-up exemption card to leave military service.`;
       return e.bonus > 0 ? `${who(e.player)} is back from the army: ${signedMoney(e.bonus)}.` : `${who(e.player)} is free again.`;
     case 'meritGained':
+      if (onYangon()) return `${who(e.player)} မှာ ကုသိုလ် ${dMy(e.merit)} မှတ် ရှိပြီ။`;
       return `${who(e.player)} now has ${plural(e.merit, 'merit point', 'merit points')}.`;
     case 'rentWaived':
+      if (onYangon()) {
+        return e.why === 'draft'
+          ? `${who(e.owner)} OT ဆင်းနေလို့ ${n.space(e.space)} အိမ်လခ မရဘူး။`
+          : `${who(e.player)} ကုသိုလ် ၁ မှတ် သုံးလို့ ${n.space(e.space)} အိမ်လခ မပေးရဘူး။`;
+      }
       return e.why === 'draft'
         ? `${who(e.owner)} is in military service: no rent for ${n.space(e.space)}.`
         : `${who(e.player)} spent a merit point: no rent for ${n.space(e.space)}.`;
@@ -1496,6 +1831,10 @@ export const SWITCH_NAMES = {
  */
 export function ruleTopics(): readonly RuleTopic[] {
   // The Myanmar map read in Burmese has the guide in Burmese too (D114).
+  // The Yangon map has the same guide, told as office life (D116).
+  if (burmeseGuide() && onYangon()) {
+    return ruleTopicsMy().map((t) => ({ ...t, title: yangonizeMy(t.title), lines: t.lines.map(yangonizeMy) }));
+  }
   if (burmeseGuide()) return ruleTopicsMy();
   const myanmar = onMyanmar();
   const start = specialName('start');
