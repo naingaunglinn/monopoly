@@ -116,7 +116,7 @@ export const Pagoda: LucideIcon = createLucideIcon('Pagoda', [
 
 /** The sign of a player held at the Jail corner: the World's lock, or the Myanmar map's tent (D101). */
 export function jailIcon(world: LucideIcon): LucideIcon {
-  return MAP.id === 'myanmar' ? Tent : world;
+  return MAP.id !== 'world' ? Tent : world;
 }
 
 /** The Myanmar map's corners and transport spaces have their own icons (D101). */
@@ -142,7 +142,7 @@ function myanmarIcon(space: SpaceData): LucideIcon | null {
 /** Icon for a board space (cities use their flag instead). */
 export function spaceIcon(space: SpaceData, rest = false): LucideIcon | null {
   if (rest) return Coffee;
-  if (MAP.id === 'myanmar') {
+  if (MAP.id !== 'world') {
     const icon = myanmarIcon(space);
     if (icon) return icon;
   }

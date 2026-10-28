@@ -56,7 +56,7 @@ export function spaceName(s: GameState | null, index: number): string {
  * fit), the Myanmar map's transport spaces use their short one ("Yangon Airport", D101).
  */
 export function spaceShortName(s: GameState | null, index: number): string {
-  const short = COMPANY_BY_SPACE.has(index) || (MAP.id === 'myanmar' && AIRPORT_BY_SPACE.has(index));
+  const short = COMPANY_BY_SPACE.has(index) || (MAP.id !== 'world' && AIRPORT_BY_SPACE.has(index));
   return short ? propertyShortName(index) : spaceName(s, index);
 }
 

@@ -3,18 +3,24 @@
 export type Lang = 'en' | 'my';
 
 let current: Lang = 'en';
+/** The Yangon map reads in Burmese only, whatever the device chose (D116); board.ts sets it. */
+let forced = false;
 
 export function setLanguage(lang: Lang): void {
   current = lang === 'my' ? 'my' : 'en';
 }
 
+export function setForcedBurmese(on: boolean): void {
+  forced = on;
+}
+
 export function language(): Lang {
-  return current;
+  return forced ? 'my' : current;
 }
 
 /** The Burmese form when the language is Burmese and there is one, else the English. */
 export function pick(en: string, my: string | undefined): string {
-  return current === 'my' && my ? my : en;
+  return language() === 'my' && my ? my : en;
 }
 
 const BURMESE_DIGITS = ['၀', '၁', '၂', '၃', '၄', '၅', '၆', '၇', '၈', '၉'];

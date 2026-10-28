@@ -1,12 +1,13 @@
 // Chance and Event cards (spec section 6): draw the top card, apply it, discard it; an empty deck
 // reshuffles its discard pile. Held cards (Jail card, Free House) leave the deck until used.
 import { BALANCE } from '../data/balance.js';
-import { AIRPORTS, AIRPORT_SPACES, cardFits, COMPANIES, COMPANY_SPACES, COUNTRY_CITIES, LAYOUT, MAP, MAPS, SPACES, type MapId } from '../data/board.js';
+import { AIRPORTS, AIRPORT_SPACES, cardFits, COMPANIES, COMPANY_SPACES, COUNTRY_CITIES, LAYOUT, MAP, MAPS, mapIdOf, SPACES, type MapId } from '../data/board.js';
 import type { AssetKind, CardData, DeckId, MoveTarget } from '../data/cardTypes.js';
 import { CHANCE_CARDS } from '../data/chance.js';
 import { EVENT_CARDS } from '../data/events.js';
 import type { MyanmarTransport } from '../data/myanmar.js';
 import { MYANMAR_CHANCE, MYANMAR_NEWS } from '../data/myanmarCards.js';
+import { YANGON_CHANCE, YANGON_NEWS } from '../data/yangonCards.js';
 import {
   type Ctx,
   airportsOwnedBy,
@@ -24,7 +25,7 @@ import { afterResolution, moveSteps, sendToJail, startVacation, teleport } from 
 import { shuffleInPlace } from './rng.js';
 import type { ActiveModifier, Decks, GameState, Settings } from './types.js';
 
-export const ALL_CARDS: readonly CardData[] = [...CHANCE_CARDS, ...EVENT_CARDS, ...MYANMAR_CHANCE, ...MYANMAR_NEWS];
+export const ALL_CARDS: readonly CardData[] = [...CHANCE_CARDS, ...EVENT_CARDS, ...MYANMAR_CHANCE, ...MYANMAR_NEWS, ...YANGON_CHANCE, ...YANGON_NEWS];
 const CARD_BY_ID: ReadonlyMap<string, CardData> = new Map(ALL_CARDS.map((card) => [card.id, card]));
 
 export function cardById(id: string): CardData {
@@ -39,7 +40,7 @@ export function isKnownCard(id: string): boolean {
 
 /**
  * Each map's decks. World: the cards that fit the World board in play (on a small board, the cards
- * about a missing company go). Myanmar: its own Chance and News cards (D101).
+ * about a missing company go). Myanmar and Yangon: their own Chance and News cards (D101, D116).
  */
 const DECKS: Readonly<Record<MapId, Readonly<Record<DeckId, readonly CardData[]>>>> = {
   world: {
@@ -47,11 +48,12 @@ const DECKS: Readonly<Record<MapId, Readonly<Record<DeckId, readonly CardData[]>
     event: EVENT_CARDS.filter((card) => cardFits(card, MAPS.world.layout)),
   },
   myanmar: { chance: MYANMAR_CHANCE, event: MYANMAR_NEWS },
+  yangon: { chance: YANGON_CHANCE, event: YANGON_NEWS },
 };
 
 /** Cards in play for these settings: Go to Vacation cards are removed when Vacation is off. */
 export function cardsForSettings(deck: DeckId, settings: Settings): CardData[] {
-  const map: MapId = settings.map === 'myanmar' ? 'myanmar' : 'world';
+  const map: MapId = mapIdOf(settings.map);
   return DECKS[map][deck].filter((card) => settings.vacation || card.effect.type !== 'goToVacation');
 }
 

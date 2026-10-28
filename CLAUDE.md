@@ -111,6 +111,9 @@ docs/       SPEC.md (source of truth)
   (names, cards, money) is a device preference (`prefs.language`, `pick()` in `data/lang.ts`).
   `npm run sim -- --map myanmar` writes `reports/sim-report-myanmar.json`; the World report must not
   change when only Myanmar rules change.
+  The Yangon map (D116) is a third map id on the Myanmar board and `MYANMAR_RULES` with its own names
+  (`data/yangon.ts`, `data/yangonCards.ts`), Burmese only (`setForcedBurmese`). Read map ids with
+  `mapIdOf()`; "Myanmar rules" in the UI means `MAP.id !== 'world'`.
 - Trading (D99): any player may offer while the game is between decisions (`tradingOpen`); one offer
   is on the table at a time and the game waits; the partner accepts, rejects or counters
   (`counterTrade`), the offerer may withdraw (`withdrawTrade`). `legalActions` is still the decision

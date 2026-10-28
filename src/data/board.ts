@@ -23,8 +23,12 @@ import {
   MYANMAR_SPECIALS,
   MYANMAR_TEMPLES,
   MYANMAR_TRANSPORT,
+  type MyanmarCity,
+  type MyanmarTransport,
   type TempleData,
 } from './myanmar.js';
+import { YANGON_CITIES, YANGON_GROUPS, YANGON_TEMPLES, YANGON_TRANSPORT } from './yangon.js';
+import { setForcedBurmese } from './lang.js';
 
 export type SpecialType =
   | 'start'
@@ -282,22 +286,50 @@ export function cardFits(card: CardData, layout: BoardLayout): boolean {
   return true;
 }
 
-/** The Myanmar map's board: its own 48 spaces, square, eleven between corners (D101). */
-export function buildMyanmarBoard(): BoardLayout {
+/** What a 48-space Myanmar-style board is made of: the Myanmar map's data or the Yangon map's (D116). */
+interface MyanmarBoardData {
+  name: string;
+  cities: readonly MyanmarCity[];
+  transport: readonly MyanmarTransport[];
+  temples: Readonly<Record<number, TempleData>>;
+  groups: readonly CountryData[];
+}
+
+const MYANMAR_DATA: MyanmarBoardData = {
+  name: 'Myanmar',
+  cities: MYANMAR_CITIES,
+  transport: MYANMAR_TRANSPORT,
+  temples: MYANMAR_TEMPLES,
+  groups: MYANMAR_GROUPS,
+};
+
+const YANGON_DATA: MyanmarBoardData = {
+  name: 'Yangon',
+  cities: YANGON_CITIES,
+  transport: YANGON_TRANSPORT,
+  temples: YANGON_TEMPLES,
+  groups: YANGON_GROUPS,
+};
+
+/**
+ * A Myanmar-style board: 48 spaces, square, eleven between corners (D101). The Yangon map uses the
+ * same specials and companies with its own cities, transport and pagodas (D116).
+ */
+export function buildMyanmarBoard(data: MyanmarBoardData = MYANMAR_DATA): BoardLayout {
   const spaces: SpaceData[] = [];
   for (let index = 0; index < MYANMAR_SIZE; index++) {
-    const city = MYANMAR_CITIES.find((c) => c.space === index);
-    const airport = MYANMAR_TRANSPORT.find((a) => a.space === index);
+    const city = data.cities.find((c) => c.space === index);
+    const airport = data.transport.find((a) => a.space === index);
     const company = MYANMAR_COMPANIES.find((c) => c.space === index);
     const special = MYANMAR_SPECIALS[index];
     const found = [city, airport, company, special].filter((x) => x !== undefined).length;
-    if (found !== 1) throw new Error(`Myanmar space ${index} is defined ${found} times`);
+    if (found !== 1) throw new Error(`${data.name} space ${index} is defined ${found} times`);
     if (city) spaces.push({ index, type: 'city', city });
     else if (airport) spaces.push({ index, type: 'airport', airport });
     else if (company) spaces.push({ index, type: 'company', company: { ...company } });
     else if (special === 'tax:income') spaces.push({ index, type: 'tax', tax: 'income' });
     else if (special === 'tax:luxury') spaces.push({ index, type: 'tax', tax: 'luxury' });
-    else if (special === 'temple') spaces.push({ index, type: 'temple', temple: MYANMAR_TEMPLES[index] as TempleData });
+    else if (special === 'temple') spaces.push({ index, type: 'temple', temple: data.temples[index] as TempleData });
     else spaces.push({ index, type: special as Exclude<SpecialType, 'tax' | 'temple'> });
   }
   setBetween(spaces);
@@ -314,13 +346,18 @@ export function buildMyanmarBoard(): BoardLayout {
     cities,
     airports: spaces.flatMap((s) => (s.type === 'airport' ? [s.airport] : [])),
     companies: spaces.flatMap((s) => (s.type === 'company' ? [s.company] : [])),
-    countries: MYANMAR_GROUPS.filter((c) => cities.some((city) => city.country === c.id)),
+    countries: data.groups.filter((c) => cities.some((city) => city.country === c.id)),
     fullIndex: spaces.map((s) => s.index),
   };
 }
 
-export type MapId = 'world' | 'myanmar';
-export const MAP_IDS: readonly MapId[] = ['world', 'myanmar'];
+export type MapId = 'world' | 'myanmar' | 'yangon';
+export const MAP_IDS: readonly MapId[] = ['world', 'myanmar', 'yangon'];
+
+/** A map id from anything (settings, a save, a URL): an unknown or missing one is the World map. */
+export function mapIdOf(x: unknown): MapId {
+  return x === 'myanmar' || x === 'yangon' ? x : 'world';
+}
 
 /** A map: its board and everything looked up on it, worked out once. */
 export interface GameMap {
@@ -338,7 +375,7 @@ export interface GameMap {
 }
 
 function gameMap(id: MapId, rules: MapRules, layout: BoardLayout): GameMap {
-  const groups = [...ALL_COUNTRIES, ...MYANMAR_GROUPS];
+  const groups = [...ALL_COUNTRIES, ...MYANMAR_GROUPS, ...YANGON_GROUPS];
   return {
     id,
     rules,
@@ -356,10 +393,11 @@ function gameMap(id: MapId, rules: MapRules, layout: BoardLayout): GameMap {
   };
 }
 
-/** Both maps, built once when the module loads. */
+/** Every map, built once when the module loads. */
 export const MAPS: Readonly<Record<MapId, GameMap>> = {
   world: gameMap('world', WORLD_RULES, buildBoard(BOARD_SIZE, BOARD_SHAPE)),
-  myanmar: gameMap('myanmar', MYANMAR_RULES, buildMyanmarBoard()),
+  myanmar: gameMap('myanmar', MYANMAR_RULES, buildMyanmarBoard(MYANMAR_DATA)),
+  yangon: gameMap('yangon', MYANMAR_RULES, buildMyanmarBoard(YANGON_DATA)),
 };
 
 /** The map in play (see the note at the top). */
@@ -390,6 +428,8 @@ export let CORNERS: readonly number[] = LAYOUT.corners;
 /** Makes `id` the map in play. Cheap when it already is. */
 export function setActiveMap(id: MapId): void {
   const next = MAPS[id] ?? MAPS.world;
+  // The Yangon map reads in Burmese only (D116).
+  setForcedBurmese(next.id === 'yangon');
   if (next === MAP) return;
   MAP = next;
   RULES = next.rules;
@@ -416,7 +456,7 @@ export function setActiveMap(id: MapId): void {
 export function useMap(of: { meta: { settings: { map?: MapId } } } | { map?: MapId } | null | undefined): void {
   if (!of) return;
   const id = 'meta' in of ? of.meta.settings.map : of.map;
-  setActiveMap(id === 'myanmar' ? 'myanmar' : 'world');
+  setActiveMap(mapIdOf(id));
 }
 
 /** The pagoda on this space of the board in play, or null. */

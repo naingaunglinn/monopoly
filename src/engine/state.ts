@@ -1,6 +1,6 @@
 // Creating a new game (spec 5.1 and section 8).
 import { BALANCE, BOARD_SHAPE, BOARD_SIZE, MYANMAR, SETUP } from '../data/balance.js';
-import { isProperty, LAYOUT, MAPS, useMap, type MapId } from '../data/board.js';
+import { isProperty, LAYOUT, MAPS, mapIdOf, useMap, type MapId } from '../data/board.js';
 import { PLAYER_COLORS, SEATS } from '../data/players.js';
 import { defaultPlayerName } from '../ui/strings.js';
 import { buildDecks } from './cards.js';
@@ -19,9 +19,9 @@ export const SCHEMA_VERSION = 6;
 /** The World board in play, as the settings record it. */
 export const THIS_BOARD: Readonly<BoardSettings> = { spaces: BOARD_SIZE, shape: BOARD_SHAPE };
 
-/** The board of a map, as the settings record it: the World board in play, or Myanmar's 48 spaces. */
+/** The board of a map, as the settings record it: the World board in play, or the 48 spaces of Myanmar or Yangon. */
 export function boardOf(map: MapId): BoardSettings {
-  if (map === 'myanmar') return { spaces: MAPS.myanmar.layout.size, shape: MAPS.myanmar.layout.shape };
+  if (map !== 'world') return { spaces: MAPS[map].layout.size, shape: MAPS[map].layout.shape };
   return { ...THIS_BOARD };
 }
 
@@ -33,7 +33,7 @@ export function isThisBoard(settings: unknown): boolean {
   if (typeof settings !== 'object' || settings === null) return false;
   const { board, map } = settings as Record<string, unknown>;
   if (typeof board !== 'object' || board === null) return false;
-  const want = boardOf(map === 'myanmar' ? 'myanmar' : 'world');
+  const want = boardOf(mapIdOf(map));
   const b = board as Record<string, unknown>;
   return b.spaces === want.spaces && b.shape === want.shape;
 }
@@ -84,9 +84,9 @@ function normalizeColors(input: unknown): string[] {
 /** Fills gaps and clamps every option to the values the setup screen offers. */
 export function normalizeSettings(input: Partial<Settings> = {}): Settings {
   const merged: Settings = { ...DEFAULT_SETTINGS, ...input, playerNames: [] };
-  const map: MapId = merged.map === 'myanmar' ? 'myanmar' : 'world';
-  // The Myanmar map has no Free Stay tokens (merit replaces them) and no Vacation (D101).
-  const myanmar = map === 'myanmar';
+  const map: MapId = mapIdOf(merged.map);
+  // The Myanmar and Yangon maps have no Free Stay tokens (merit replaces them) and no Vacation (D101, D116).
+  const myanmar = map !== 'world';
   const playerCount = SETUP.playerCounts.includes(merged.playerCount) ? merged.playerCount : SETUP.defaultPlayerCount;
   const names = input.playerNames ?? [];
   const playerNames = SEATS.map((_, i) => {

@@ -24,15 +24,16 @@ export function App() {
   }, []);
   // The speed setting applies to everything on screen, including overlays outside the board.
   const speed = screen === 'game' && game ? animationSpeed : 'normal';
-  // Burmese names and cards on the Myanmar map need taller lines (theme.css, D101).
+  // Burmese names and cards on the Myanmar map need taller lines (theme.css, D101); the Yangon map
+  // is always Burmese (D116).
   const map = screen === 'game' && game ? game.meta.settings.map : undefined;
-  const burmese = map === 'myanmar' && language === 'my';
+  const burmese = (map === 'myanmar' && language === 'my') || map === 'yangon';
   return (
     <div
       className="app"
       data-speed={speed}
       data-motion={motionAnyway ? 'full' : undefined}
-      data-map={map === 'myanmar' ? map : undefined}
+      data-map={map === 'myanmar' || map === 'yangon' ? map : undefined}
       data-names={burmese ? 'my' : undefined}
     >
       {screen === 'start' && <StartScreen />}

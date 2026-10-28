@@ -6,6 +6,7 @@ import type { MapId } from '../engine';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { SIM } from '../data/balance';
+import { mapIdOf } from '../data/board';
 import { SimulationFailure, simulateGame, summarize, type GameResult, type ModeSummary } from './runner';
 
 function arg(name: string, fallback: number): number {
@@ -38,8 +39,8 @@ function main(): void {
   const quickGames = arg('quick', SIM.quickGames);
   const normalGames = arg('normal', SIM.normalGames);
   const firstSeed = arg('seed', 1);
-  const map: MapId = argText('map', 'world') === 'myanmar' ? 'myanmar' : 'world';
-  const out = resolve(argText('out', map === 'myanmar' ? 'reports/sim-report-myanmar.json' : 'reports/sim-report.json'));
+  const map: MapId = mapIdOf(argText('map', 'world'));
+  const out = resolve(argText('out', map === 'world' ? 'reports/sim-report.json' : `reports/sim-report-${map}.json`));
   const started = Date.now();
   const results: GameResult[] = [];
   const plan: Array<{ seed: number; mode: 'quick' | 'normal' }> = [

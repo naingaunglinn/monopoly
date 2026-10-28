@@ -188,8 +188,8 @@ export function RuleToggles({
     <fieldset className="field">
       <legend className="field-label">{T.setup.rules}</legend>
       <div className="toggle-list">
-        {/* The Myanmar map has no Free Stay tokens and no Vacation corner (D101). */}
-        {options.map !== 'myanmar' && (
+        {/* The Myanmar and Yangon maps have no Free Stay tokens and no Vacation corner (D101, D116). */}
+        {options.map === 'world' && (
           <>
             <Toggle id="opt-freestay" label={T.setup.freeStay} checked={options.freeStay} onChange={(v) => onChange('freeStay', v)} disabled={disabled} />
             <Toggle id="opt-vacation" label={T.setup.vacation} checked={options.vacation} onChange={(v) => onChange('vacation', v)} disabled={disabled} />
@@ -199,7 +199,7 @@ export function RuleToggles({
         <Toggle id="opt-chance" label={T.setup.chance} checked={options.chance} onChange={(v) => onChange('chance', v)} disabled={disabled} />
         <Toggle id="opt-event" label={T.setup.event} checked={options.event} onChange={(v) => onChange('event', v)} disabled={disabled} />
         {/* Myanmar map: the general is a house rule; rank and salary stay without it (D115). */}
-        {options.map === 'myanmar' && (
+        {options.map !== 'world' && (
           <Toggle
             id="opt-general"
             label={T.setup.general}

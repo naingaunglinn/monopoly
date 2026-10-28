@@ -6,6 +6,7 @@ import type { ModifierType } from '../data/cardTypes.js';
 import type { CountryId } from '../data/countries.js';
 import type { MyanmarTransport } from '../data/myanmar.js';
 import { MYANMAR_CARD_BY_ID } from '../data/myanmarCards.js';
+import { YANGON_CARD_BY_ID } from '../data/yangonCards.js';
 import { airportsOwnedBy, companiesOwnedBy, ownsCountry } from './core.js';
 import { boostedCompany, inflationFactor } from './myanmar.js';
 import type { Dice, GameState, RentCalc } from './types.js';
@@ -19,12 +20,17 @@ function combine(a: number | null, b: number | null): number | null {
   return a === null && b === null ? null : (a ?? 1) * (b ?? 1);
 }
 
+/** A Myanmar or Yangon map card by id (modifiers name the card that made them). */
+function mapCard(id: string) {
+  return MYANMAR_CARD_BY_ID.get(id) ?? YANGON_CARD_BY_ID.get(id);
+}
+
 /** Myanmar map: the regional rent modifiers that cover this region (tourist season, rice prices). */
 function groupFactor(s: GameState, country: CountryId): number | null {
   let factor: number | null = null;
   for (const m of s.flow.modifiers) {
     if (m.type !== 'groupRent') continue;
-    const effect = MYANMAR_CARD_BY_ID.get(m.cardId)?.effect;
+    const effect = mapCard(m.cardId)?.effect;
     if (effect?.type === 'groupRent' && effect.groups.includes(country)) factor = (factor ?? 1) * m.factor;
   }
   return factor;
@@ -37,7 +43,7 @@ function transportFactor(s: GameState, space: number): number | null {
   let factor: number | null = null;
   for (const m of s.flow.modifiers) {
     if (m.type !== 'transportRent') continue;
-    const effect = MYANMAR_CARD_BY_ID.get(m.cardId)?.effect;
+    const effect = mapCard(m.cardId)?.effect;
     if (effect?.type === 'transportClosed' && effect.kind === kind) factor = (factor ?? 1) * m.factor;
   }
   return factor;

@@ -1672,7 +1672,8 @@ select {
 }
 
 /* Amounts in lakh run longer than in dollars: a little smaller on the Myanmar map, more in Burmese. */
-.app[data-map='myanmar'] {
+.app[data-map='myanmar'],
+.app[data-map='yangon'] {
   --cash-scale: 0.88;
 }
 
@@ -3438,20 +3439,24 @@ ol.rules-lines {
   }
 
   /* The Myanmar map has no flags to name its regions and fewer, wider tiles: names stay (D101). */
-  .board[data-map='myanmar'] .tile-card .tile-name {
+  .board[data-map='myanmar'] .tile-card .tile-name,
+  .board[data-map='yangon'] .tile-card .tile-name {
     display: -webkit-box;
   }
 
-  .board[data-map='myanmar'] .tile-card .tile-text {
+  .board[data-map='myanmar'] .tile-card .tile-text,
+  .board[data-map='yangon'] .tile-card .tile-text {
     padding-top: 3px;
   }
 
   /* Cash in lakh is longer than in dollars; the player column is narrower here. */
-  .app[data-map='myanmar'] {
+  .app[data-map='myanmar'],
+  .app[data-map='yangon'] {
     --cash-scale: 0.8;
   }
 
-  .app[data-map='myanmar'][data-names='my'] {
+  .app[data-map='myanmar'][data-names='my'],
+  .app[data-map='yangon'][data-names='my'] {
     --cash-scale: 0.6;
   }
 

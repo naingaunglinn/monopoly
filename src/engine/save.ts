@@ -4,7 +4,7 @@
 // setting, all on the full 80-space board), version 3 saves (before the Myanmar map, all on the
 // World map) and version 4 saves (before the Myanmar map's spec v2) are migrated on load.
 import { MYANMAR, SETUP } from '../data/balance.js';
-import { isProperty, LAYOUT, MAP, useMap } from '../data/board.js';
+import { isProperty, LAYOUT, MAP, mapIdOf, useMap } from '../data/board.js';
 import { MYANMAR_COMPANIES } from '../data/myanmar.js';
 import { cardsForSettings, isKnownCard } from './cards.js';
 import { checkInvariants } from './invariants.js';
@@ -286,7 +286,7 @@ export function parseSave(text: string | null | undefined): ParseResult {
     // A game from another board cannot go on: its spaces are not this board's (D96).
     const settings = (current.meta as Record<string, unknown>).settings;
     if (!isObj(settings) || !isThisBoard(settings)) return { ok: false, problem: 'otherBoard' };
-    useMap({ map: settings.map === 'myanmar' ? 'myanmar' : 'world' });
+    useMap({ map: mapIdOf(settings.map) });
     if (!shapeIsValid(current)) return { ok: false, problem: 'corrupt' };
     const state = current as unknown as GameState;
     if (checkInvariants(state).length > 0) return { ok: false, problem: 'corrupt' };
